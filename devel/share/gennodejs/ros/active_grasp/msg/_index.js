@@ -1,0 +1,1 @@
+/home/tom/dev_ws/thesis_ws/devel/.private/active_grasp/share/gennodejs/ros/active_grasp/msg/_index.js

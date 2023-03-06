@@ -1,0 +1,1 @@
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/__init__.py

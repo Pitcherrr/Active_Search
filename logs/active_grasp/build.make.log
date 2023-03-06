@@ -1,0 +1,19 @@
+[  0%] Built target geometry_msgs_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_eus
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_cpp
+[  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_eus
+[  0%] Built target geometry_msgs_generate_messages_cpp
+[  0%] Built target _active_grasp_generate_messages_check_deps_Seed
+[  0%] Built target _active_grasp_generate_messages_check_deps_Reset
+[  0%] Built target _active_grasp_generate_messages_check_deps_AABBox
+[ 83%] Built target active_grasp_generate_messages_lisp
+[ 83%] Built target active_grasp_generate_messages_nodejs
+[ 83%] Built target active_grasp_generate_messages_cpp
+[100%] Built target active_grasp_generate_messages_py
+[100%] Built target active_grasp_generate_messages_eus
+[100%] Built target active_grasp_generate_messages

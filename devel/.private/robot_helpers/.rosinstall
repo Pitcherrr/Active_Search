@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/tom/dev_ws/thesis_ws/devel/.private/robot_helpers/setup.sh
