@@ -7,7 +7,6 @@ import open3d as o3d
 
 from bullet import *
 from queue import Queue
-from PySide2.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QWidget
 from robot_helpers.model import *
 from active_grasp.simulation import Simulation
 from vgn.perception import UniformTSDFVolume
@@ -157,7 +156,6 @@ def main():
         env = Environment(gui, scene_id, vgn_path)
         env.load_engine()
         env.run()
-        #thread_handler(env)
 
 
        

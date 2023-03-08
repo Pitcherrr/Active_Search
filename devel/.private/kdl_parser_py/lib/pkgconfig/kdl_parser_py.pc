@@ -1,8 +1,0 @@
-prefix=/home/tom/dev_ws/thesis_ws/devel/.private/kdl_parser_py
-
-Name: kdl_parser_py
-Description: Description of kdl_parser_py
-Version: 1.14.2
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: urdfdom_py

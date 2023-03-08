@@ -54,7 +54,7 @@ CMAKE_BINARY_DIR = /home/tom/dev_ws/thesis_ws/build/vgn
 include CMakeFiles/_vgn_generate_messages_check_deps_PredictGrasps.dir/progress.make
 
 CMakeFiles/_vgn_generate_messages_check_deps_PredictGrasps:
-	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vgn /home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv sensor_msgs/PointCloud2:sensor_msgs/PointField:std_msgs/Header:geometry_msgs/Pose:geometry_msgs/Point:geometry_msgs/Quaternion:vgn/GraspConfig
+	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vgn /home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv vgn/GraspConfig:geometry_msgs/Quaternion:sensor_msgs/PointField:sensor_msgs/PointCloud2:geometry_msgs/Point:std_msgs/Header:geometry_msgs/Pose
 
 _vgn_generate_messages_check_deps_PredictGrasps: CMakeFiles/_vgn_generate_messages_check_deps_PredictGrasps
 _vgn_generate_messages_check_deps_PredictGrasps: CMakeFiles/_vgn_generate_messages_check_deps_PredictGrasps.dir/build.make

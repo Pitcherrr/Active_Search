@@ -1,25 +1,48 @@
-[  0%] Built target std_msgs_generate_messages_eus
-[  0%] Built target sensor_msgs_generate_messages_eus
-[  0%] Built target geometry_msgs_generate_messages_eus
-[  0%] Built target geometry_msgs_generate_messages_nodejs
-[  0%] Built target sensor_msgs_generate_messages_nodejs
-[  0%] Built target geometry_msgs_generate_messages_py
-[  0%] Built target geometry_msgs_generate_messages_lisp
-[  0%] Built target std_msgs_generate_messages_lisp
-[  0%] Built target std_msgs_generate_messages_nodejs
-[  0%] Built target sensor_msgs_generate_messages_lisp
 [  0%] Built target sensor_msgs_generate_messages_py
 [  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_eus
+[  0%] Built target sensor_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_lisp
+[  0%] Built target sensor_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_py
+[  0%] Built target std_msgs_generate_messages_eus
+[  0%] Built target geometry_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target sensor_msgs_generate_messages_eus
 [  0%] Built target geometry_msgs_generate_messages_cpp
 [  0%] Built target std_msgs_generate_messages_cpp
 [  0%] Built target sensor_msgs_generate_messages_cpp
-[  0%] Built target _vgn_generate_messages_check_deps_PredictGrasps
-[  0%] Built target _vgn_generate_messages_check_deps_GetMapCloud
-[  0%] Built target _vgn_generate_messages_check_deps_GetSceneCloud
 [  0%] Built target _vgn_generate_messages_check_deps_GraspConfig
-[100%] Built target vgn_generate_messages_eus
-[100%] Built target vgn_generate_messages_py
-[100%] Built target vgn_generate_messages_lisp
-[100%] Built target vgn_generate_messages_nodejs
+[  0%] Built target _vgn_generate_messages_check_deps_GetMapCloud
+[  0%] Built target _vgn_generate_messages_check_deps_PredictGrasps
+[  0%] Built target _vgn_generate_messages_check_deps_GetSceneCloud
+[ 60%] [34m[1mGenerating Python code from SRV vgn/GetMapCloud[0m
+[ 65%] [34m[1mGenerating EusLisp code from vgn/GetSceneCloud.srv[0m
+[ 65%] [34m[1mGenerating Javascript code from vgn/GetSceneCloud.srv[0m
+[ 65%] [34m[1mGenerating EusLisp code from vgn/GetMapCloud.srv[0m
+[ 65%] [34m[1mGenerating Python code from SRV vgn/GetSceneCloud[0m
+[ 65%] [34m[1mGenerating Javascript code from vgn/GraspConfig.msg[0m
+[ 65%] [34m[1mGenerating Javascript code from vgn/GetMapCloud.srv[0m
+[ 65%] [34m[1mGenerating Lisp code from vgn/GetSceneCloud.srv[0m
+[ 65%] [34m[1mGenerating Lisp code from vgn/GraspConfig.msg[0m
+[ 65%] [34m[1mGenerating Javascript code from vgn/PredictGrasps.srv[0m
+[ 69%] [34m[1mGenerating C++ code from vgn/GraspConfig.msg[0m
+[ 69%] [34m[1mGenerating EusLisp code from vgn/PredictGrasps.srv[0m
+[ 65%] [34m[1mGenerating EusLisp code from vgn/GraspConfig.msg[0m
+[ 69%] [34m[1mGenerating EusLisp manifest code for vgn[0m
+[ 65%] [34m[1mGenerating Python from MSG vgn/GraspConfig[0m
+[ 65%] [34m[1mGenerating Lisp code from vgn/GetMapCloud.srv[0m
+[ 82%] [34m[1mGenerating C++ code from vgn/GetMapCloud.srv[0m
+[ 82%] [34m[1mGenerating Lisp code from vgn/PredictGrasps.srv[0m
+[ 82%] [34m[1mGenerating Python code from SRV vgn/PredictGrasps[0m
+[ 86%] [34m[1mGenerating C++ code from vgn/GetSceneCloud.srv[0m
+[ 86%] Built target vgn_generate_messages_nodejs
+[ 91%] [34m[1mGenerating C++ code from vgn/PredictGrasps.srv[0m
+[ 91%] Built target vgn_generate_messages_lisp
+[100%] [34m[1mGenerating Python srv __init__.py for vgn[0m
+[100%] [34m[1mGenerating Python msg __init__.py for vgn[0m
 [100%] Built target vgn_generate_messages_cpp
+[100%] Built target vgn_generate_messages_py
+[100%] Built target vgn_generate_messages_eus
 [100%] Built target vgn_generate_messages

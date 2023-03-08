@@ -54,7 +54,7 @@ CMAKE_BINARY_DIR = /home/tom/dev_ws/thesis_ws/build/vgn
 include CMakeFiles/_vgn_generate_messages_check_deps_GraspConfig.dir/progress.make
 
 CMakeFiles/_vgn_generate_messages_check_deps_GraspConfig:
-	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vgn /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg geometry_msgs/Pose:geometry_msgs/Quaternion:geometry_msgs/Point
+	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py vgn /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg geometry_msgs/Point:geometry_msgs/Pose:geometry_msgs/Quaternion
 
 _vgn_generate_messages_check_deps_GraspConfig: CMakeFiles/_vgn_generate_messages_check_deps_GraspConfig
 _vgn_generate_messages_check_deps_GraspConfig: CMakeFiles/_vgn_generate_messages_check_deps_GraspConfig.dir/build.make

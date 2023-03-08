@@ -63,37 +63,37 @@ CMakeFiles/vgn_generate_messages_py: /home/tom/dev_ws/thesis_ws/devel/.private/v
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /opt/ros/noetic/lib/genpy/genmsg_py.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Python from MSG vgn/GraspConfig"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg -Ivgn:/home/tom/dev_ws/thesis_ws/src/vgn/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -Isensor_msgs:/opt/ros/noetic/share/sensor_msgs/cmake/../msg -p vgn -o /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /opt/ros/noetic/lib/genpy/gensrv_py.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetMapCloud.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating Python code from SRV vgn/GetMapCloud"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genpy/cmake/../../../lib/genpy/gensrv_py.py /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetMapCloud.srv -Ivgn:/home/tom/dev_ws/thesis_ws/src/vgn/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -Isensor_msgs:/opt/ros/noetic/share/sensor_msgs/cmake/../msg -p vgn -o /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /opt/ros/noetic/lib/genpy/gensrv_py.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetSceneCloud.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating Python code from SRV vgn/GetSceneCloud"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genpy/cmake/../../../lib/genpy/gensrv_py.py /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetSceneCloud.srv -Ivgn:/home/tom/dev_ws/thesis_ws/src/vgn/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -Isensor_msgs:/opt/ros/noetic/share/sensor_msgs/cmake/../msg -p vgn -o /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/lib/genpy/gensrv_py.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating Python code from SRV vgn/PredictGrasps"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genpy/cmake/../../../lib/genpy/gensrv_py.py /home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv -Ivgn:/home/tom/dev_ws/thesis_ws/src/vgn/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -Isensor_msgs:/opt/ros/noetic/share/sensor_msgs/cmake/../msg -p vgn -o /home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv
 

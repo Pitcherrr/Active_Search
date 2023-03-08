@@ -61,17 +61,17 @@ CMakeFiles/vgn_generate_messages_cpp: /home/tom/dev_ws/thesis_ws/devel/.private/
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/lib/gencpp/gen_cpp.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h: /opt/ros/noetic/share/gencpp/msg.h.template
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating C++ code from vgn/GraspConfig.msg"
 	cd /home/tom/dev_ws/thesis_ws/src/vgn && /home/tom/dev_ws/thesis_ws/build/vgn/catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/gencpp/cmake/../../../lib/gencpp/gen_cpp.py /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg -Ivgn:/home/tom/dev_ws/thesis_ws/src/vgn/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -Isensor_msgs:/opt/ros/noetic/share/sensor_msgs/cmake/../msg -p vgn -o /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn -e /opt/ros/noetic/share/gencpp/cmake/..
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/lib/gencpp/gen_cpp.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetMapCloud.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/gencpp/msg.h.template
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h: /opt/ros/noetic/share/gencpp/srv.h.template
@@ -80,8 +80,8 @@ CMakeFiles/vgn_generate_messages_cpp: /home/tom/dev_ws/thesis_ws/devel/.private/
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/lib/gencpp/gen_cpp.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /home/tom/dev_ws/thesis_ws/src/vgn/srv/GetSceneCloud.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/gencpp/msg.h.template
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h: /opt/ros/noetic/share/gencpp/srv.h.template
@@ -90,13 +90,13 @@ CMakeFiles/vgn_generate_messages_cpp: /home/tom/dev_ws/thesis_ws/devel/.private/
 
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/lib/gencpp/gen_cpp.py
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/sensor_msgs/msg/PointField.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/sensor_msgs/msg/PointCloud2.msg
+/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/gencpp/msg.h.template
 /home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h: /opt/ros/noetic/share/gencpp/srv.h.template
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/tom/dev_ws/thesis_ws/build/vgn/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating C++ code from vgn/PredictGrasps.srv"

@@ -438,8 +438,8 @@ CMakeFiles/_run_tests_kdl_parser_py_rostest.dir/clean:
 # Target rules for target CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir
 
 # All Build rule for target.
-CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/all: CMakeFiles/tests.dir/all
 CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/all: CMakeFiles/clean_test_results_kdl_parser_py.dir/all
+CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/all: CMakeFiles/tests.dir/all
 	$(MAKE) -f CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/build.make CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/depend
 	$(MAKE) -f CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/build.make CMakeFiles/_run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/tom/dev_ws/thesis_ws/build/kdl_parser_py/CMakeFiles --progress-num= "Built target _run_tests_kdl_parser_py_rostest_test_test_kdl_parser.launch"

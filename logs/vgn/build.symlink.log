@@ -1,42 +1,42 @@
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/__init__.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/__init__.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/srv/__init__.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/__init__.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/_GraspConfig.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/msg/_GraspConfig.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/lib/python3/dist-packages/vgn/msg/__init__.py, /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/msg/__init__.py)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloudResponse.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloudResponse.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGrasps.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGrasps.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloud.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloud.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloud.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloud.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGraspsResponse.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGraspsResponse.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGraspsRequest.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGraspsRequest.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloudRequest.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloudRequest.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetMapCloudRequest.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloudRequest.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GraspConfig.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GraspConfig.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/GetSceneCloudResponse.h, /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloudResponse.h)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/_package_GetMapCloud.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_GetMapCloud.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/PredictGrasps.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/PredictGrasps.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/GetSceneCloud.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/GetSceneCloud.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/vgn-srv.asd, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/vgn-srv.asd)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/_package_PredictGrasps.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_PredictGrasps.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/GetMapCloud.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/GetMapCloud.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/_package.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/srv/_package_GetSceneCloud.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_GetSceneCloud.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/msg/vgn-msg.asd, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/vgn-msg.asd)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/msg/GraspConfig.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/GraspConfig.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/msg/_package_GraspConfig.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/_package_GraspConfig.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/common-lisp/ros/vgn/msg/_package.lisp, /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/_package.lisp)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/vgn/cmake/vgn-msg-paths.cmake, /home/tom/dev_ws/thesis_ws/devel/share/vgn/cmake/vgn-msg-paths.cmake)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/roseus/ros/vgn/manifest.l, /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/manifest.l)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/roseus/ros/vgn/srv/GetSceneCloud.l, /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/GetSceneCloud.l)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/roseus/ros/vgn/srv/PredictGrasps.l, /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/PredictGrasps.l)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/roseus/ros/vgn/srv/GetMapCloud.l, /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/GetMapCloud.l)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/roseus/ros/vgn/msg/GraspConfig.l, /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/msg/GraspConfig.l)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/_index.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/_index.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/srv/GetMapCloud.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/GetMapCloud.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/srv/GetSceneCloud.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/GetSceneCloud.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/srv/PredictGrasps.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/PredictGrasps.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/srv/_index.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/_index.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/msg/GraspConfig.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/msg/GraspConfig.js)
-Linked: (/home/tom/dev_ws/thesis_ws/devel/.private/vgn/share/gennodejs/ros/vgn/msg/_index.js, /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/msg/_index.js)
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/__init__.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_GetMapCloud.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_GetSceneCloud.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/_PredictGrasps.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/srv/__init__.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/msg/_GraspConfig.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/lib/python3/dist-packages/vgn/msg/__init__.py
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloudResponse.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGrasps.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloud.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloud.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGraspsResponse.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/PredictGraspsRequest.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloudRequest.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetMapCloudRequest.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GraspConfig.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/include/vgn/GetSceneCloudResponse.h
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_GetMapCloud.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/PredictGrasps.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/GetSceneCloud.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/vgn-srv.asd
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_PredictGrasps.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/GetMapCloud.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/srv/_package_GetSceneCloud.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/vgn-msg.asd
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/GraspConfig.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/_package_GraspConfig.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/common-lisp/ros/vgn/msg/_package.lisp
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/vgn/cmake/vgn-msg-paths.cmake
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/manifest.l
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/GetSceneCloud.l
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/PredictGrasps.l
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/srv/GetMapCloud.l
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/roseus/ros/vgn/msg/GraspConfig.l
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/_index.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/GetMapCloud.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/GetSceneCloud.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/PredictGrasps.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/srv/_index.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/msg/GraspConfig.js
+Symlinking /home/tom/dev_ws/thesis_ws/devel/share/gennodejs/ros/vgn/msg/_index.js

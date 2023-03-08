@@ -1,1 +1,0 @@
-/home/tom/dev_ws/thesis_ws/devel/.private/vgn/include/vgn/PredictGraspsResponse.h
