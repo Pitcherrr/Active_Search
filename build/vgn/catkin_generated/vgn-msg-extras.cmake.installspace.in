@@ -1,2 +1,0 @@
-set(vgn_MESSAGE_FILES "msg/GraspConfig.msg")
-set(vgn_SERVICE_FILES "srv/GetMapCloud.srv;srv/GetSceneCloud.srv;srv/PredictGrasps.srv")

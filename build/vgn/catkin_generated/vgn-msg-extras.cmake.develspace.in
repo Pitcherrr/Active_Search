@@ -1,2 +1,0 @@
-set(vgn_MESSAGE_FILES "/home/tom/dev_ws/thesis_ws/src/vgn/msg/GraspConfig.msg")
-set(vgn_SERVICE_FILES "/home/tom/dev_ws/thesis_ws/src/vgn/srv/GetMapCloud.srv;/home/tom/dev_ws/thesis_ws/src/vgn/srv/GetSceneCloud.srv;/home/tom/dev_ws/thesis_ws/src/vgn/srv/PredictGrasps.srv")

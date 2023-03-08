@@ -1,2 +1,0 @@
-set(active_grasp_MESSAGE_FILES "/home/tom/dev_ws/thesis_ws/src/active_grasp/msg/AABBox.msg")
-set(active_grasp_SERVICE_FILES "/home/tom/dev_ws/thesis_ws/src/active_grasp/srv/Reset.srv;/home/tom/dev_ws/thesis_ws/src/active_grasp/srv/Seed.srv")

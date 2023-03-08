@@ -1,7 +1,0 @@
-set(active_grasp_SETUP_PY_SETUP_MODULE "distutils.core")
-set(active_grasp_SETUP_PY_VERSION "0.1.0")
-set(active_grasp_SETUP_PY_SCRIPTS "")
-set(active_grasp_SETUP_PY_PACKAGES "active_grasp")
-set(active_grasp_SETUP_PY_PACKAGE_DIRS "src/active_grasp")
-set(active_grasp_SETUP_PY_MODULES "")
-set(active_grasp_SETUP_PY_MODULE_DIRS "")
