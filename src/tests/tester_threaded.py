@@ -58,7 +58,6 @@ class Environment:
 
     
     def get_tsdf_2(self):
-        view_loop = False
 
         origin = Transform.from_translation(self.sim.scene.origin)
         origin.translation[2] -= 0.05
@@ -69,19 +68,12 @@ class Environment:
         theta = np.pi / 4.0
         phis = np.linspace(0.0, 2.0 * np.pi, 5)
 
-        if view_loop:
-            for view in [view_on_sphere(center, r, theta, phi) for phi in phis]:
-                depth_img = self.sim.camera.get_image(view)[1]
-                tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
-            voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
-
-        if not view_loop:
-            view = [view_on_sphere(center, r, theta, phi) for phi in phis][0]
-            cam_data = self.sim.camera.get_image()
-            image = cam_data[0]
-            depth_img = cam_data[1]
-            tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
-            voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
+        view = [view_on_sphere(center, r, theta, phi) for phi in phis][0]
+        cam_data = self.sim.camera.get_image()
+        image = cam_data[0]
+        depth_img = cam_data[1]
+        tsdf.integrate(depth_img, self.sim.camera.intrinsic, origin)
+        voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
 
         tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
 
