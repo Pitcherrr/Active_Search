@@ -1,0 +1,3 @@
+Issue in get grasps that is still rotating the camera when we generate the scene, maybe need to create my own simulation function from scratch 
+
+

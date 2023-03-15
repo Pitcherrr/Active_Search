@@ -6,7 +6,7 @@ import math
 import numpy as np
 import time
 
-from bullet import *
+from robot_helpers.bullet import *
 from robot_helpers.model import *
 
 def main():

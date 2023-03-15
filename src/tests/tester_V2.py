@@ -8,7 +8,7 @@ import threading
 import open3d as o3d
 import matplotlib.pyplot as plt
 
-from bullet import *
+from robot_helpers.bullet import *
 from robot_helpers.model import *
 from active_grasp.simulation import Simulation
 from vgn.perception import UniformTSDFVolume

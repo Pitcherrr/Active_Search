@@ -5,10 +5,11 @@ import numpy as np
 import threading 
 import open3d as o3d
 
-from bullet import *
+from robot_helpers.bullet import *
 from queue import Queue
 from robot_helpers.model import *
-from active_grasp.simulation import Simulation
+from search_sim import Simulation
+#from active_grasp.simulation import Simulation
 from vgn.perception import UniformTSDFVolume
 from vgn.utils import view_on_sphere
 
@@ -22,6 +23,7 @@ class Environment:
         self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
         self.sim_state = Queue()
         self.sim.reset()
+        self.sim.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.sim.arm.uid, 11)
 
 
     def get_tsdf(self):
@@ -54,13 +56,44 @@ class Environment:
 
         self.sim_state.put([tsdf_mesh, image])
 
+    
+    def get_tsdf_2(self):
+        view_loop = False
+
+        origin = Transform.from_translation(self.sim.scene.origin)
+        origin.translation[2] -= 0.05
+        center = Transform.from_translation(self.sim.scene.center)
+
+        tsdf = UniformTSDFVolume(self.sim.scene.length, 40)
+        r = 2.0 * self.sim.scene.length
+        theta = np.pi / 4.0
+        phis = np.linspace(0.0, 2.0 * np.pi, 5)
+
+        if view_loop:
+            for view in [view_on_sphere(center, r, theta, phi) for phi in phis]:
+                depth_img = self.sim.camera.get_image(view)[1]
+                tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
+            voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
+
+        if not view_loop:
+            view = [view_on_sphere(center, r, theta, phi) for phi in phis][0]
+            cam_data = self.sim.camera.get_image()
+            image = cam_data[0]
+            depth_img = cam_data[1]
+            tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
+            voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
+
+        tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
+
+        self.sim_state.put([tsdf_mesh, image])
+
     def open3d_window(self):
 
         """Need to run this in a loop on another thread, 
         may have to parse in camera data from main thread running pybullet"""
 
         vis = o3d.visualization.Visualizer()
-        vis.create_window()
+        vis.create_window(window_name = "Depth Camera")
 
         while self.sim_state.empty():
              continue
@@ -127,7 +160,7 @@ class Environment:
 
                 if frame_buff == 100:
                     #self.sim.camera.get_image()
-                    self.get_tsdf()
+                    self.get_tsdf_2()
                     frame_buff = 0
 
                 pybullet.setJointMotorControlArray(self.sim.arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
@@ -141,7 +174,6 @@ class Environment:
 def thread_handler(env):
 
     """Getting issues where thread handler is not adding user control to pybullet thread, open3d thread seems to be working"""
-
     # Create two threads, one for each window
     thread_open3d = threading.Thread(target=env.open3d_window)
     thread_open3d.start()
