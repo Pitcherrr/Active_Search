@@ -2,5 +2,5 @@ devel/
 logs/
 build/
 .catkin_tools/
-src/tests/__pycache__/
+src/tests/__pycache__/*
 

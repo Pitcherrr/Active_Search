@@ -1,16 +1,18 @@
 import pybullet
 import pybullet_data
 import math
+import time
 import numpy as np
 import threading 
 import open3d as o3d
+from queue import Queue
 
 from robot_helpers.bullet import *
-from queue import Queue
 from robot_helpers.model import *
 from search_sim import Simulation
 #from active_grasp.simulation import Simulation
 from vgn.perception import UniformTSDFVolume
+from dynamic_perception import DyUniTSDFVolume
 from vgn.utils import view_on_sphere
 
 class Environment:
@@ -23,7 +25,7 @@ class Environment:
         self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
         self.sim_state = Queue()
         self.sim.reset()
-        self.sim.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.sim.arm.uid, 11)
+        #self.sim.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.sim.arm.uid, 11)
 
 
     def get_tsdf(self):
@@ -50,6 +52,9 @@ class Environment:
             image = cam_data[0]
             depth_img = cam_data[1]
             tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
+
+            print(view.inv())
+            print(origin)
             voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
 
         tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
@@ -59,27 +64,57 @@ class Environment:
     
     def get_tsdf_2(self):
 
-        origin = Transform.from_translation(self.sim.scene.origin)
-        origin.translation[2] -= 0.05
-        center = Transform.from_translation(self.sim.scene.center)
+        tsdf = DyUniTSDFVolume(self.sim.scene.length, 200)
 
-        tsdf = UniformTSDFVolume(self.sim.scene.length, 40)
-        r = 2.0 * self.sim.scene.length
-        theta = np.pi / 4.0
-        phis = np.linspace(0.0, 2.0 * np.pi, 5)
-
-        view = [view_on_sphere(center, r, theta, phi) for phi in phis][0]
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
         depth_img = cam_data[1]
-        tsdf.integrate(depth_img, self.sim.camera.intrinsic, origin)
-        voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
+        tsdf.integrate(depth_img, self.sim.camera.intrinsic, np.identity(4)) 
+        #voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
 
-        tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
+        #tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
+        tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
         self.sim_state.put([tsdf_mesh, image])
 
     def open3d_window(self):
+
+        """Need to run this in a loop on another thread, 
+        may have to parse in camera data from main thread running pybullet"""
+
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name = "Depth Camera")
+
+        while self.sim_state.empty():
+             continue
+        
+        state = self.sim_state.get()
+        tsdf_mesh_init, image = state
+        #tsdf_mesh_init.compute_vertex_normals()
+        #tsdf_mesh_init.compute_triangle_normals()
+        vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
+        vis.update_renderer()
+        
+        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = False)
+        while True:
+                if not self.sim_state.empty():
+
+                    state = self.sim_state.get()
+
+                    tsdf_mesh, image = state
+
+                    print(tsdf_mesh)
+
+                    #tsdf_mesh.compute_vertex_normals()
+                    #tsdf_mesh.compute_triangle_normals()
+
+                    vis.add_geometry(tsdf_mesh, reset_bounding_box = False)
+                    vis.poll_events()
+                    vis.update_renderer()
+                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = False)
+                    
+
+    def open3d_window_2(self):
 
         """Need to run this in a loop on another thread, 
         may have to parse in camera data from main thread running pybullet"""
@@ -97,7 +132,7 @@ class Environment:
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
         vis.update_renderer()
         
-        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = False)
+        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = True)
         while True:
                 if not self.sim_state.empty():
 
@@ -105,13 +140,15 @@ class Environment:
 
                     tsdf_mesh, image = state
 
+                    print(tsdf_mesh)
+
                     tsdf_mesh.compute_vertex_normals()
                     tsdf_mesh.compute_triangle_normals()
 
-                    vis.add_geometry(tsdf_mesh, reset_bounding_box = False)
+                    vis.add_geometry(tsdf_mesh, reset_bounding_box = True)
                     vis.poll_events()
                     vis.update_renderer()
-                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = False)
+                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = True)
                     
 
     def run(self):
