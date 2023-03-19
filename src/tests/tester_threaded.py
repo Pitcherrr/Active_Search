@@ -6,9 +6,11 @@ import numpy as np
 import threading 
 import open3d as o3d
 from queue import Queue
+from scipy.spatial.transform import Rotation
 
 from robot_helpers.bullet import *
 from robot_helpers.model import *
+from robot_helpers.spatial import Transform
 from search_sim import Simulation
 #from active_grasp.simulation import Simulation
 from vgn.perception import UniformTSDFVolume
@@ -66,6 +68,10 @@ class Environment:
 
         tsdf = DyUniTSDFVolume(self.sim.scene.length, 200)
 
+        # r = pybullet.getLinkState(self.body_uid, self.link_id, computeForwardKinematics=1)
+        # cam_pose = Transform(Rotation.from_quat(r[5]), r[4])
+        # camera_rot = Transform(Rotation.from_euler('z', 90, degrees=True))
+        
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
         depth_img = cam_data[1]

@@ -3,4 +3,6 @@ logs/
 build/
 .catkin_tools/
 src/tests/__pycache__/*
+__pycache__/
+
 
