@@ -5,8 +5,10 @@ import time
 import numpy as np
 import threading 
 import open3d as o3d
+import cv2
 from queue import Queue
 from scipy.spatial.transform import Rotation
+
 
 from robot_helpers.bullet import *
 from robot_helpers.model import *
@@ -103,21 +105,22 @@ class Environment:
         
         vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = False)
         while True:
-                if not self.sim_state.empty():
+            if not self.sim_state.empty():
 
-                    state = self.sim_state.get()
+                state = self.sim_state.get()
 
-                    tsdf_mesh, image = state
+                tsdf_mesh, image = state
 
-                    print(tsdf_mesh)
+                #print("Image",image)
+                #print(tsdf_mesh)
 
-                    #tsdf_mesh.compute_vertex_normals()
-                    #tsdf_mesh.compute_triangle_normals()
+                #tsdf_mesh.compute_vertex_normals()
+                #tsdf_mesh.compute_triangle_normals()
 
-                    vis.add_geometry(tsdf_mesh, reset_bounding_box = False)
-                    vis.poll_events()
-                    vis.update_renderer()
-                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = False)
+                vis.add_geometry(tsdf_mesh, reset_bounding_box = False)
+                vis.poll_events()
+                vis.update_renderer()
+                vis.remove_geometry(tsdf_mesh, reset_bounding_box = False)
                     
 
     def open3d_window_2(self):
@@ -140,69 +143,98 @@ class Environment:
         
         vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = True)
         while True:
-                if not self.sim_state.empty():
+            if not self.sim_state.empty():
 
-                    state = self.sim_state.get()
+                state = self.sim_state.get()
 
-                    tsdf_mesh, image = state
+                tsdf_mesh, image = state
 
-                    print(tsdf_mesh)
+                print("Image",image)
 
-                    tsdf_mesh.compute_vertex_normals()
-                    tsdf_mesh.compute_triangle_normals()
+                print(tsdf_mesh)
 
-                    vis.add_geometry(tsdf_mesh, reset_bounding_box = True)
-                    vis.poll_events()
-                    vis.update_renderer()
-                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = True)
-                    
+                tsdf_mesh.compute_vertex_normals()
+                tsdf_mesh.compute_triangle_normals()
+
+                vis.add_geometry(tsdf_mesh, reset_bounding_box = True)
+                vis.poll_events()
+                vis.update_renderer()
+                vis.remove_geometry(tsdf_mesh, reset_bounding_box = True)
+
+    def live_feed(self):
+
+        while self.sim_state.empty():
+             continue
+        
+        state = self.sim_state.get()
+        tsdf_mesh_init, image = state
+
+        cv2.namedWindow("RGB Camera", cv2.WINDOW_NORMAL)
+        
+        while True:
+            state = self.sim_state.get()
+            tsdf_mesh, image = state
+
+            cv2.imshow("RGB Camera",image)
+
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                break
+
+            #image.fill(0)
+
+        cv2.destroyAllWindows()
+
 
     def run(self):
 
-            # Create two threads, one for each window
-            self.thread_open3d = threading.Thread(target=self.open3d_window)
-            self.thread_open3d.start()
-
-            [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(self.sim.arm.uid, range(7))]
-
-            #set up user inputs 
-            j1_comm = pybullet.addUserDebugParameter("J1", -math.pi, math.pi, 0)
-            j2_comm = pybullet.addUserDebugParameter("J2", -math.pi, math.pi, 0)
-            j3_comm = pybullet.addUserDebugParameter("J3", -math.pi, math.pi, 0)
-            j4_comm = pybullet.addUserDebugParameter("J4", -math.pi, math.pi, 0)    
-            j5_comm = pybullet.addUserDebugParameter("J5", -math.pi, math.pi, 0)
-            j6_comm = pybullet.addUserDebugParameter("J6", -math.pi, math.pi, 0)
-            j7_comm = pybullet.addUserDebugParameter("J7", -math.pi, math.pi, 0)
-            grip_comm = pybullet.addUserDebugParameter("Grip", 0,0.1,0)
-
-            frame_buff = 0
-            frame_count = 0
-
-            while True:
-
-                j1 = j1_init + pybullet.readUserDebugParameter(j1_comm)
-                j2 = j2_init + pybullet.readUserDebugParameter(j2_comm)
-                j3 = j3_init + pybullet.readUserDebugParameter(j3_comm)
-                j4 = j4_init + pybullet.readUserDebugParameter(j4_comm)
-                j5 = j5_init + pybullet.readUserDebugParameter(j5_comm)
-                j6 = j6_init + pybullet.readUserDebugParameter(j6_comm)
-                j7 = j7_init + pybullet.readUserDebugParameter(j7_comm)
-                grip_width = pybullet.readUserDebugParameter(grip_comm)
+        # Create two threads, one for each window
+        self.thread_live_feed = threading.Thread(target=self.live_feed)
+        self.thread_live_feed.start()
+        self.thread_open3d = threading.Thread(target=self.open3d_window)
+        self.thread_open3d.start()
 
 
-                robot_pos = [j1, j2, j3, j4, j5, j6, j7]
-                self.sim.gripper.set_desired_width(grip_width)
+        [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(self.sim.arm.uid, range(7))]
 
-                if frame_buff == 100:
-                    #self.sim.camera.get_image()
-                    self.get_tsdf_2()
-                    frame_buff = 0
+        #set up user inputs 
+        j1_comm = pybullet.addUserDebugParameter("J1", -math.pi, math.pi, 0)
+        j2_comm = pybullet.addUserDebugParameter("J2", -math.pi, math.pi, 0)
+        j3_comm = pybullet.addUserDebugParameter("J3", -math.pi, math.pi, 0)
+        j4_comm = pybullet.addUserDebugParameter("J4", -math.pi, math.pi, 0)    
+        j5_comm = pybullet.addUserDebugParameter("J5", -math.pi, math.pi, 0)
+        j6_comm = pybullet.addUserDebugParameter("J6", -math.pi, math.pi, 0)
+        j7_comm = pybullet.addUserDebugParameter("J7", -math.pi, math.pi, 0)
+        grip_comm = pybullet.addUserDebugParameter("Grip", 0,0.1,0)
 
-                pybullet.setJointMotorControlArray(self.sim.arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
-                self.sim.step()
+        frame_buff = 0
+        frame_count = 0
 
-                frame_buff += 1 
-                frame_count += 1
+        while True:
+
+            j1 = j1_init + pybullet.readUserDebugParameter(j1_comm)
+            j2 = j2_init + pybullet.readUserDebugParameter(j2_comm)
+            j3 = j3_init + pybullet.readUserDebugParameter(j3_comm)
+            j4 = j4_init + pybullet.readUserDebugParameter(j4_comm)
+            j5 = j5_init + pybullet.readUserDebugParameter(j5_comm)
+            j6 = j6_init + pybullet.readUserDebugParameter(j6_comm)
+            j7 = j7_init + pybullet.readUserDebugParameter(j7_comm)
+            grip_width = pybullet.readUserDebugParameter(grip_comm)
+
+
+            robot_pos = [j1, j2, j3, j4, j5, j6, j7]
+            self.sim.gripper.set_desired_width(grip_width)
+
+            if frame_buff == 100:
+                #self.sim.camera.get_image()
+                self.get_tsdf_2()
+                frame_buff = 0
+
+            pybullet.setJointMotorControlArray(self.sim.arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
+            self.sim.step()
+
+            frame_buff += 1 
+            frame_count += 1
 
 
 
@@ -216,13 +248,13 @@ def thread_handler(env):
 
 
 def main():
-        gui = True
-        scene_id = "random"
-        vgn_path = "/home/tom/dev_ws/thesis_ws/src/vgn/assets/models/vgn_conv.pth" #was changed 
+    gui = True
+    scene_id = "random"
+    vgn_path = "/home/tom/dev_ws/thesis_ws/src/vgn/assets/models/vgn_conv.pth" #was changed 
 
-        env = Environment(gui, scene_id, vgn_path)
-        env.load_engine()
-        env.run()
+    env = Environment(gui, scene_id, vgn_path)
+    env.load_engine()
+    env.run()
 
 
        

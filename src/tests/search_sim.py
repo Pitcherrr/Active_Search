@@ -55,7 +55,7 @@ class Simulation:
             panda_urdf_path, self.arm.base_frame, self.arm.ee_frame
         )
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
-        self.camera = BtCamera(1280, 720, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
+        self.camera = BtCamera(1280, 720, 1.01, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
 
     def load_vgn(self, model_path):
         self.vgn = VGN(model_path)
