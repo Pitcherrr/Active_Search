@@ -1,6 +1,6 @@
 # Active Search
 
-## Rienforcment Learning for Active Search and Grasp in Clutter 
+## Reinforcment Learning for Active Search and Grasp in Clutter 
 
 Welcome to the repository for my honours thesis.
 
