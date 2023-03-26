@@ -44,7 +44,7 @@ class Simulation:
 
     def configure_visualizer(self):
         # p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-        p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
+        p.resetDebugVisualizerCamera(1.2, -120, -30, [0.4, 0.0, 0.2])
 
     def seed(self, seed=None):
         self.rng = np.random.default_rng(seed) if seed else np.random
@@ -58,7 +58,7 @@ class Simulation:
             panda_urdf_path, self.arm.base_frame, self.arm.ee_frame
         )
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
-        self.camera = BtCamera(1280, 720, 1.01, 0.01, 100.0, self.arm.uid, 11) #depth is meant to be 1
+        self.camera = BtCamera(320, 240, 1.01, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
 
     def load_vgn(self, model_path):
         self.vgn = VGN(model_path)
@@ -151,7 +151,7 @@ class RandomScene(Scene):
     def __init__(self):
         super().__init__()
         self.center = np.r_[0.5, 0.0, 0.2]
-        self.length = 0.3 #not sure why this is 0.3 
+        self.length = 1 #not sure why this is 0.3 
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
 

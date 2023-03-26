@@ -84,9 +84,12 @@ class Environment:
         tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
         self.sim_state.put([tsdf_mesh, image])
-        
+
     def center_view(self, vis):
         vis.reset_view_point(True)
+        vis.get_view_control().rotate(x = 0, y = 1000)
+        vis.get_view_control().change_field_of_view(step = 1)
+
 
 
 
@@ -177,6 +180,45 @@ class Environment:
                 vis.update_renderer()
                 vis.remove_geometry(tsdf_mesh, reset_bounding_box = True)
 
+    def full_scene(self, reset_bb: bool = True):
+        o3d.core.Device("cuda:0")
+
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+    
+        #vis = o3d.visualization.Visualizer()
+
+        vis.create_window(window_name = "Depth Camera")
+
+        vis.register_key_callback(ord("C"), self.center_view)
+
+        while self.sim_state.empty():
+             continue
+        
+        state = self.sim_state.get()
+        tsdf_mesh_init, image = state
+        #tsdf_mesh_init.compute_vertex_normals()
+        #tsdf_mesh_init.compute_triangle_normals()
+        vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
+        vis.update_renderer()
+
+        vis.get_view_control().rotate(x = 0, y = 1000)
+        
+        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = reset_bb)
+        while True:
+            if not self.sim_state.empty():
+
+                state = self.sim_state.get()
+
+                tsdf_mesh, image = state
+
+                tsdf_mesh.compute_nearest_neighbor_distance()
+
+                vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
+
+                vis.poll_events()
+                vis.update_renderer()
+  
+
     def live_feed(self):
 
         while self.sim_state.empty():
@@ -208,6 +250,7 @@ class Environment:
         # self.thread_live_feed = threading.Thread(target=self.live_feed)
         # self.thread_live_feed.start()
         self.thread_open3d = threading.Thread(target=self.open3d_window, args= (False,))
+        #self.thread_open3d = threading.Thread(target=self.full_scene, args= (False,))
         self.thread_open3d.start()
 
 
