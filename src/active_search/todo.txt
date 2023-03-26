@@ -1,3 +1,9 @@
 Issue in get grasps that is still rotating the camera when we generate the scene, maybe need to create my own simulation function from scratch 
 
+Add a user debug slider to alter cameras intrinsic params, probs gonna look like this:
+
+[a b c d] * [1 0 0 0]
+            [0 1 0 0]
+            [0 0 1 0]
+            [0 0 0 1]
 

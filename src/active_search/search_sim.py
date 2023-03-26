@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import pybullet as p
 import pybullet_data
 import rospkg
@@ -32,9 +33,11 @@ class Simulation:
         self.scene = get_scene(scene_id)
 
     def configure_physics_engine(self, gui, rate, sub_step_count):
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
         self.rate = rate
         self.dt = 1.0 / self.rate
-        p.connect(p.GUI if gui else p.DIRECT, "Sim. Env.")
+        p.connect(p.GUI if gui else p.DIRECT)
+        # p.connect(p.GUI if gui else p.DIRECT, options= "--opengl2 --gpu")
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
         p.setGravity(0.0, 0.0, -9.81)
@@ -55,7 +58,7 @@ class Simulation:
             panda_urdf_path, self.arm.base_frame, self.arm.ee_frame
         )
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
-        self.camera = BtCamera(1280, 720, 1.01, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
+        self.camera = BtCamera(1280, 720, 1.01, 0.01, 100.0, self.arm.uid, 11) #depth is meant to be 1
 
     def load_vgn(self, model_path):
         self.vgn = VGN(model_path)

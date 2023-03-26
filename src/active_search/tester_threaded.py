@@ -57,8 +57,8 @@ class Environment:
             depth_img = cam_data[1]
             tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv() * origin)
 
-            print(view.inv())
-            print(origin)
+            #print(view.inv())
+            #print(origin)
             voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
 
         tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
@@ -84,14 +84,26 @@ class Environment:
         tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
         self.sim_state.put([tsdf_mesh, image])
+        
+    def center_view(self, vis):
+        vis.reset_view_point(True)
 
-    def open3d_window(self):
+
+
+    def open3d_window(self, reset_bb: bool = True):
 
         """Need to run this in a loop on another thread, 
         may have to parse in camera data from main thread running pybullet"""
 
-        vis = o3d.visualization.Visualizer()
+        o3d.core.Device("cuda:0")
+
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+    
+        #vis = o3d.visualization.Visualizer()
+
         vis.create_window(window_name = "Depth Camera")
+
+        vis.register_key_callback(ord("C"), self.center_view)
 
         while self.sim_state.empty():
              continue
@@ -102,8 +114,10 @@ class Environment:
         #tsdf_mesh_init.compute_triangle_normals()
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
         vis.update_renderer()
+
+        vis.get_view_control().rotate(x = 0, y = 1000)
         
-        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = False)
+        vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = reset_bb)
         while True:
             if not self.sim_state.empty():
 
@@ -115,12 +129,14 @@ class Environment:
                 #print(tsdf_mesh)
 
                 #tsdf_mesh.compute_vertex_normals()
-                #tsdf_mesh.compute_triangle_normals()
+                #tsdf_mesh.compute_point_cloud_distance(target = tsdf_mesh_init)
+                tsdf_mesh.compute_nearest_neighbor_distance()
 
-                vis.add_geometry(tsdf_mesh, reset_bounding_box = False)
+                vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
+                #vis.get_render_option().point_color_option
                 vis.poll_events()
                 vis.update_renderer()
-                vis.remove_geometry(tsdf_mesh, reset_bounding_box = False)
+                vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                     
 
     def open3d_window_2(self):
@@ -175,7 +191,7 @@ class Environment:
             state = self.sim_state.get()
             tsdf_mesh, image = state
 
-            cv2.imshow("RGB Camera",image)
+            cv2.imshow("RGB Camera", image)
 
             key = cv2.waitKey(1)
             if key == ord('q'):
@@ -189,9 +205,9 @@ class Environment:
     def run(self):
 
         # Create two threads, one for each window
-        self.thread_live_feed = threading.Thread(target=self.live_feed)
-        self.thread_live_feed.start()
-        self.thread_open3d = threading.Thread(target=self.open3d_window)
+        # self.thread_live_feed = threading.Thread(target=self.live_feed)
+        # self.thread_live_feed.start()
+        self.thread_open3d = threading.Thread(target=self.open3d_window, args= (False,))
         self.thread_open3d.start()
 
 
@@ -206,8 +222,9 @@ class Environment:
         j6_comm = pybullet.addUserDebugParameter("J6", -math.pi, math.pi, 0)
         j7_comm = pybullet.addUserDebugParameter("J7", -math.pi, math.pi, 0)
         grip_comm = pybullet.addUserDebugParameter("Grip", 0,0.1,0)
+        cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 1,0,1)
 
-        frame_buff = 0
+        frame_buff = 0  
         frame_count = 0
 
         while True:
@@ -219,13 +236,15 @@ class Environment:
             j5 = j5_init + pybullet.readUserDebugParameter(j5_comm)
             j6 = j6_init + pybullet.readUserDebugParameter(j6_comm)
             j7 = j7_init + pybullet.readUserDebugParameter(j7_comm)
+            cam_rot = pybullet.readUserDebugParameter(cam_rot_comm)
             grip_width = pybullet.readUserDebugParameter(grip_comm)
 
 
             robot_pos = [j1, j2, j3, j4, j5, j6, j7]
             self.sim.gripper.set_desired_width(grip_width)
+            self.sim.camera.rot = cam_rot
 
-            if frame_buff == 100:
+            if frame_buff == 20:
                 #self.sim.camera.get_image()
                 self.get_tsdf_2()
                 frame_buff = 0
