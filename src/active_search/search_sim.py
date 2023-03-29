@@ -31,6 +31,8 @@ class Simulation:
         self.load_robot()
         #self.load_vgn(Path(vgn_path))
         self.scene = get_scene(scene_id)
+        self.object_uids = self.scene.object_uids
+        print("urdfs:", urdfs_dir)
 
     def configure_physics_engine(self, gui, rate, sub_step_count):
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -51,6 +53,7 @@ class Simulation:
 
     def load_robot(self):
         panda_urdf_path = urdfs_dir / "franka/panda_arm_hand.urdf"
+        plane = p.loadURDF("plane.urdf")
         self.arm = BtPandaArm()
         #self.arm = BtPandaArm(panda_urdf_path)
         self.gripper = BtPandaGripper(self.arm)
@@ -58,7 +61,7 @@ class Simulation:
             panda_urdf_path, self.arm.base_frame, self.arm.ee_frame
         )
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
-        self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
+        self.camera = BtCamera(320, 240, 0.96, 0.01, 2.0, self.arm.uid, 11) #depth is meant to be 1
 
     def load_vgn(self, model_path):
         self.vgn = VGN(model_path)
@@ -67,6 +70,7 @@ class Simulation:
         #self.set_arm_configuration([0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79])
         self.scene.clear()
         self.scene.generate(self.rng)
+        self.object_uids = self.scene.object_uids
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):
@@ -104,7 +108,7 @@ class Scene:
         p.removeBody(self.support_uid)
 
     def add_object(self, urdf, ori, pos, scale=1.0):
-        uid = p.loadURDF(str(urdf), pos, ori.as_quat(), globalScaling=scale)
+        uid = p.loadURDF(str(urdf), pos, ori.as_quat(), flags = p.URDF_USE_MATERIAL_COLORS_FROM_MTL, globalScaling=scale)
         self.object_uids.append(uid)
         return uid
 
@@ -153,9 +157,11 @@ class RandomScene(Scene):
         self.center = np.r_[0.5, 0.0, 0.2]
         self.length = 0.3#not sure why this is 0.3, turns out this was the issue the whole time, scene length is a protion of the scene you want
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
+        #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=4, attempts=10):
+    def generate(self, rng, object_count=6, attempts=10):
         self.add_support(self.center)
         urdfs = rng.choice(self.object_urdfs, object_count)
         for urdf in urdfs:

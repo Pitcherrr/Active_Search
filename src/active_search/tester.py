@@ -5,9 +5,15 @@ import pybullet_data
 import math
 import numpy as np
 import time
+import os
 
 from robot_helpers.bullet import *
 from robot_helpers.model import *
+from active_grasp.bbox import AABBox
+from obj_locate import Target_Object
+
+pkg_root = "/home/tom/dev_ws/thesis_ws/src/active_grasp"
+urdfs_dir = os.path.join(pkg_root,"assets/test")
 
 def main():
     #Connect to the physics environment
@@ -18,15 +24,24 @@ def main():
     pybullet.resetSimulation()
     pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
+    print(pybullet_data.getDataPath())
+
     pybullet.setGravity(0, 0, -9.81)
-    pybullet.setTimeStep(0.0001)
+    pybullet.setTimeStep(0.01)
     pybullet.setRealTimeSimulation(0)
+
+    plane = pybullet.loadURDF("plane.urdf")
 
     arm = BtPandaArm()
 
     gripper = BtPandaGripper(arm)
 
     camera = BtCamera(320, 240, 0.96, 0.01, 1.0, arm.uid, 11)
+
+    item = pybullet.loadURDF(os.path.join(urdfs_dir,"Paprika_800_tex.urdf"), [0,0,0])
+
+    other = pybullet.loadURDF("objects/mug.urdf", [1,0,1])
+    other_2 = pybullet.loadURDF("domino/domino.urdf", [1,0,1])
 
     #Get intial joint positions
     [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(arm.uid, range(7))]
@@ -50,6 +65,15 @@ def main():
     update_interval = 1  # update FPS once per second
     last_update_time = start_time
 
+
+    obj = Target_Object(1, item)
+
+    bbox = obj.get_target_bbox()
+
+    print(bbox)
+    print(bbox.min)
+    print(bbox.max)
+    
     while True:
     
         #start_time = time.time() # start time of the loop
@@ -77,7 +101,7 @@ def main():
         if current_time - last_update_time >= update_interval:
             # calculate the FPS and update the text
             fps = int(frame_count / (current_time - last_update_time))
-            print("FPS:",fps)
+            #print("FPS:",fps)
 
         pybullet.setJointMotorControlArray(arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
         pybullet.stepSimulation()

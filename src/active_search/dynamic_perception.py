@@ -5,23 +5,23 @@ from vgn.utils import map_cloud_to_grid
 from robot_helpers import perception
 
 
-class DyUniTSDFVolume:
+class SceneTSDFVolume:
     def __init__(self, length, resolution):
         self.length = length
         self.resolution = resolution
         self.voxel_size = self.length / self.resolution
         self.sdf_trunc = 4 * self.voxel_size
-        # self.o3dvol = o3d.pipelines.integration.UniformTSDFVolume(
-        #     length=self.length,
-        #     resolution=self.resolution,
-        #     sdf_trunc=self.sdf_trunc,
-        #     color_type=o3d.pipelines.integration.TSDFVolumeColorType.NoColor,
-        # )
-        self.o3dvol = o3d.pipelines.integration.ScalableTSDFVolume(
-            voxel_length=self.length / self.resolution,
+        self.o3dvol = o3d.pipelines.integration.UniformTSDFVolume(
+            length=self.length,
+            resolution=self.resolution,
             sdf_trunc=self.sdf_trunc,
             color_type=o3d.pipelines.integration.TSDFVolumeColorType.NoColor,
         )
+        # self.o3dvol = o3d.pipelines.integration.ScalableTSDFVolume(
+        #     voxel_length=self.length / self.resolution,
+        #     sdf_trunc=self.sdf_trunc,
+        #     color_type=o3d.pipelines.integration.TSDFVolumeColorType.NoColor,
+        # )
 
     def integrate(self, depth_img, intrinsic, extrinsic):
 
