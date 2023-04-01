@@ -28,4 +28,3 @@ python3 src/active_search/tester_threaded.py
 ## TODO:
 
 * Add a requirements.txt
-* Fix silly camera bugs

@@ -61,7 +61,7 @@ class Simulation:
             panda_urdf_path, self.arm.base_frame, self.arm.ee_frame
         )
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
-        self.camera = BtCamera(320, 240, 0.96, 0.01, 2.0, self.arm.uid, 11) #depth is meant to be 1
+        self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
 
     def load_vgn(self, model_path):
         self.vgn = VGN(model_path)
@@ -155,6 +155,7 @@ class RandomScene(Scene):
     def __init__(self):
         super().__init__()
         self.center = np.r_[0.5, 0.0, 0.2]
+        print(self.center)
         self.length = 0.3#not sure why this is 0.3, turns out this was the issue the whole time, scene length is a protion of the scene you want
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]
