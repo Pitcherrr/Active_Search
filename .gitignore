@@ -4,5 +4,6 @@ build/
 .catkin_tools/
 src/active_search/__pycache__/*
 __pycache__/
+.vscode/
 
 
