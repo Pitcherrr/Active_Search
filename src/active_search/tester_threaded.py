@@ -41,9 +41,14 @@ class Environment:
         depth_img = cam_data[1]
 
         tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
+        
+        self.tsdf = tsdf.o3dvol
+
+        self.get_poi()
 
         tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
         print(tsdf_mesh)
+
 
         self.sim_state.put([tsdf_mesh, image])
 
@@ -55,6 +60,7 @@ class Environment:
 
     def get_target_bb(self):
         target_bb =  o3d.geometry.AxisAlignedBoundingBox()
+        # target_bb =  o3d.geometry.OrientedBoundingBox()      
         min_bound, max_bound = pybullet.getAABB(self.target_uid)
         
         origin = Transform.from_translation(self.sim.scene.origin)
@@ -62,33 +68,33 @@ class Environment:
         min_bound_t = (Transform.from_translation(min_bound)*origin.inv()).translation
         max_bound_t = (Transform.from_translation(max_bound)*origin.inv()).translation
 
+        target_bb.min_bound = min_bound_t + np.array([0,0,0.1])
+        target_bb.max_bound = max_bound_t + np.array([0,0,0.1])
 
-        target_bb.min_bound = min_bound_t
-        target_bb.max_bound = max_bound_t
+        target_bb.scale(0.8, target_bb.get_center())
 
-        #target_bb = target_bb.transform(origin.as_matrix())
         self.target_bb = target_bb
 
 
-    def get_poi(self, tsdf_volume, target_bb):
+    def get_poi(self):
         # Assume we have the bounding box in world coordinates and the TSDF volume as a numpy array
-        world_to_grid = np.linalg.inv(tsdf_volume.get_intrinsics().intrinsic_matrix)
-        world_to_voxel = world_to_grid @ tsdf_volume.extrinsic
+        world_to_grid = np.linalg.inv(self.tsdf.get_intrinsics().intrinsic_matrix)
+        world_to_voxel = world_to_grid @ self.tsdf.extrinsic
 
         # Get the bounding box in voxel grid coordinates
-        bbox = o3d.geometry.AxisAlignedBoundingBox.create_from_points(np.asarray(bounding_box.vertices))
-        bbox_min = bbox.get_min_bound()
-        bbox_max = bbox.get_max_bound()
+        # bbox = o3d.geometry.AxisAlignedBoundingBox.create_from_points(np.asarray(self.target_bb.get_box_points()))
+        bbox_min = self.target_bb.get_min_bound()
+        bbox_max = self.target_bb.get_max_bound()
         bbox_center = (bbox_min + bbox_max) / 2
         bbox_center_voxel = world_to_voxel @ np.append(bbox_center, 1)
-        bbox_size_voxel = np.abs(bbox_max - bbox_min) / np.array(tsdf_volume.get_voxel_size())
+        bbox_size_voxel = np.abs(bbox_max - bbox_min) / np.array(self.tsdf.get_voxel_size())
         bbox_voxel = o3d.geometry.AxisAlignedBoundingBox(bbox_center_voxel[:3], bbox_size_voxel)
 
         # Shift the bounding box by a distance behind the TSDF grid
         bbox_voxel.translate([0, 0, -10])
 
         # Find all the voxels that intersect with the shifted bounding box
-        voxel_indices = np.transpose(np.nonzero(tsdf_volume.get_voxels()))
+        voxel_indices = np.transpose(np.nonzero(self.tsdf.get_voxels()))
         voxel_coords = np.hstack((voxel_indices, np.ones((voxel_indices.shape[0], 1))))
         voxel_coords_world = world_to_voxel @ voxel_coords.T
         voxel_coords_bbox = bbox_voxel.get_transform().inverse() @ voxel_coords_world
@@ -97,7 +103,7 @@ class Environment:
         # Mark the corresponding points in the TSDF volume
         points_in_bbox = voxel_coords_world[:3, voxels_in_bbox].T
         for p in points_in_bbox:
-            tsdf_volume.set_voxel(p, 1.0)
+            self.tsdf.set_voxel(p, 1.0)
 
 
     def center_view(self, vis):
@@ -263,9 +269,9 @@ class Environment:
             robot_pos = [j1, j2, j3, j4, j5, j6, j7]
             self.sim.gripper.set_desired_width(grip_width)
             self.sim.camera.rot = cam_rot
-            self.get_target_bb()
 
-            if frame_buff == 20:
+
+            if frame_buff == 10:
                 self.get_tsdf()
                 frame_buff = 0
 
@@ -284,6 +290,7 @@ def main():
     env = Environment(gui, scene_id, vgn_path)
     env.load_engine()
     env.get_target()
+    env.get_target_bb()
     env.run()
 
 
