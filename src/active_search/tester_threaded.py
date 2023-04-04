@@ -34,7 +34,7 @@ class Environment:
     
     def get_tsdf(self):
 
-        tsdf = SceneTSDFVolume(self.sim.scene.length, 200)
+        tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
         
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
@@ -44,13 +44,13 @@ class Environment:
         
         self.tsdf = tsdf.o3dvol
 
-        self.get_poi()
+        self.tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
-        tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
-        print(tsdf_mesh)
+        self.targets = self.get_poi_2()
 
+        #print(self.tsdf_mesh)
 
-        self.sim_state.put([tsdf_mesh, image])
+        self.sim_state.put([self.tsdf_mesh, image])
 
 
     def get_target(self):
@@ -73,37 +73,96 @@ class Environment:
 
         target_bb.scale(0.8, target_bb.get_center())
 
+        #target_bb = target_bb.get_minimal_oriented_bounding_box()
+
+        print(np.asarray(target_bb.get_box_points()))
+
         self.target_bb = target_bb
 
 
     def get_poi(self):
         # Assume we have the bounding box in world coordinates and the TSDF volume as a numpy array
-        world_to_grid = np.linalg.inv(self.tsdf.get_intrinsics().intrinsic_matrix)
-        world_to_voxel = world_to_grid @ self.tsdf.extrinsic
+        # world_to_grid = np.linalg.inv(self.tsdf.get_intrinsics().intrinsic_matrix)
+        # world_to_voxel = world_to_grid @ self.tsdf.extrinsic
 
-        # Get the bounding box in voxel grid coordinates
-        # bbox = o3d.geometry.AxisAlignedBoundingBox.create_from_points(np.asarray(self.target_bb.get_box_points()))
-        bbox_min = self.target_bb.get_min_bound()
-        bbox_max = self.target_bb.get_max_bound()
-        bbox_center = (bbox_min + bbox_max) / 2
-        bbox_center_voxel = world_to_voxel @ np.append(bbox_center, 1)
-        bbox_size_voxel = np.abs(bbox_max - bbox_min) / np.array(self.tsdf.get_voxel_size())
-        bbox_voxel = o3d.geometry.AxisAlignedBoundingBox(bbox_center_voxel[:3], bbox_size_voxel)
+        # # Get the bounding box in voxel grid coordinates
+        # # bbox = o3d.geometry.AxisAlignedBoundingBox.create_from_points(np.asarray(self.target_bb.get_box_points()))
+        # bbox_min = self.target_bb.get_min_bound()
+        # bbox_max = self.target_bb.get_max_bound()
+        # bbox_center = (bbox_min + bbox_max) / 2
+        # bbox_center_voxel = world_to_voxel @ np.append(bbox_center, 1)
+        # bbox_size_voxel = np.abs(bbox_max - bbox_min) / np.array(self.tsdf.get_voxel_size())
+        # bbox_voxel = o3d.geometry.AxisAlignedBoundingBox(bbox_center_voxel[:3], bbox_size_voxel)
+
+        """"WIP"""
+        bbox_voxel = self.target_bb
+
+        tsdf = self.tsdf
+
+        # voxel_grid = tsdf.extract_voxel_grid()
+
+        voxel_grid = o3d.geometry.VoxelGrid()
+
+        voxel_grid.create_from_point_cloud(self.tsdf_mesh, self.sim.scene.length/50)
+
+        # voxel_grid = self.tsdf_mesh.VoxelGrid
+        # voxels = np.asarray(self.tsdf_mesh.points)
+        # print(voxels)
+
+        voxels = voxel_grid.get_voxels()
+
+        voxel_set = set()
+        voxel_set = {v for v in voxels}
+
+        """#####################################################################################"""
 
         # Shift the bounding box by a distance behind the TSDF grid
-        bbox_voxel.translate([0, 0, -10])
+        bbox_voxel.translate([0, 0, -0.1])
 
         # Find all the voxels that intersect with the shifted bounding box
-        voxel_indices = np.transpose(np.nonzero(self.tsdf.get_voxels()))
-        voxel_coords = np.hstack((voxel_indices, np.ones((voxel_indices.shape[0], 1))))
-        voxel_coords_world = world_to_voxel @ voxel_coords.T
-        voxel_coords_bbox = bbox_voxel.get_transform().inverse() @ voxel_coords_world
+        #voxel_indices = np.transpose(np.nonzero(voxel_grid.get_voxels()))
+        #voxel_coords = np.hstack((voxel_indices, np.ones((voxel_indices.shape[0], 1))))
+        #voxel_coords_world = world_to_voxel @ voxel_coords.T
+        points_within = bbox_voxel.get_point_indices_within_bounding_box()
+
+        self.tsdf_mesh.select_by_index(points_within).paint_uniform_color([255,255,255]) 
+
+        print(Transform.from_translation(bbox_voxel.get_min_bound().T).inv().as_matrix().shape)
+        voxel_coords_bbox = Transform.from_translation(bbox_voxel.get_min_bound().T).inv().as_matrix() @ voxels
         voxels_in_bbox = np.logical_and(np.all(voxel_coords_bbox >= -0.5, axis=0), np.all(voxel_coords_bbox <= 0.5, axis=0))
 
         # Mark the corresponding points in the TSDF volume
-        points_in_bbox = voxel_coords_world[:3, voxels_in_bbox].T
-        for p in points_in_bbox:
-            self.tsdf.set_voxel(p, 1.0)
+        points_in_bbox = voxels[:3, voxels_in_bbox].T
+
+        bb_points = {p for p in points_in_bbox}
+
+        # for p in points_in_bbox:
+        #     #self.tsdf.set_voxel(p, 1.0)
+        #     return
+        target_voxels = {v for v in voxels if v not in bb_points}
+
+        return target_voxels
+            
+                        
+
+    def get_poi_2(self):
+        points = self.tsdf_mesh.points
+
+        array_p = np.asarray(points)
+
+        bb_points = np.asarray(self.target_bb.get_box_points())
+
+        #print(np.asarray(points))
+
+        #self.target_bb.translate([0, 0, -0.1])
+
+        points_within = self.target_bb.get_point_indices_within_bounding_box(points)
+
+        print(points_within)
+
+        poi_points = self.tsdf_mesh.select_by_index(points_within).paint_uniform_color([1,1,1]) 
+
+        return poi_points
 
 
     def center_view(self, vis):
@@ -136,9 +195,6 @@ class Environment:
         while self.sim_state.empty():
              continue
         
-        if self.sim_state.qsize() > 1:
-            print("wtfffffffffffff")
-        
         state = self.sim_state.get()
         tsdf_mesh_init, image = state
 
@@ -152,6 +208,7 @@ class Environment:
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
         vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
+  
 
         vis.update_renderer()
 
@@ -182,6 +239,7 @@ class Environment:
 
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.add_geometry(bb, reset_bounding_box = reset_bb)
+                vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
                 vis.poll_events()
                 vis.update_renderer()

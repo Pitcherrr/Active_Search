@@ -32,25 +32,7 @@ class SceneTSDFVolume:
             #depth_truc = 3,
             convert_rgb_to_intensity=False,
         )
-        #print(intrinsic.fx, intrinsic.fy, intrinsic.cx, intrinsic.cy)
-        # intrinsic_o3d = o3d.camera.PinholeCameraIntrinsic(
-        #     width=intrinsic.width,
-        #     height=intrinsic.height,
-        #     fx=intrinsic.fx + np.pi,
-        #     fy=intrinsic.fy + np.pi,
-        #     cx=intrinsic.cx,
-        #     cy=intrinsic.cy,
-        # )
-        # #print(intrinsic.width,"x",intrinsic.height)
-        #extrinsic = extrinsic.as_matrix()
-
         intrinsic_o3d = intrinsic.to_o3d()
-    
-
-        #intrinsic_o3d.set_intrinsics(fx = intrinsic.fx() + np.pi/4, fy = intrinsic.fy() + np.pi/4)
-        
-        #print(intrinsic_o3d.width,"x", intrinsic_o3d.height)
-
         self.o3dvol.integrate(rgbd, intrinsic_o3d, extrinsic)
 
 
