@@ -43,20 +43,20 @@ class Environment:
 
         tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
         
-        self.tsdf = tsdf.o3dvol
+        self.tsdf = tsdf
 
-        self.tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
         self.targets = self.get_poi_torch()
 
         #print(self.tsdf_mesh)
 
-        self.sim_state.put([self.tsdf_mesh, image])
+        self.sim_state.put([self.tsdf, image])
 
 
     def get_target(self):
         print(self.sim.object_uids)
         self.target_uid = np.random.choice(self.sim.object_uids)
+        
   
 
     def get_target_bb(self):
@@ -72,7 +72,7 @@ class Environment:
         target_bb.min_bound = min_bound_t + np.array([0,0,0.1])
         target_bb.max_bound = max_bound_t + np.array([0,0,0.1])
 
-        target_bb.scale(0.8, target_bb.get_center())
+        target_bb.scale(0.2, target_bb.get_center())
 
         #target_bb = target_bb.get_minimal_oriented_bounding_box()
 
@@ -83,21 +83,16 @@ class Environment:
     
     def get_poi_torch(self):
 
-        bb_points = np.asarray(self.target_bb.get_box_points())
-
-        bb_mat = bb_points.reshape(2,6,2)
-
-        volume = self.tsdf.extract_volume_tsdf()
-        vol_array = np.asarray(volume)
-
         resolution = 50
+        voxel_size = self.sim.scene.length/resolution
+
+        volume = self.tsdf.o3dvol.extract_volume_tsdf()
+        vol_array = np.asarray(volume)
 
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
+        bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
 
-        bb_voxel = (np.floor(abs(bb_mat[0,0,0]-bb_mat[bb_mat.shape[0]-1,0,0])/(self.sim.scene.length/resolution)),
-                    np.floor(abs(bb_mat[0,0,0]-bb_mat[0,bb_mat.shape[1]-4,0])/(self.sim.scene.length/resolution)),
-                    np.floor(abs(bb_mat[0,0,0]-bb_mat[0,0,bb_mat.shape[2]-1])/(self.sim.scene.length/resolution)))
 
         occ_mat = np.zeros_like(vol_mat)
 
@@ -118,7 +113,7 @@ class Environment:
         tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
 
-        tsdf_check = max_tsdf_slices <= 0.0
+        tsdf_check = max_tsdf_slices < 0.0
         # print("tsdf_check",tsdf_check.shape)
         i = i_range[0]
         j = j_range[0]
@@ -127,6 +122,20 @@ class Environment:
         occ_mat[int(i):int(resolution - bb_voxel[0]+1), int(j):int(resolution - bb_voxel[1]+1), int(k):int(resolution - bb_voxel[2]+1)] = tsdf_check.float().squeeze().to(dtype=torch.float32)
         
         occ_mat_result = occ_mat.cpu().numpy()
+
+        coordinate_mat = np.argwhere(occ_mat_result > 0.0)
+
+        poi_mat = np.zeros_like(coordinate_mat)
+
+        print(coordinate_mat.shape)
+        print(voxel_size)
+        
+        poi_mat = coordinate_mat*voxel_size# + [0,0,0.1]
+
+        # print(poi_mat)
+
+        self.occ_mat = occ_mat_result
+        self.poi_mat = poi_mat
 
         return occ_mat_result
 
@@ -162,7 +171,9 @@ class Environment:
              continue
         
         state = self.sim_state.get()
-        tsdf_mesh_init, image = state
+        tsdf_init, image = state
+
+        tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
 
         target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
         target_bb.color = [0, 1, 0] 
@@ -185,16 +196,24 @@ class Environment:
             if not self.sim_state.empty():
 
 
-                # if tsdf_exists:
-                #     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
-                #     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
+                if tsdf_exists:
+                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
+                    vis.remove_geometry(bb, reset_bounding_box = reset_bb)
 
                 state = self.sim_state.get()
 
                 tsdf_mesh, image = state
 
+                tsdf_mesh = tsdf_mesh.o3dvol.extract_point_cloud()
+
                 tsdf_exists = True
-                
+
+
+                points = o3d.utility.Vector3dVector(self.poi_mat)
+                target_pc = o3d.geometry.PointCloud()
+                target_pc.points = points
+                target_pc.paint_uniform_color([0,0,0])
+
                 aligned_bb = tsdf_mesh.get_axis_aligned_bounding_box()
                 bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
                 bb.color = [1, 0, 0] 
@@ -205,24 +224,13 @@ class Environment:
 
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.add_geometry(bb, reset_bounding_box = reset_bb)
+                vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
                 #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
                 vis.poll_events()
                 vis.update_renderer()
                 #vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
-                
                 #vis.remove_geometry(target_bb, reset_bounding_box = reset_bb)
-
-
-    def full_scene(self, reset_bb: bool = True):
-        o3d.core.Device("cuda:0")
-    
-        #vis = o3d.visualization.Visualizer()
-        while self.sim_state.empty():
-             continue
-        state = self.sim_state.get()
-        tsdf_mesh_init, image = state
-        o3d.visualization.draw_geometries([tsdf_mesh_init], "Full Scene", 1280, 720)
 
 
     def live_feed(self):
@@ -244,8 +252,6 @@ class Environment:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 break
-
-            #image.fill(0)
 
         cv2.destroyAllWindows()
 
@@ -277,7 +283,7 @@ class Environment:
         frame_buff = 0  
         frame_count = 0
 
-        while True:
+        while self.o3d_window_active:
 
             j1 = j1_init + pybullet.readUserDebugParameter(j1_comm)
             j2 = j2_init + pybullet.readUserDebugParameter(j2_comm)
