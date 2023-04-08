@@ -7,6 +7,7 @@ import threading
 import open3d as o3d
 import cv2
 import os
+import torch
 from queue import Queue
 from scipy.spatial.transform import Rotation
 
@@ -46,7 +47,7 @@ class Environment:
 
         self.tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
 
-        self.targets = self.get_poi_2()
+        self.targets = self.get_poi_torch()
 
         #print(self.tsdf_mesh)
 
@@ -79,90 +80,55 @@ class Environment:
 
         self.target_bb = target_bb
 
-
-    def get_poi(self):
-        # Assume we have the bounding box in world coordinates and the TSDF volume as a numpy array
-        # world_to_grid = np.linalg.inv(self.tsdf.get_intrinsics().intrinsic_matrix)
-        # world_to_voxel = world_to_grid @ self.tsdf.extrinsic
-
-        # # Get the bounding box in voxel grid coordinates
-        # # bbox = o3d.geometry.AxisAlignedBoundingBox.create_from_points(np.asarray(self.target_bb.get_box_points()))
-        # bbox_min = self.target_bb.get_min_bound()
-        # bbox_max = self.target_bb.get_max_bound()
-        # bbox_center = (bbox_min + bbox_max) / 2
-        # bbox_center_voxel = world_to_voxel @ np.append(bbox_center, 1)
-        # bbox_size_voxel = np.abs(bbox_max - bbox_min) / np.array(self.tsdf.get_voxel_size())
-        # bbox_voxel = o3d.geometry.AxisAlignedBoundingBox(bbox_center_voxel[:3], bbox_size_voxel)
-
-        """"WIP"""
-        bbox_voxel = self.target_bb
-
-        tsdf = self.tsdf
-
-        # voxel_grid = tsdf.extract_voxel_grid()
-
-        voxel_grid = o3d.geometry.VoxelGrid()
-
-        voxel_grid.create_from_point_cloud(self.tsdf_mesh, self.sim.scene.length/50)
-
-        # voxel_grid = self.tsdf_mesh.VoxelGrid
-        # voxels = np.asarray(self.tsdf_mesh.points)
-        # print(voxels)
-
-        voxels = voxel_grid.get_voxels()
-
-        voxel_set = set()
-        voxel_set = {v for v in voxels}
-
-        """#####################################################################################"""
-
-        # Shift the bounding box by a distance behind the TSDF grid
-        bbox_voxel.translate([0, 0, -0.1])
-
-        # Find all the voxels that intersect with the shifted bounding box
-        #voxel_indices = np.transpose(np.nonzero(voxel_grid.get_voxels()))
-        #voxel_coords = np.hstack((voxel_indices, np.ones((voxel_indices.shape[0], 1))))
-        #voxel_coords_world = world_to_voxel @ voxel_coords.T
-        points_within = bbox_voxel.get_point_indices_within_bounding_box()
-
-        self.tsdf_mesh.select_by_index(points_within).paint_uniform_color([255,255,255]) 
-
-        print(Transform.from_translation(bbox_voxel.get_min_bound().T).inv().as_matrix().shape)
-        voxel_coords_bbox = Transform.from_translation(bbox_voxel.get_min_bound().T).inv().as_matrix() @ voxels
-        voxels_in_bbox = np.logical_and(np.all(voxel_coords_bbox >= -0.5, axis=0), np.all(voxel_coords_bbox <= 0.5, axis=0))
-
-        # Mark the corresponding points in the TSDF volume
-        points_in_bbox = voxels[:3, voxels_in_bbox].T
-
-        bb_points = {p for p in points_in_bbox}
-
-        # for p in points_in_bbox:
-        #     #self.tsdf.set_voxel(p, 1.0)
-        #     return
-        target_voxels = {v for v in voxels if v not in bb_points}
-
-        return target_voxels
-            
-                        
-
-    def get_poi_2(self):
-        points = self.tsdf_mesh.points
-
-        array_p = np.asarray(points)
+    
+    def get_poi_torch(self):
 
         bb_points = np.asarray(self.target_bb.get_box_points())
 
-        #print(np.asarray(points))
+        bb_mat = bb_points.reshape(2,6,2)
 
-        #self.target_bb.translate([0, 0, -0.1])
+        volume = self.tsdf.extract_volume_tsdf()
+        vol_array = np.asarray(volume)
 
-        points_within = self.target_bb.get_point_indices_within_bounding_box(points)
+        resolution = 50
 
-        print(points_within)
+        vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
-        poi_points = self.tsdf_mesh.select_by_index(points_within).paint_uniform_color([1,1,1]) 
 
-        return poi_points
+        bb_voxel = (np.floor(abs(bb_mat[0,0,0]-bb_mat[bb_mat.shape[0]-1,0,0])/(self.sim.scene.length/resolution)),
+                    np.floor(abs(bb_mat[0,0,0]-bb_mat[0,bb_mat.shape[1]-4,0])/(self.sim.scene.length/resolution)),
+                    np.floor(abs(bb_mat[0,0,0]-bb_mat[0,0,bb_mat.shape[2]-1])/(self.sim.scene.length/resolution)))
+
+        occ_mat = np.zeros_like(vol_mat)
+
+        # print("bb_mat", bb_mat.shape)
+        # print("bb_voxel", bb_voxel)
+        # print("vol_mat", vol_mat.shape)
+
+        bb_voxel = torch.tensor(bb_voxel)
+
+        vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
+        occ_mat = torch.from_numpy(occ_mat).to(torch.device("cuda"))
+
+        x_dim, y_dim, z_dim = vol_mat.shape
+        i_range = torch.arange(x_dim - bb_voxel[0]).long()
+        j_range = torch.arange(y_dim - bb_voxel[1]).long()
+        k_range = torch.arange(z_dim - bb_voxel[2]).long()
+
+        tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
+        max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
+
+        tsdf_check = max_tsdf_slices <= 0.0
+        # print("tsdf_check",tsdf_check.shape)
+        i = i_range[0]
+        j = j_range[0]
+        k = k_range[0]
+        # print(int(i),int(j),int(k))
+        occ_mat[int(i):int(resolution - bb_voxel[0]+1), int(j):int(resolution - bb_voxel[1]+1), int(k):int(resolution - bb_voxel[2]+1)] = tsdf_check.float().squeeze().to(dtype=torch.float32)
+        
+        occ_mat_result = occ_mat.cpu().numpy()
+
+        return occ_mat_result
 
 
     def center_view(self, vis):
@@ -219,9 +185,9 @@ class Environment:
             if not self.sim_state.empty():
 
 
-                if tsdf_exists:
-                    vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
-                    vis.remove_geometry(bb, reset_bounding_box = reset_bb)
+                # if tsdf_exists:
+                #     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
+                #     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
 
                 state = self.sim_state.get()
 
@@ -239,7 +205,7 @@ class Environment:
 
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.add_geometry(bb, reset_bounding_box = reset_bb)
-                vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
+                #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
                 vis.poll_events()
                 vis.update_renderer()
@@ -349,7 +315,14 @@ def main():
     env.load_engine()
     env.get_target()
     env.get_target_bb()
+    check_gpu()
     env.run()
+
+def check_gpu():
+    print('Cuda Available : {}'.format(torch.cuda.is_available())) 
+    if not torch.cuda.is_available():
+        raise Exception("You must have a cuda device")
+    print('GPU - {0}'.format(torch.cuda.get_device_name())) 
 
 
 if __name__ == "__main__":

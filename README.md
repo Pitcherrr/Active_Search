@@ -9,9 +9,12 @@ Active Search is an extension of the work done by M.Breyer for the ETH Zurich Au
 Active Search allows a Franka Panda robot arm to navigate an unseen environment and find a hidden target object knowing only the target object's bounding box.
 
 ## Use:
-
+* Requires a CUDA capable GPU
+* Requires ROS Neotic
 * Clone repo
-* Need ROS Neotic
+```
+git clone https://github.com/Pitcherrr/Active_Search.git
+```
 
 ```
 catkin build
