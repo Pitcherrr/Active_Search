@@ -7,6 +7,8 @@ import threading
 import open3d as o3d
 import cv2
 import os
+import cProfile
+import pstats
 import torch
 from queue import Queue
 from scipy.spatial.transform import Rotation
@@ -29,7 +31,7 @@ class Environment:
     def load_engine(self):
         self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
-        self.sim_state = Queue()
+        self.sim_state = Queue(maxsize=1)
         self.sim.reset()
 
     
@@ -45,11 +47,7 @@ class Environment:
         
         self.tsdf = tsdf
 
-
         self.targets = self.get_poi_torch()
-
-        #print(self.tsdf_mesh)
-
         self.sim_state.put([self.tsdf, image])
 
 
@@ -183,7 +181,7 @@ class Environment:
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
 
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
-        vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
+        # vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
   
 
@@ -195,7 +193,6 @@ class Environment:
             # vis.update_renderer()
             if not self.sim_state.empty():
 
-
                 if tsdf_exists:
                     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
@@ -206,18 +203,14 @@ class Environment:
                 tsdf_mesh, image = state
 
                 tsdf_mesh = tsdf_mesh.o3dvol.extract_point_cloud()
+                # print(tsdf_mesh)
 
                 tsdf_exists = True
 
                 bb = tsdf_mesh.get_axis_aligned_bounding_box()
                 # bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
                 bb.color = [1, 0, 0] 
-
-                points = o3d.utility.Vector3dVector(self.poi_mat)
-                target_pc = o3d.geometry.PointCloud()
-                target_pc.points = points
-                target_pc = target_pc.crop(bb)
-                target_pc.paint_uniform_color([0,0,0])
+                # print(bb.get_extent())
 
                 target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
                 target_bb.color = [0, 1, 0] 
@@ -225,6 +218,14 @@ class Environment:
 
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.add_geometry(bb, reset_bounding_box = reset_bb)
+                
+                if np.amax(bb.get_extent()) > 0:
+                    points = o3d.utility.Vector3dVector(self.poi_mat)
+                    target_pc = o3d.geometry.PointCloud()
+                    target_pc.points = points
+                    target_pc = target_pc.crop(bb)
+                    target_pc.paint_uniform_color([0,0,0])
+
                 vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
                 #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
@@ -282,7 +283,6 @@ class Environment:
         cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 0, 2*math.pi, 0)
 
         frame_buff = 0  
-        frame_count = 0
 
         while self.o3d_window_active:
 
@@ -310,7 +310,6 @@ class Environment:
             self.sim.step()
 
             frame_buff += 1 
-            frame_count += 1
 
 
 def main():
@@ -333,4 +332,8 @@ def check_gpu():
 
 
 if __name__ == "__main__":
-     main()
+     with cProfile.Profile() as profile:
+        main()
+        results = pstats.Stats(profile)
+        results.sort_stats('nfl')
+        results.print_stats("get_poi")
