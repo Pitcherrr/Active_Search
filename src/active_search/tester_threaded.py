@@ -72,7 +72,7 @@ class Environment:
         target_bb.min_bound = min_bound_t + np.array([0,0,0.1])
         target_bb.max_bound = max_bound_t + np.array([0,0,0.1])
 
-        target_bb.scale(0.2, target_bb.get_center())
+        target_bb.scale(0.8, target_bb.get_center())
 
         #target_bb = target_bb.get_minimal_oriented_bounding_box()
 
@@ -91,7 +91,8 @@ class Environment:
 
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
-        bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
+        #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
+        bb_voxel = [2,2,2]
 
 
         occ_mat = np.zeros_like(vol_mat)
@@ -112,8 +113,8 @@ class Environment:
 
         tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
-
-        tsdf_check = max_tsdf_slices < 0.0
+        # print(tsdf_slices.shape)
+        tsdf_check = max_tsdf_slices <= 0
         # print("tsdf_check",tsdf_check.shape)
         i = i_range[0]
         j = j_range[0]
@@ -123,17 +124,16 @@ class Environment:
         
         occ_mat_result = occ_mat.cpu().numpy()
 
-        coordinate_mat = np.argwhere(occ_mat_result > 0.0)
+        coordinate_mat = np.argwhere(occ_mat_result > 0)
 
         poi_mat = np.zeros_like(coordinate_mat)
 
-        print(coordinate_mat.shape)
-        print(voxel_size)
+        # print(coordinate_mat.shape)
+        #print(voxel_size)
         
-        poi_mat = coordinate_mat*voxel_size# + [0,0,0.1]
+        poi_mat = coordinate_mat*voxel_size #+ [0,0,0.1]
 
         # print(poi_mat)
-
         self.occ_mat = occ_mat_result
         self.poi_mat = poi_mat
 
@@ -199,6 +199,7 @@ class Environment:
                 if tsdf_exists:
                     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
+                    vis.remove_geometry(target_pc, reset_bounding_box = reset_bb)
 
                 state = self.sim_state.get()
 
@@ -208,15 +209,15 @@ class Environment:
 
                 tsdf_exists = True
 
+                bb = tsdf_mesh.get_axis_aligned_bounding_box()
+                # bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
+                bb.color = [1, 0, 0] 
 
                 points = o3d.utility.Vector3dVector(self.poi_mat)
                 target_pc = o3d.geometry.PointCloud()
                 target_pc.points = points
+                target_pc = target_pc.crop(bb)
                 target_pc.paint_uniform_color([0,0,0])
-
-                aligned_bb = tsdf_mesh.get_axis_aligned_bounding_box()
-                bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
-                bb.color = [1, 0, 0] 
 
                 target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
                 target_bb.color = [0, 1, 0] 
