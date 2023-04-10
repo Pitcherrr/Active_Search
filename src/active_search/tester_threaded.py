@@ -90,14 +90,14 @@ class Environment:
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [2,2,2]
+        bb_voxel = [10,10,10]
 
 
         occ_mat = np.zeros_like(vol_mat)
 
         # print("bb_mat", bb_mat.shape)
         # print("bb_voxel", bb_voxel)
-        # print("vol_mat", vol_mat.shape)
+        print("vol_mat", vol_mat.shape)
 
         bb_voxel = torch.tensor(bb_voxel)
 
@@ -105,21 +105,31 @@ class Environment:
         occ_mat = torch.from_numpy(occ_mat).to(torch.device("cuda"))
 
         x_dim, y_dim, z_dim = vol_mat.shape
-        i_range = torch.arange(x_dim - bb_voxel[0]).long()
-        j_range = torch.arange(y_dim - bb_voxel[1]).long()
-        k_range = torch.arange(z_dim - bb_voxel[2]).long()
+        # i_range = torch.arange(x_dim - bb_voxel[0]).long()
+        # j_range = torch.arange(y_dim - bb_voxel[1]).long()
+        # k_range = torch.arange(z_dim - bb_voxel[2]).long()
+        i_range = torch.arange(x_dim).long()
+        j_range = torch.arange(y_dim).long()
+        k_range = torch.arange(z_dim).long()
 
         tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
-        # print(tsdf_slices.shape)
+        print(tsdf_slices.shape)
         tsdf_check = max_tsdf_slices <= 0
-        # print("tsdf_check",tsdf_check.shape)
+        print("tsdf_check",tsdf_check.shape)
         i = i_range[0]
         j = j_range[0]
         k = k_range[0]
         # print(int(i),int(j),int(k))
-        occ_mat[int(i):int(resolution - bb_voxel[0]+1), int(j):int(resolution - bb_voxel[1]+1), int(k):int(resolution - bb_voxel[2]+1)] = tsdf_check.float().squeeze().to(dtype=torch.float32)
+        # occ_mat[int(i):int(resolution - bb_voxel[0]+1), int(j):int(resolution - bb_voxel[1]+1), int(k):int(resolution - bb_voxel[2]+1)] = tsdf_check.float().squeeze().to(dtype=torch.float32)
         
+        # occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.float().squeeze().to(dtype=torch.float32)
+        
+        occ_mat[0:int(resolution - bb_voxel[0]+1), 0:int(resolution - bb_voxel[1]+1), 0:int(resolution - bb_voxel[2]+1)] = tsdf_check.squeeze().to(dtype=torch.uint8)
+        
+        # occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
+
+
         occ_mat_result = occ_mat.cpu().numpy()
 
         coordinate_mat = np.argwhere(occ_mat_result > 0)
@@ -145,6 +155,7 @@ class Environment:
     def kill_o3d(self, vis):
         vis.destroy_window()
         self.o3d_window_active = False
+        exit()
 
 
     def open3d_window(self, reset_bb: bool = True):
@@ -332,8 +343,9 @@ def check_gpu():
 
 
 if __name__ == "__main__":
-     with cProfile.Profile() as profile:
-        main()
-        results = pstats.Stats(profile)
-        results.sort_stats('nfl')
-        results.print_stats("get_poi")
+    #  with cProfile.Profile() as profile:
+    #     main()
+    #     results = pstats.Stats(profile)
+    #     results.sort_stats('nfl')
+    #     results.print_stats("get_poi")
+    main()
