@@ -92,43 +92,31 @@ class Environment:
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
         bb_voxel = [10,10,10]
 
-
-        occ_mat = np.zeros_like(vol_mat)
-
+        # occ_mat = np.zeros_like(vol_mat)
+        # tsdf_check = np.zeros_like(vol_mat)
         # print("bb_mat", bb_mat.shape)
         # print("bb_voxel", bb_voxel)
-        print("vol_mat", vol_mat.shape)
+        #print("vol_mat", vol_mat.shape)
 
         bb_voxel = torch.tensor(bb_voxel)
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
-        occ_mat = torch.from_numpy(occ_mat).to(torch.device("cuda"))
-
-        x_dim, y_dim, z_dim = vol_mat.shape
-        # i_range = torch.arange(x_dim - bb_voxel[0]).long()
-        # j_range = torch.arange(y_dim - bb_voxel[1]).long()
-        # k_range = torch.arange(z_dim - bb_voxel[2]).long()
-        i_range = torch.arange(x_dim).long()
-        j_range = torch.arange(y_dim).long()
-        k_range = torch.arange(z_dim).long()
+        # occ_mat = torch.from_numpy(occ_mat).to(torch.device("cuda"))
+        # tsdf_check = torch.from_numpy(tsdf_check).to(torch.device("cuda"))
+        occ_mat = torch.zeros_like(vol_mat, device="cuda")
+        tsdf_check = occ_mat
+        max_tsdf_slices = occ_mat
 
         tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
-        print(tsdf_slices.shape)
-        tsdf_check = max_tsdf_slices <= 0
-        print("tsdf_check",tsdf_check.shape)
-        i = i_range[0]
-        j = j_range[0]
-        k = k_range[0]
-        # print(int(i),int(j),int(k))
-        # occ_mat[int(i):int(resolution - bb_voxel[0]+1), int(j):int(resolution - bb_voxel[1]+1), int(k):int(resolution - bb_voxel[2]+1)] = tsdf_check.float().squeeze().to(dtype=torch.float32)
+        #print(tsdf_slices.shape)
         
-        # occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.float().squeeze().to(dtype=torch.float32)
-        
-        occ_mat[0:int(resolution - bb_voxel[0]+1), 0:int(resolution - bb_voxel[1]+1), 0:int(resolution - bb_voxel[2]+1)] = tsdf_check.squeeze().to(dtype=torch.uint8)
-        
-        # occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
+        tsdf_check[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1] = max_tsdf_slices <= 0
 
+        #print("tsdf_check",tsdf_check.shape)
+ 
+        occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
+        # occ_mat[0:bb_voxel[0], 0:bb_voxel[1], 0:bb_voxel[2]] = tsdf_check.squeeze().to(dtype=torch.uint8)
 
         occ_mat_result = occ_mat.cpu().numpy()
 
@@ -138,10 +126,11 @@ class Environment:
 
         # print(coordinate_mat.shape)
         #print(voxel_size)
-        
-        poi_mat = coordinate_mat*voxel_size #+ [0,0,0.1]
-
-        # print(poi_mat)
+        #strange offset that is based on the size of the vovel bb
+        # poi_mat = coordinate_mat*voxel_size+[(bb_voxel[0]/2)*voxel_size,(bb_voxel[2]/2)*voxel_size,bb_voxel[2]*voxel_size]
+        poi_mat = coordinate_mat*voxel_size+[0.009,0.009,bb_voxel[2]*voxel_size]
+        # poi_mat = coordinate_mat*voxel_size+[0.009, 0.009, 0.10004142]
+   
         self.occ_mat = occ_mat_result
         self.poi_mat = poi_mat
 
@@ -221,6 +210,7 @@ class Environment:
                 bb = tsdf_mesh.get_axis_aligned_bounding_box()
                 # bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
                 bb.color = [1, 0, 0] 
+
                 # print(bb.get_extent())
 
                 target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
@@ -234,7 +224,7 @@ class Environment:
                     points = o3d.utility.Vector3dVector(self.poi_mat)
                     target_pc = o3d.geometry.PointCloud()
                     target_pc.points = points
-                    target_pc = target_pc.crop(bb)
+                    # target_pc = target_pc.crop(bb)
                     target_pc.paint_uniform_color([0,0,0])
 
                 vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
@@ -242,8 +232,6 @@ class Environment:
 
                 vis.poll_events()
                 vis.update_renderer()
-                #vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
-                #vis.remove_geometry(target_bb, reset_bounding_box = reset_bb)
 
 
     def live_feed(self):
