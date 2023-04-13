@@ -1,26 +1,19 @@
 import pybullet
-import pybullet_data
-import math
-import time
 import numpy as np
 import threading 
 import open3d as o3d
 import cv2
-import os
 import cProfile
 import pstats
 import torch
+import torch.nn.functional as F
 from queue import Queue
-from scipy.spatial.transform import Rotation
-
 
 from robot_helpers.bullet import *
 from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from search_sim import Simulation
-from vgn.perception import UniformTSDFVolume
 from dynamic_perception import SceneTSDFVolume
-from vgn.utils import view_on_sphere
 
 class Environment:
     def __init__(self, gui, scene_id, vgn_path):
@@ -90,33 +83,24 @@ class Environment:
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [10,10,10]
-
-        # occ_mat = np.zeros_like(vol_mat)
-        # tsdf_check = np.zeros_like(vol_mat)
-        # print("bb_mat", bb_mat.shape)
-        # print("bb_voxel", bb_voxel)
-        #print("vol_mat", vol_mat.shape)
-
-        bb_voxel = torch.tensor(bb_voxel)
+        bb_voxel = [5,5,5]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
-        # occ_mat = torch.from_numpy(occ_mat).to(torch.device("cuda"))
-        # tsdf_check = torch.from_numpy(tsdf_check).to(torch.device("cuda"))
+
         occ_mat = torch.zeros_like(vol_mat, device="cuda")
         tsdf_check = occ_mat
         max_tsdf_slices = occ_mat
 
         tsdf_slices = vol_mat.unfold(0, int(bb_voxel[0]), 1).unfold(1, int(bb_voxel[1]), 1).unfold(2, int(bb_voxel[2]), 1)
+        # max_tsdf_slices[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1]  = tsdf_slices.amax(dim=(3, 4, 5))
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
-        #print(tsdf_slices.shape)
-        
+        # print(max_tsdf_slices.shape)
+
         tsdf_check[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1] = max_tsdf_slices <= 0
 
-        #print("tsdf_check",tsdf_check.shape)
  
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
-        # occ_mat[0:bb_voxel[0], 0:bb_voxel[1], 0:bb_voxel[2]] = tsdf_check.squeeze().to(dtype=torch.uint8)
+
 
         occ_mat_result = occ_mat.cpu().numpy()
 
@@ -124,18 +108,13 @@ class Environment:
 
         poi_mat = np.zeros_like(coordinate_mat)
 
-        # print(coordinate_mat.shape)
-        #print(voxel_size)
-        #strange offset that is based on the size of the vovel bb
-        # poi_mat = coordinate_mat*voxel_size+[(bb_voxel[0]/2)*voxel_size,(bb_voxel[2]/2)*voxel_size,bb_voxel[2]*voxel_size]
-        poi_mat = coordinate_mat*voxel_size+[0.009,0.009,bb_voxel[2]*voxel_size]
-        # poi_mat = coordinate_mat*voxel_size+[0.009, 0.009, 0.10004142]
+        poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
    
-        self.occ_mat = occ_mat_result
+        self.occ_mat = occ_mat_result 
         self.poi_mat = poi_mat
 
         return occ_mat_result
-
+    
 
     def center_view(self, vis):
         vis.reset_view_point(True)
@@ -224,7 +203,7 @@ class Environment:
                     points = o3d.utility.Vector3dVector(self.poi_mat)
                     target_pc = o3d.geometry.PointCloud()
                     target_pc.points = points
-                    # target_pc = target_pc.crop(bb)
+                    target_pc = target_pc.crop(bb)
                     target_pc.paint_uniform_color([0,0,0])
 
                 vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
@@ -270,16 +249,16 @@ class Environment:
         [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(self.sim.arm.uid, range(7))]
 
         #set up user inputs 
-        j1_comm = pybullet.addUserDebugParameter("J1", -math.pi, math.pi, 0)
-        j2_comm = pybullet.addUserDebugParameter("J2", -math.pi, math.pi, 0)
-        j3_comm = pybullet.addUserDebugParameter("J3", -math.pi, math.pi, 0)
-        j4_comm = pybullet.addUserDebugParameter("J4", -math.pi, math.pi, 0)    
-        j5_comm = pybullet.addUserDebugParameter("J5", -math.pi, math.pi, 0)
-        j6_comm = pybullet.addUserDebugParameter("J6", -math.pi, math.pi, 0)
-        j7_comm = pybullet.addUserDebugParameter("J7", -math.pi, math.pi, 0)
+        j1_comm = pybullet.addUserDebugParameter("J1", -np.pi, np.pi, 0)
+        j2_comm = pybullet.addUserDebugParameter("J2", -np.pi, np.pi, 0)
+        j3_comm = pybullet.addUserDebugParameter("J3", -np.pi, np.pi, 0)
+        j4_comm = pybullet.addUserDebugParameter("J4", -np.pi, np.pi, 0)    
+        j5_comm = pybullet.addUserDebugParameter("J5", -np.pi, np.pi, 0)
+        j6_comm = pybullet.addUserDebugParameter("J6", -np.pi, np.pi, 0)
+        j7_comm = pybullet.addUserDebugParameter("J7", -np.pi, np.pi, 0)
         grip_comm = pybullet.addUserDebugParameter("Grip", 0,0.1,0)
         # cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 1,0,1)
-        cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 0, 2*math.pi, 0)
+        cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 0, 2*np.pi, 0)
 
         frame_buff = 0  
 
