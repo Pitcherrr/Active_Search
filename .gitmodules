@@ -1,0 +1,3 @@
+[submodule "/home/tom/dev_ws/thesis_ws/src/active_grasp"]
+	path = /home/tom/dev_ws/thesis_ws/src/active_grasp
+	url = https://github.com/Pitcherrr/active_grasp.git
