@@ -1,3 +1,6 @@
 [submodule "src/active_grasp"]
 	path = src/active_grasp
 	url = https://github.com/Pitcherrr/active_grasp.git
+[submodule "robot_helpers"]
+	path = robot_helpers
+	url = https://github.com/Pitcherrr/robot_helpers.git
