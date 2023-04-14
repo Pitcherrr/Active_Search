@@ -4,3 +4,6 @@
 [submodule "robot_helpers"]
 	path = robot_helpers
 	url = https://github.com/Pitcherrr/robot_helpers.git
+[submodule "src/robot_helpers"]
+	path = src/robot_helpers
+	url = https://github.com/Pitcherrr/robot_helpers.git
