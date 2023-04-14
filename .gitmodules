@@ -7,3 +7,9 @@
 [submodule "src/robot_helpers"]
 	path = src/robot_helpers
 	url = https://github.com/Pitcherrr/robot_helpers.git
+[submodule "src/panda_moveit_config"]
+	path = src/panda_moveit_config
+	url = https://github.com/ros-planning/panda_moveit_config.git
+[submodule "src/vgn"]
+	path = src/vgn
+	url = https://github.com/Pitcherrr/vgn.git
