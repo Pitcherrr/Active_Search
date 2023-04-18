@@ -26,19 +26,19 @@ class Environment:
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
         self.sim_state = Queue(maxsize=1)
         self.sim.reset()
+        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
+        self.reset_tsdf = False
 
-    
     def get_tsdf(self):
-
-        tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
+            
+        if self.reset_tsdf:
+            self.tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
         
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
         depth_img = cam_data[1]
 
-        tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
-        
-        self.tsdf = tsdf
+        self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
         self.targets = self.get_poi_torch()
         self.sim_state.put([self.tsdf, image])
