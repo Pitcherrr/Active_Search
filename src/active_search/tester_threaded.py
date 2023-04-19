@@ -83,7 +83,7 @@ class Environment:
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [5,5,5]
+        bb_voxel = [10,10,10]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -150,7 +150,13 @@ class Environment:
         state = self.sim_state.get()
         tsdf_init, image = state
 
-        tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
+        # tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
+        tsdf_mesh_init = tsdf_init.o3dvol.extract_triangle_mesh()
+
+        tsdf_mesh_init.compute_triangle_normals()
+        tsdf_mesh_init.compute_vertex_normals()
+
+        
 
         target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
         target_bb.color = [0, 1, 0] 
@@ -181,7 +187,12 @@ class Environment:
 
                 tsdf_mesh, image = state
 
-                tsdf_mesh = tsdf_mesh.o3dvol.extract_point_cloud()
+                # tsdf_mesh = tsdf_mesh.o3dvol.extract_point_cloud()
+                tsdf_mesh = tsdf_init.o3dvol.extract_triangle_mesh()
+
+                tsdf_mesh.compute_triangle_normals()
+                tsdf_mesh.compute_vertex_normals()
+
                 # print(tsdf_mesh)
 
                 tsdf_exists = True
@@ -204,7 +215,7 @@ class Environment:
                     target_pc = o3d.geometry.PointCloud()
                     target_pc.points = points
                     target_pc = target_pc.crop(bb)
-                    target_pc.paint_uniform_color([0,0,0])
+                    target_pc.paint_uniform_color([0,1,0])
 
                 vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
                 #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
