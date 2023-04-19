@@ -14,6 +14,7 @@ from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from search_sim import Simulation
 from dynamic_perception import SceneTSDFVolume
+from vgn.detection import VGN, select_local_maxima
 
 class Environment:
     def __init__(self, gui, scene_id, vgn_path):
@@ -115,6 +116,41 @@ class Environment:
 
         return occ_mat_result
     
+    def get_object_bbox(self, uids):
+        object_bbs = []
+        
+        for uid in uids:
+            bb =  o3d.geometry.AxisAlignedBoundingBox()
+            min_bound, max_bound = pybullet.getAABB(uid)
+            origin = Transform.from_translation(self.sim.scene.origin)
+            min_bound_t = (Transform.from_translation(min_bound)*origin.inv()).translation
+            max_bound_t = (Transform.from_translation(max_bound)*origin.inv()).translation
+            bb.min_bound = min_bound_t + np.array([0,0,0.1])
+            bb.max_bound = max_bound_t + np.array([0,0,0.1])
+            object_bbs.append(bb)
+            # target_bb.scale(0.8, target_bb.get_center())
+        return object_bbs
+
+
+    
+    def check_for_grasps(self, bbox):
+        origin = Transform.from_translation(self.scene.origin)
+        origin.translation[2] -= 0.05
+
+        voxel_size, tsdf_grid = self.tsdf.voxel_size, self.tsdf.get_grid()
+
+
+        # Then check whether VGN can find any grasps on the target
+        out = self.vgn.predict(tsdf_grid)
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
+
+        for grasp in grasps:
+            pose = origin * grasp.pose
+            tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
+            if bbox.is_inside(tip):
+                return True
+        return False
+    
 
     def center_view(self, vis):
         vis.reset_view_point(True)
@@ -126,10 +162,7 @@ class Environment:
         exit()
 
 
-    def open3d_window(self, reset_bb: bool = True):
-        """Need to run this in a loop on another thread, 
-        may have to parse in camera data from main thread running pybullet"""
-        
+    def open3d_window(self, reset_bb: bool = True):        
         self.paused = False
         self.o3d_window_active = True
         tsdf_exists = False
@@ -156,8 +189,6 @@ class Environment:
         tsdf_mesh_init.compute_triangle_normals()
         tsdf_mesh_init.compute_vertex_normals()
 
-        
-
         target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
         target_bb.color = [0, 1, 0] 
 
@@ -165,14 +196,17 @@ class Environment:
         origin_sphere = mesh = o3d.geometry.TriangleMesh.create_sphere(0.05)
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
 
+        object_bb = self.get_object_bbox(self.sim.object_uids)
+        for objects in object_bb:
+            objects.color = [0, 0, 1] 
+            vis.add_geometry(objects)
+
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
         # vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
-  
-
         vis.update_renderer()
-
         vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = reset_bb)
+
         while self.o3d_window_active:
             # vis.poll_events()
             # vis.update_renderer()
