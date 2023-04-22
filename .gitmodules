@@ -13,3 +13,4 @@
 [submodule "src/vgn"]
 	path = src/vgn
 	url = https://github.com/Pitcherrr/vgn.git
+	branch = devel	
