@@ -6,7 +6,7 @@ import rospkg
 import time
 
 from active_grasp.bbox import AABBox
-from robot_helpers.bullet import *
+from bullet_utils import *
 from robot_helpers.io import load_yaml
 from robot_helpers.model import KDLModel
 from robot_helpers.spatial import Rotation

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from queue import Queue
 from trac_ik_python.trac_ik import IK
 
-from robot_helpers.bullet import *
+from bullet_utils import *
 from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from search_sim import Simulation
@@ -363,7 +363,7 @@ class Environment:
 
     def init_ik_solver(self):
         self.q0 = self.sim.arm.configurations["ready"]
-        self.cam_ik_solver = IK(self.sim.arm.base_frame, self.sim.camera.link_id)
+        self.cam_ik_solver = IK(self.sim.arm.base_frame, "camera_depth_optical_frame")
         self.ee_ik_solver = IK(self.sim.arm.base_frame, "panda_link8")
 
 
@@ -376,7 +376,7 @@ def solve_ik(q0, pose, solver):
 def main():
     gui = True
     scene_id = "random"
-    vgn_path = "/home/tom/dev_ws/thesis_ws/src/vgn/assets/models/vgn_conv.pth" #was changed 
+    vgn_path = "src/vgn/assets/models/vgn_conv.pth" #was changed 
 
     env = Environment(gui, scene_id, vgn_path)
     env.load_engine()

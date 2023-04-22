@@ -1,8 +1,8 @@
 import numpy as np
 import pybullet as p
 
-from .perception import CameraIntrinsic
-from .spatial import Rotation, Transform
+from robot_helpers.perception import CameraIntrinsic
+from robot_helpers.spatial import Rotation, Transform
 
 assert p.isNumpyEnabled(), "Pybullet needs to be built with NumPy"
 
@@ -11,7 +11,8 @@ class BtPandaArm:
     def __init__(self, urdf_path="franka_panda/panda.urdf", pose=Transform.identity()):
         self.base_frame = "panda_link0"
         self.ee_frame = "panda_hand"
-        self.configurations = {"ready": [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]}
+        #self.configurations = {"ready": [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]}
+        self.configurations = {"ready": [0.0, -1.3, 0.0, -2.2, 0.0, 1.4, 0.79+(np.pi/2)]}
         self.uid = p.loadURDF(
             str(urdf_path),
             basePosition=pose.translation,
@@ -106,13 +107,32 @@ class BtCamera:
         if pose is None:
             r = p.getLinkState(self.body_uid, self.link_id, computeForwardKinematics=1)
             pose = Transform(Rotation.from_quat(r[5]), r[4])
+            theta = self.rot
+            rotation_matrix = np.array(
+            [[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]] # Z
+            )
+            # print(rotation_matrix)
+
+            pose.rotation = Rotation.from_matrix(rotation_matrix) * pose.rotation
+
+ 
+
+        # rot, trans = pose.rotation, pose.translation
+
+        # print("rot", rot)
+        # #pose.rotation = rot.apply([1, 0, 0])
+        # pose.apply([1,0,0])
         R, t = pose.rotation, pose.translation
+        #print(R)
         #print(self.rot)
 
-        if self.rot%2 != 0:
-            view_mat = p.computeViewMatrix(t, R.apply([0, 0, 1]) + t, R.apply([1, 0, 0]))
-        else:
-            view_mat = p.computeViewMatrix(t, R.apply([0, 0, 1]) + t, R.apply([0, -1, 0])) #original 
+        # if self.rot%2 != 0:
+        #view_mat = p.computeViewMatrix(t, R.apply([0, 0, 1]) + t, R.apply([1, 0, 0]))
+        # else:
+        view_mat = p.computeViewMatrix(t, R.apply([0, 0, 1]) + t, R.apply([0, -1, 0])) #original 
+
+        # pose = Transform.from_matrix(pose.as_matrix() * np.reshape(view_mat, (4,4)))
+        self.pose = pose 
         #view_mat = p.computeViewMatrixFromYawPitchRoll()
 
         result = p.getCameraImage(
