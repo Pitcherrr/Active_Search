@@ -29,7 +29,7 @@ class Simulation:
         self.configure_visualizer()
         self.seed()
         self.load_robot()
-        #self.load_vgn(Path(vgn_path))
+        self.load_vgn(Path(vgn_path))
         self.scene = get_scene(scene_id)
         self.object_uids = self.scene.object_uids
         print("urdfs:", urdfs_dir)

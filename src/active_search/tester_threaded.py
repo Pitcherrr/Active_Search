@@ -8,13 +8,14 @@ import pstats
 import torch
 import torch.nn.functional as F
 from queue import Queue
+from trac_ik_python.trac_ik import IK
 
 from robot_helpers.bullet import *
 from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from search_sim import Simulation
 from dynamic_perception import SceneTSDFVolume
-from vgn.detection import VGN, select_local_maxima
+from vgn.detection import VGN, select_local_maxima, to_voxel_coordinates
 
 class Environment:
     def __init__(self, gui, scene_id, vgn_path):
@@ -27,13 +28,13 @@ class Environment:
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
         self.sim_state = Queue(maxsize=1)
         self.sim.reset()
-        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
+        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
         self.reset_tsdf = False
 
     def get_tsdf(self):
             
         if self.reset_tsdf:
-            self.tsdf = SceneTSDFVolume(self.sim.scene.length, 50)
+            self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
         
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
@@ -68,15 +69,15 @@ class Environment:
 
         #target_bb = target_bb.get_minimal_oriented_bounding_box()
 
-        print(np.asarray(target_bb.get_box_points()))
+        # print(np.asarray(target_bb.get_box_points()))
 
         self.target_bb = target_bb
 
     
     def get_poi_torch(self):
 
-        resolution = 50
-        voxel_size = self.sim.scene.length/resolution
+        resolution = self.tsdf.resolution
+        voxel_size = self.tsdf.voxel_size
 
         volume = self.tsdf.o3dvol.extract_volume_tsdf()
         vol_array = np.asarray(volume)
@@ -118,7 +119,7 @@ class Environment:
     
     def get_object_bbox(self, uids):
         object_bbs = []
-        
+
         for uid in uids:
             bb =  o3d.geometry.AxisAlignedBoundingBox()
             min_bound, max_bound = pybullet.getAABB(uid)
@@ -130,26 +131,34 @@ class Environment:
             object_bbs.append(bb)
             # target_bb.scale(0.8, target_bb.get_center())
         return object_bbs
-
-
     
+    def get_object_bbox_bullet(self, uids):
+        object_bbs = []
+        for uid in uids:
+            bb = self.sim.get_target_bbox(uid)
+            object_bbs.append(bb)
+        return object_bbs
+
+
+    # def load_vgn(self, model_path):
+    #     self.vgn = VGN(model_path)
+
     def check_for_grasps(self, bbox):
-        origin = Transform.from_translation(self.scene.origin)
+        origin = Transform.from_translation(self.sim.scene.origin)
         origin.translation[2] -= 0.05
 
         voxel_size, tsdf_grid = self.tsdf.voxel_size, self.tsdf.get_grid()
 
-
         # Then check whether VGN can find any grasps on the target
-        out = self.vgn.predict(tsdf_grid)
-        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
+        out = self.sim.vgn.predict(tsdf_grid)
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
 
         for grasp in grasps:
             pose = origin * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             if bbox.is_inside(tip):
-                return True
-        return False
+                return (True, grasp)
+        return (False,)
     
 
     def center_view(self, vis):
@@ -159,7 +168,12 @@ class Environment:
     def kill_o3d(self, vis):
         vis.destroy_window()
         self.o3d_window_active = False
+        print("Killing Open3d")
         exit()
+
+    def set_grasp(self, vis):
+        self.do_grasp_check = True
+        print("Checking Grasps...")
 
 
     def open3d_window(self, reset_bb: bool = True):        
@@ -176,6 +190,7 @@ class Environment:
         #some key call backs for controlling the sim 
         vis.register_key_callback(ord("C"), self.center_view)
         vis.register_key_callback(ord("X"), self.kill_o3d)
+        vis.register_key_callback(ord("G"), self.set_grasp)
 
         while self.sim_state.empty():
              continue
@@ -283,6 +298,8 @@ class Environment:
 
     def run(self):
 
+        self.do_grasp_check = False
+
         # Create two threads, one for each window
         # self.thread_live_feed = threading.Thread(target=self.live_feed)
         # self.thread_live_feed.start()
@@ -324,6 +341,16 @@ class Environment:
             self.sim.gripper.set_desired_width(grip_width)
             self.sim.camera.rot = cam_rot
 
+            if self.do_grasp_check:
+                objs = self.get_object_bbox_bullet(self.sim.object_uids)
+                for obj in objs:
+                    grasp = self.check_for_grasps(obj)
+                    print(f"Grasp detected on object {objs.index(obj)}: {grasp[0]}")
+                    if grasp[0]:
+                        grasp_coord = to_voxel_coordinates(self.tsdf.voxel_size, grasp[1])
+                        print(grasp_coord.pose.translation)
+                self.do_grasp_check = False
+
 
             if frame_buff == 10:
                 self.get_tsdf()
@@ -334,6 +361,17 @@ class Environment:
 
             frame_buff += 1 
 
+    def init_ik_solver(self):
+        self.q0 = self.sim.arm.configurations["ready"]
+        self.cam_ik_solver = IK(self.sim.arm.base_frame, self.sim.camera.link_id)
+        self.ee_ik_solver = IK(self.sim.arm.base_frame, "panda_link8")
+
+
+def solve_ik(q0, pose, solver):
+    x, y, z = pose.translation
+    qx, qy, qz, qw = pose.rotation.as_quat()
+    return solver.get_ik(q0, x, y, z, qx, qy, qz, qw)
+
 
 def main():
     gui = True
@@ -342,6 +380,7 @@ def main():
 
     env = Environment(gui, scene_id, vgn_path)
     env.load_engine()
+    env.init_ik_solver()
     env.get_target()
     env.get_target_bb()
     check_gpu()
