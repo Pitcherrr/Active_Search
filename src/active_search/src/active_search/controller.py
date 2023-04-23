@@ -81,6 +81,7 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
         with Timer("search_time"):
             grasp = self.search_grasp(bbox)
+            #grasps = self.get_scene_grasps()
         if grasp:
             self.switch_to_joint_trajectory_control()
             with Timer("grasp_time"):
@@ -109,6 +110,23 @@ class GraspController:
         self.policy.deactivate()
         timer.shutdown()
         return self.policy.best_grasp
+    
+    def get_scene_grasps(self, tsdf, sim, bbox):
+        origin = Transform.from_translation(self.policy.T_base_task)
+        origin.translation[2] -= 0.05
+
+        voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
+
+        # Then check whether VGN can find any grasps on the target
+        out = sim.vgn.predict(tsdf_grid)
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
+
+        for grasp in grasps:
+            pose = origin * grasp.pose
+            tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
+            if bbox.is_inside(tip):
+                return (True, grasp)
+        return (False,)
 
     def get_state(self):
         q, _ = self.arm.get_state()

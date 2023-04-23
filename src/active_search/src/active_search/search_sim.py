@@ -10,7 +10,7 @@ from robot_helpers.bullet import *
 # from .bullet_utils import *
 from robot_helpers.io import load_yaml
 from robot_helpers.model import KDLModel
-from robot_helpers.spatial import Rotation
+from robot_helpers.spatial import Rotation, Transform
 from vgn.perception import UniformTSDFVolume
 from vgn.utils import find_urdfs, view_on_sphere
 from vgn.detection import VGN, select_local_maxima
@@ -77,13 +77,26 @@ class Simulation:
         self.object_uids = self.scene.object_uids
 
         print(self.object_uids)
+
         target_uid = np.random.choice(self.object_uids)
         print(target_uid)
         target = get_target_bb(self, target_uid)
         tsdf = get_tsdf(self, reset_tsdf=True)
         target_points = get_poi_torch(tsdf, target)
+        bbox = AABBox(target.min_bound, target.max_bound)
 
-        return target_points
+        #termorary-----------------------
+        origin = Transform.from_translation(self.scene.origin)
+        min_bound_t = (Transform.from_translation(target.min_bound)*origin).translation
+        max_bound_t = (Transform.from_translation(target.max_bound)*origin).translation
+
+        target.min_bound = min_bound_t - np.array([0,0,0.1])
+        target.max_bound = max_bound_t - np.array([0,0,0.1])
+        bbox = AABBox(target.min_bound, target.max_bound)
+        #--------------------------------
+
+        # return target_points
+        return bbox
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):

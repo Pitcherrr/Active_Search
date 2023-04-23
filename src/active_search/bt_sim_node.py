@@ -88,7 +88,8 @@ class BtSimNode:
         bbox = self.sim.reset()
         while bbox == None:
             bbox = self.sim.reset()
-        bbox = bbox[1]
+        # bbox = bbox[1]
+        
         print("BBOX",bbox)
         self.activate_plugins()
         return ResetResponse(to_bbox_msg(bbox))
