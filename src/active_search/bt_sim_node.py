@@ -89,10 +89,14 @@ class BtSimNode:
         while bbox == None:
             bbox = self.sim.reset()
         # bbox = bbox[1]
-        
         print("BBOX",bbox)
         self.activate_plugins()
-        return ResetResponse(to_bbox_msg(bbox))
+        for i in range(len(bbox)):
+            bbox[i] = to_bbox_msg(bbox[i])
+        # return ResetResponse(to_bbox_msg(bbox))
+        return ResetResponse(bbox)
+
+
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:

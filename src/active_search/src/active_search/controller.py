@@ -16,6 +16,7 @@ from robot_helpers.ros.panda import PandaArmClient, PandaGripperClient
 from robot_helpers.ros.moveit import MoveItClient, create_collision_object_from_mesh
 from robot_helpers.spatial import Rotation, Transform
 from vgn.utils import look_at, cartesian_to_spherical, spherical_to_cartesian
+from vgn.detection import select_local_maxima
 
 
 class GraspController:
@@ -77,11 +78,21 @@ class GraspController:
         self.latest_depth_msg = msg
 
     def run(self):
-        bbox = self.reset()
+        bbs = self.reset()
+        bbox = bbs.pop(-1)
         self.switch_to_cartesian_velocity_control()
+        grasps = []
+        for bb in bbs:
+            # result = self.get_scene_grasps(bb)
+            grasp = self.search_grasp(bb)
+            # print(result)
+            # result, grasp = result
+            # if result is True:
+            grasps.append(grasp)
+        print(grasps)
+        
         with Timer("search_time"):
             grasp = self.search_grasp(bbox)
-            #grasps = self.get_scene_grasps()
         if grasp:
             self.switch_to_joint_trajectory_control()
             with Timer("grasp_time"):
@@ -95,7 +106,10 @@ class GraspController:
         self.moveit.scene.clear()
         res = self.reset_env(ResetRequest())
         rospy.sleep(1.0)  # Wait for the TF tree to be updated.
-        return from_bbox_msg(res.bbox)
+        bbs = res.bbox
+        for i in range(len(bbs)):
+            bbs[i] = from_bbox_msg(bbs[i])
+        return bbs
 
     def search_grasp(self, bbox):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
@@ -111,22 +125,22 @@ class GraspController:
         timer.shutdown()
         return self.policy.best_grasp
     
-    def get_scene_grasps(self, tsdf, sim, bbox):
-        origin = Transform.from_translation(self.policy.T_base_task)
+    def get_scene_grasps(self, bbox):
+        self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
+        self.policy.activate(bbox, self.view_sphere)
+        origin = self.policy.T_base_task
         origin.translation[2] -= 0.05
-
-        voxel_size, tsdf_grid = tsdf.voxel_size, tsdf.get_grid()
-
+        voxel_size, tsdf_grid = self.policy.tsdf.voxel_size, self.policy.tsdf.get_grid()
         # Then check whether VGN can find any grasps on the target
-        out = sim.vgn.predict(tsdf_grid)
+        out = self.policy.vgn.predict(tsdf_grid)
         grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
 
         for grasp in grasps:
             pose = origin * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             if bbox.is_inside(tip):
-                return (True, grasp)
-        return (False,)
+                return True, grasp
+        return False, None
 
     def get_state(self):
         q, _ = self.arm.get_state()

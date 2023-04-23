@@ -76,6 +76,8 @@ class Simulation:
         self.scene.generate(self.rng)
         self.object_uids = self.scene.object_uids
 
+        origin = Transform.from_translation(self.scene.origin)
+
         print(self.object_uids)
 
         target_uid = np.random.choice(self.object_uids)
@@ -83,20 +85,32 @@ class Simulation:
         target = get_target_bb(self, target_uid)
         tsdf = get_tsdf(self, reset_tsdf=True)
         target_points = get_poi_torch(tsdf, target)
-        bbox = AABBox(target.min_bound, target.max_bound)
+        target = AABBox(target.min_bound, target.max_bound)
+        min_bound_t = (Transform.from_translation(target.min)*origin).translation
+        max_bound_t = (Transform.from_translation(target.max)*origin).translation
 
-        #termorary-----------------------
-        origin = Transform.from_translation(self.scene.origin)
-        min_bound_t = (Transform.from_translation(target.min_bound)*origin).translation
-        max_bound_t = (Transform.from_translation(target.max_bound)*origin).translation
+        target.min = min_bound_t - np.array([0,0,0.1])
+        target.max = max_bound_t - np.array([0,0,0.1])
+        
+        bbs = []
+        #temporary-----------------------
+        for i in self.object_uids:
+            if i != target_uid:
+                bb = get_target_bb(self, i)
+                bb = AABBox(bb.min_bound, bb.max_bound)
+  
+                min_bound_t = (Transform.from_translation(bb.min)*origin).translation
+                max_bound_t = (Transform.from_translation(bb.max)*origin).translation
 
-        target.min_bound = min_bound_t - np.array([0,0,0.1])
-        target.max_bound = max_bound_t - np.array([0,0,0.1])
-        bbox = AABBox(target.min_bound, target.max_bound)
+                bb.min = min_bound_t - np.array([0,0,0.1])
+                bb.max = max_bound_t - np.array([0,0,0.1])
+
+                bbs.append(bb)
+
+        bbs.append(target)
         #--------------------------------
-
         # return target_points
-        return bbox
+        return bbs
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):
