@@ -78,6 +78,9 @@ def get_poi_torch(tsdf, target_bb):
     # aabb_arr = np.zeros(poi_arr.shape[1])
     aabb_arr = []
 
+    if len(poi_arr) == 0:
+        return None
+
     #poi mat is a list of the min bound for a bounding box
     for i in range(poi_arr.shape[1]-1):
         aabb_arr.append(AABBox(poi_arr[i], poi_arr[i]+target_bb.get_extent()))

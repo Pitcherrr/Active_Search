@@ -11,8 +11,8 @@ class BtPandaArm:
     def __init__(self, urdf_path="franka_panda/panda.urdf", pose=Transform.identity()):
         self.base_frame = "panda_link0"
         self.ee_frame = "panda_hand"
-        #self.configurations = {"ready": [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]}
-        self.configurations = {"ready": [0.0, -1.3, 0.0, -2.2, 0.0, 1.4, 0.79+(np.pi/2)]}
+        self.configurations = {"ready": [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]}
+        # self.configurations = {"ready": [0.0, -1.3, 0.0, -2.2, 0.0, 1.4, 0.79+(np.pi/2)]}
         self.uid = p.loadURDF(
             str(urdf_path),
             basePosition=pose.translation,

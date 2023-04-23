@@ -6,7 +6,8 @@ import rospkg
 import time
 
 from active_grasp.bbox import AABBox
-from .bullet_utils import *
+from robot_helpers.bullet import *
+# from .bullet_utils import *
 from robot_helpers.io import load_yaml
 from robot_helpers.model import KDLModel
 from robot_helpers.spatial import Rotation
@@ -55,7 +56,7 @@ class Simulation:
     def load_robot(self):
         panda_urdf_path = urdfs_dir / "franka/panda_arm_hand.urdf"
         plane = p.loadURDF("plane.urdf")
-        self.arm = BtPandaArm()
+        self.arm = BtPandaArm(panda_urdf_path)
         #self.arm = BtPandaArm(panda_urdf_path)
         self.gripper = BtPandaGripper(self.arm)
         self.model = KDLModel.from_urdf_file(
@@ -68,7 +69,9 @@ class Simulation:
         self.vgn = VGN(model_path)
 
     def reset(self):
-        #self.set_arm_configuration([0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79])
+        self.set_arm_configuration([0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79])
+        q = self.scene.generate(self.rng)
+        self.set_arm_configuration(q)
         self.scene.clear()
         self.scene.generate(self.rng)
         self.object_uids = self.scene.object_uids
