@@ -223,8 +223,8 @@ class Environment:
         vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = reset_bb)
 
         while self.o3d_window_active:
-            # vis.poll_events()
-            # vis.update_renderer()
+            vis.poll_events()
+            vis.update_renderer()
             if not self.sim_state.empty():
 
                 if tsdf_exists:
@@ -235,22 +235,14 @@ class Environment:
                 state = self.sim_state.get()
 
                 tsdf_mesh, image = state
-
-                # tsdf_mesh = tsdf_mesh.o3dvol.extract_point_cloud()
                 tsdf_mesh = tsdf_init.o3dvol.extract_triangle_mesh()
-
                 tsdf_mesh.compute_triangle_normals()
                 tsdf_mesh.compute_vertex_normals()
-
-                # print(tsdf_mesh)
 
                 tsdf_exists = True
 
                 bb = tsdf_mesh.get_axis_aligned_bounding_box()
-                # bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(aligned_bb) 
                 bb.color = [1, 0, 0] 
-
-                # print(bb.get_extent())
 
                 target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
                 target_bb.color = [0, 1, 0] 

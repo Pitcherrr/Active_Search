@@ -16,7 +16,7 @@ from threading import Thread
 
 from active_grasp.bbox import to_bbox_msg
 from active_grasp.srv import *
-from search_sim import Simulation
+from active_search.search_sim import Simulation
 from robot_helpers.ros.conversions import *
 from vgn.simulation import apply_noise
 
@@ -84,7 +84,8 @@ class BtSimNode:
         self.deactivate_plugins()
         self.deactivate_controllers()
         rospy.sleep(1.0)  # TODO replace with a read-write lock
-        bbox = self.sim.reset()
+        bbox = self.sim.reset()[1]
+        print("BBOX",bbox)
         self.activate_plugins()
         return ResetResponse(to_bbox_msg(bbox))
 

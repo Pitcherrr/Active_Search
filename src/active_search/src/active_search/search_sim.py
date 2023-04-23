@@ -6,13 +6,14 @@ import rospkg
 import time
 
 from active_grasp.bbox import AABBox
-from bullet_utils import *
+from .bullet_utils import *
 from robot_helpers.io import load_yaml
 from robot_helpers.model import KDLModel
 from robot_helpers.spatial import Rotation
 from vgn.perception import UniformTSDFVolume
 from vgn.utils import find_urdfs, view_on_sphere
 from vgn.detection import VGN, select_local_maxima
+from .locate import *
 
 # import vgn.visualizer as vis
 
@@ -71,6 +72,15 @@ class Simulation:
         self.scene.clear()
         self.scene.generate(self.rng)
         self.object_uids = self.scene.object_uids
+
+        print(self.object_uids)
+        target_uid = np.random.choice(self.object_uids)
+        print(target_uid)
+        target = get_target_bb(self, target_uid)
+        tsdf = get_tsdf(self, reset_tsdf=True)
+        target_points = get_poi_torch(tsdf, target)
+
+        return target_points
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):

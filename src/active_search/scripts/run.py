@@ -7,7 +7,7 @@ from pathlib import Path
 import rospy
 from tqdm import tqdm
 
-from active_grasp.controller import *
+from active_search.controller import *
 from active_grasp.policy import make, registry
 from active_grasp.srv import Seed
 from robot_helpers.ros import tf
