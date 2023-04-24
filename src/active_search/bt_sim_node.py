@@ -14,12 +14,14 @@ from scipy import interpolate
 from std_msgs.msg import Header
 from threading import Thread
 
+from active_search.dynamic_perception import SceneTSDFVolume 
 from active_grasp.bbox import to_bbox_msg
 from active_grasp.srv import *
 from active_search.search_sim import Simulation
 # from active_grasp.simulation import Simulation
 from robot_helpers.ros.conversions import *
 from vgn.simulation import apply_noise
+from vgn.utils import grid_to_map_cloud, to_cloud_msg
 
 
 class BtSimNode:
@@ -328,16 +330,19 @@ class CameraPlugin(Plugin):
         self.cam_noise = rospy.get_param("~cam_noise", False)
         self.cv_bridge = cv_bridge.CvBridge()
         self.init_publishers()
+        self.init_tsdf()
 
     def init_publishers(self):
         topic = self.name + "/depth/camera_info"
         self.info_pub = rospy.Publisher(topic, CameraInfo, queue_size=10)
         topic = self.name + "/depth/image_rect_raw"
         self.depth_pub = rospy.Publisher(topic, Image, queue_size=10)
+        #adding tsdf publisher 
+        topic = self.name + "/depth/tsdf"
+        self.tsdf_pub = rospy.Publisher(topic, Image, queue_size=1)
 
     def update(self):
         stamp = rospy.Time.now()
-
         msg = to_camera_info_msg(self.camera.intrinsic)
         msg.header.frame_id = self.name + "_optical_frame"
         msg.header.stamp = stamp
@@ -351,6 +356,21 @@ class CameraPlugin(Plugin):
         msg = self.cv_bridge.cv2_to_imgmsg((1000 * depth).astype(np.uint16))
         msg.header.stamp = stamp
         self.depth_pub.publish(msg)
+
+    def init_tsdf(self):
+        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+
+    def get_tsdf_msg(self):
+        # if self.reset_tsdf:
+        #     tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+        image, depth_img, seg = self.camera.get_image()
+        self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
+
+        points, distances = grid_to_map_cloud(self.tsdf.voxel_size, self.tsdf.get_grid()) 
+
+        tsdf_msg = to_cloud_msg(...,points,...,...,distances)
+
+        return tsdf_msg
 
 
 class MockActionsPlugin(Plugin):
