@@ -358,13 +358,13 @@ class CameraPlugin(Plugin):
         self.depth_pub.publish(msg)
 
     def init_tsdf(self):
-        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+        self.tsdf = SceneTSDFVolume(0.3, 40)
 
     def get_tsdf_msg(self):
         # if self.reset_tsdf:
         #     tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
         image, depth_img, seg = self.camera.get_image()
-        self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
+        self.tsdf.integrate(depth_img, self.camera.intrinsic, (self.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
         points, distances = grid_to_map_cloud(self.tsdf.voxel_size, self.tsdf.get_grid()) 
 

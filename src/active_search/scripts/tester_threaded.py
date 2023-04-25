@@ -10,11 +10,11 @@ import torch.nn.functional as F
 from queue import Queue
 from trac_ik_python.trac_ik import IK
 
-from bullet_utils import *
+from active_search.bullet_utils import *
 from robot_helpers.model import *
 from robot_helpers.spatial import Transform
-from search_sim import Simulation
-from dynamic_perception import SceneTSDFVolume
+from active_search.search_sim import Simulation
+from active_search.dynamic_perception import SceneTSDFVolume
 from vgn.detection import VGN, select_local_maxima, to_voxel_coordinates
 
 class Environment:
@@ -85,7 +85,7 @@ class Environment:
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [10,10,10]
+        bb_voxel = [5,5,5]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -372,7 +372,7 @@ def main():
 
     env = Environment(gui, scene_id, vgn_path)
     env.load_engine()
-    env.init_ik_solver()
+    # env.init_ik_solver()
     env.get_target()
     env.get_target_bb()
     check_gpu()

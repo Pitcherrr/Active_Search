@@ -8,6 +8,7 @@ import rospy
 from tqdm import tqdm
 
 from active_search.controller import *
+from active_search.open3d_viz import *
 from active_grasp.policy import make, registry
 from active_grasp.srv import Seed
 from robot_helpers.ros import tf
@@ -27,6 +28,13 @@ def main():
 
     seed_simulation(args.seed)
     rospy.sleep(1.0)  # Prevents a rare race condiion
+
+    controller.policy.activate()
+
+    rospy.sleep(5.0) 
+
+    # tsdf_view = Open3d_viz()
+    # tsdf_view.run()
 
     for _ in tqdm(range(args.runs), disable=args.wait_for_input):
         if args.wait_for_input:
