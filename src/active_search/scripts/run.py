@@ -6,7 +6,9 @@ import pandas as pd
 from pathlib import Path
 import rospy
 from tqdm import tqdm
+from std_srvs.srv import SetBool, Empty
 
+from active_grasp.bbox import AABBox
 from active_search.controller import *
 from active_search.open3d_viz import *
 from active_grasp.policy import make, registry
@@ -29,12 +31,24 @@ def main():
     seed_simulation(args.seed)
     rospy.sleep(1.0)  # Prevents a rare race condiion
 
-    controller.policy.activate()
+    controller.reset()
+    controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
-    rospy.sleep(5.0) 
+    reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
+    tsdf_response = reset_tsdf() # Call the service with argument True
+    print(tsdf_response)
 
-    # tsdf_view = Open3d_viz()
-    # tsdf_view.run()
+    toggle_integration = rospy.ServiceProxy('toggle_integration', SetBool)
+    response = toggle_integration(True) # Call the service with argument True
+    print(response) # Print the response from the service
+
+    rospy.sleep(1.0)
+
+    tsdf_view = Open3d_viz()
+    tsdf_view.run()
+
+    # rospy.sleep(5.0) 
+
 
     for _ in tqdm(range(args.runs), disable=args.wait_for_input):
         if args.wait_for_input:

@@ -28,6 +28,7 @@ class UniformTSDFServer:
     def load_parameters(self):
         # self.frame_id = rospy.get_param("~frame_id")
         print("Initializing TSDF Server")
+        self.base_frame_id = rospy.get_param("~base_frame_id")
         self.frame_id = rospy.get_param("~frame_id")
         self.length = rospy.get_param("~length")
         self.resolution = rospy.get_param("~resolution")
@@ -41,7 +42,7 @@ class UniformTSDFServer:
         self.intrinsic = from_camera_info_msg(msg)
 
     def init_topics(self):
-        print('scene cloud')
+        print('Init topic')
         self.scene_cloud_pub = rospy.Publisher("/tsdf_server/scene_cloud", PointCloud2, queue_size=1)
         self.map_cloud_pub = rospy.Publisher("map_cloud", PointCloud2, queue_size=1)
         rospy.Subscriber(self.depth_topic, Image, self.sensor_cb)
@@ -61,15 +62,18 @@ class UniformTSDFServer:
         return std_srvs.srv.SetBoolResponse(success=True)
 
     def sensor_cb(self, msg):
+        # print('tsdf integration step -------------------')
         if self.integrate:
             depth = (
                 self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32)
                 * self.depth_scaling
             )
             extrinsic = tf.lookup(
-                self.cam_frame_id, self.frame_id, msg.header.stamp, rospy.Duration(0.1)
+                self.cam_frame_id, self.base_frame_id, msg.header.stamp, rospy.Duration(0.1) # was 0.1
             )
             self.tsdf.integrate(depth, self.intrinsic, extrinsic)
+
+            # self.get_map_cloud(vgn.srv.GetMapCloud)
 
     def get_scene_cloud(self, req):
         scene_cloud = self.tsdf.get_scene_cloud()
@@ -94,6 +98,6 @@ class UniformTSDFServer:
 
 if __name__ == "__main__":
     rospy.init_node("tsdf_server")
-    server = UniformTSDFServer()
+    UniformTSDFServer()
     rospy.spin()
     # server.run()
