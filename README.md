@@ -13,11 +13,11 @@ Active Search allows a Franka Panda robot arm to navigate an unseen environment 
 * Requires ROS Neotic
 * Clone repo
 ```
-git clone https://github.com/Pitcherrr/Active_Search.git
+git clone --recurse-submodules https://github.com/Pitcherrr/Active_Search.git
 ```
 
 ```
-catkin build
+catkin build active_search
 ```
 
 ```
@@ -25,7 +25,7 @@ source devel/setup.bash
 ```
 
 ```
-python3 src/active_search/tester_threaded.py
+python3 src/active_search/scripts/tester_threaded.py
 ```
 
 ## TODO:
