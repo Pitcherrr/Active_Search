@@ -47,7 +47,7 @@ class Open3d_viz():
         print("Killing Open3d")
         exit()
 
-    def to_triangle_mesh(self):
+    def to_pc(self):
         # tsdf_vol = o3d.pipelines.integration.UniformTSDFVolume(
         #     length=0.3,
         #     resolution=40,
@@ -61,6 +61,9 @@ class Open3d_viz():
 
         point_vec = o3d.utility.Vector3dVector(self.points)
         pc = o3d.geometry.PointCloud(point_vec)
+
+        # v_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pc, 0.0075)
+
         # distances
 
         return pc
@@ -81,31 +84,11 @@ class Open3d_viz():
         vis.register_key_callback(ord("C"), self.center_view)
         vis.register_key_callback(ord("X"), self.kill_o3d)
 
-        # self.update()
-        tsdf_init = self.to_triangle_mesh()
-
-        # tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
-        # tsdf_mesh_init = tsdf_init.o3dvol.extract_triangle_mesh()
-
-        # tsdf_mesh_init.compute_triangle_normals()
-        # tsdf_mesh_init.compute_vertex_normals()
-
-        # target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
-        # target_bb.color = [0, 1, 0] 
+        tsdf_init = self.to_pc()
 
         frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.05)
-        origin_sphere = mesh = o3d.geometry.TriangleMesh.create_sphere(0.05)
-        # origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
-
-        # object_bb = self.get_object_bbox(self.sim.object_uids)
-
-
-        # for objects in object_bb:
-        #     objects.color = [0, 0, 1] 
-        #     vis.add_geometry(objects)
 
         vis.add_geometry(tsdf_init, reset_bounding_box = True)
-        # vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
         vis.update_renderer()
         vis.remove_geometry(tsdf_init, reset_bounding_box = reset_bb)
@@ -114,36 +97,16 @@ class Open3d_viz():
             if tsdf_exists:
                 vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.remove_geometry(bb, reset_bounding_box = reset_bb)
-                # vis.remove_geometry(target_pc, reset_bounding_box = reset_bb)
 
-            # state = self.sim_state.get()
-
-            tsdf_mesh = self.to_triangle_mesh()
-            # tsdf_mesh = tsdf_init.o3dvol.extract_triangle_mesh()
-            # tsdf_mesh.compute_triangle_normals()
-            # tsdf_mesh.compute_vertex_normals()
+            tsdf_mesh = self.to_pc()
 
             tsdf_exists = True
 
             bb = tsdf_mesh.get_axis_aligned_bounding_box()
             bb.color = [1, 0, 0] 
 
-            # target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
-            # target_bb.color = [0, 1, 0] 
-            #vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
-
             vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
             vis.add_geometry(bb, reset_bounding_box = reset_bb)
-            
-            # if np.amax(bb.get_extent()) > 0:
-            #     points = o3d.utility.Vector3dVector(self.poi_mat)
-            #     target_pc = o3d.geometry.PointCloud()
-            #     target_pc.points = points
-            #     target_pc = target_pc.crop(bb)
-            #     target_pc.paint_uniform_color([0,1,0])
-
-            # vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
-            #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
             vis.poll_events()
             vis.update_renderer()

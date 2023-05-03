@@ -5,6 +5,7 @@ import rospy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 import std_srvs.srv
 
+from robot_helpers.spatial import Transform
 from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
 from vgn.perception import UniformTSDFVolume
@@ -40,6 +41,10 @@ class UniformTSDFServer:
         msg = rospy.wait_for_message(info_topic, CameraInfo)
         print('after wait')
         self.intrinsic = from_camera_info_msg(msg)
+        center = np.r_[0.5, 0.0, 0.2]
+        length = 0.3
+        xyz = center - np.r_[0.5 * length, 0.5 * length, 0.0]
+        self.T_base_task = Transform.from_translation(xyz)
 
     def init_topics(self):
         print('Init topic')
@@ -71,7 +76,7 @@ class UniformTSDFServer:
             extrinsic = tf.lookup(
                 self.cam_frame_id, self.base_frame_id, msg.header.stamp, rospy.Duration(0.1) # was 0.1
             )
-            self.tsdf.integrate(depth, self.intrinsic, extrinsic)
+            self.tsdf.integrate(depth, self.intrinsic, extrinsic * self.T_base_task)
 
             # self.get_map_cloud(vgn.srv.GetMapCloud)
 

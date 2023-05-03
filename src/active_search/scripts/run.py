@@ -50,17 +50,17 @@ def main():
     # rospy.sleep(5.0) 
 
 
-    for _ in tqdm(range(args.runs), disable=args.wait_for_input):
-        if args.wait_for_input:
-            controller.gripper.move(0.08)
-            controller.switch_to_joint_trajectory_control()
-            controller.moveit.goto("ready", velocity_scaling=0.4)
-            i = input("Run policy? [y/n] ")
-            if i != "y":
-                exit()
-            rospy.loginfo("Running policy ...")
-        info = controller.run()
-        logger.log_run(info)
+    # for _ in tqdm(range(args.runs), disable=args.wait_for_input):
+    #     if args.wait_for_input:
+    #         controller.gripper.move(0.08)
+    #         controller.switch_to_joint_trajectory_control()
+    #         controller.moveit.goto("ready", velocity_scaling=0.4)
+    #         i = input("Run policy? [y/n] ")
+    #         if i != "y":
+    #             exit()
+    #         rospy.loginfo("Running policy ...")
+    #     info = controller.run()
+    #     logger.log_run(info)
 
 
 def create_parser():

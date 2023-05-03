@@ -11,6 +11,7 @@ class SceneTSDFVolume:
         self.resolution = resolution
         self.voxel_size = self.length / self.resolution
         self.sdf_trunc = 4 * self.voxel_size
+        # self.sdf_trunc = self.voxel_size
         self.o3dvol = o3d.pipelines.integration.UniformTSDFVolume(
             length=self.length,
             resolution=self.resolution,
