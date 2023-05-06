@@ -85,7 +85,6 @@ class NextBestView(MultiViewPolicy):
         super().activate(bbox, view_sphere)
 
     def update(self, img, x, q):
-        print("calling this update")
         if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
             self.done = True
         else:
@@ -127,7 +126,6 @@ class NextBestView(MultiViewPolicy):
         return view_candidates
 
     def ig_fn(self, view, downsample):
-        print("information gain calc")
         tsdf_grid, voxel_size = self.tsdf.get_grid(), self.tsdf.voxel_size
         tsdf_grid = -1.0 + 2.0 * tsdf_grid  # Open3D maps tsdf to [0,1]
 
@@ -182,11 +180,16 @@ class NextBestView(MultiViewPolicy):
         bbox_min = self.T_task_base.apply(self.bbox.min) / voxel_size
         bbox_max = self.T_task_base.apply(self.bbox.max) / voxel_size
         mask = np.array([((i > bbox_min) & (i < bbox_max)).all() for i in indices_list], dtype = int)
-        print(mask)
         # i, j, k = indices_list[mask].T
         # i, j, k = zip(*indices_list[mask])
-        i, j, k = zip(*[tpl for i, tpl in enumerate(indices_list) if mask[i]])
-        
+        if len(indices_list) == 0:
+            return 0
+        try:
+            i, j, k = zip(*[tpl for i, tpl in enumerate(indices_list) if mask[i]])
+        except:
+            return 0
+
+
         tsdfs = tsdf_grid[i, j, k]
         ig = np.logical_and(tsdfs > -1.0, tsdfs < 0.0).sum()
 

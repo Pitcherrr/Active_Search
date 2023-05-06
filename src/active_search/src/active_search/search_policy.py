@@ -162,7 +162,6 @@ class MultiViewPolicy(Policy):
         self.qual_hist = np.zeros((self.T,) + (40,) * 3, np.float32)
 
     def integrate(self, img, x, q):
-        print("integrating")
         self.views.append(x)
         self.vis.path(self.base_frame, self.intrinsic, self.views)
 
@@ -202,7 +201,6 @@ class MultiViewPolicy(Policy):
 
 
     def get_poi_torch(self):
-        print("finding target locations")
         resolution = self.tsdf.resolution
         voxel_size = self.tsdf.voxel_size
 
@@ -239,6 +237,8 @@ class MultiViewPolicy(Policy):
         poi_mat = np.zeros_like(coordinate_mat)
 
         poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
+        
+        self.vis.target_locations(self.base_frame, poi_mat+[0.35,-0.15,0.2])
 
         self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
