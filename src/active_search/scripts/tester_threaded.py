@@ -98,20 +98,35 @@ class Environment:
         max_tsdf_slices = tsdf_slices.amax(dim=(3, 4, 5))
         # print(max_tsdf_slices.shape)
 
-        tsdf_check[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1] = max_tsdf_slices <= 0
+        tsdf_check[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1] = max_tsdf_slices <= 0.5
 
  
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
 
 
+
         occ_mat_result = occ_mat.cpu().numpy()
 
+        # ones = np.ones((5, 5, 5), dtype=int)
+        # indices = np.argwhere(occ_mat_result == 1)
+        # i, j, k = np.ogrid[:5, :5, :5]
+        # box_indices = np.array([i, j, k], dtype=object)
+        # box_indices = (indices[:, np.newaxis, np.newaxis, np.newaxis, :] + box_indices)
+        # # Convert the box_indices array to an integer array
+        # box_indices = box_indices.reshape(-1, 3).astype(int)
+
+        # # Use array slicing and broadcasting to set all elements in each box to 1
+        # occ_mat_result[tuple(box_indices.T)] = ones.ravel()
+
+
         coordinate_mat = np.argwhere(occ_mat_result > 0)
+        coordinate_mat_set = set(coordinate_mat)
 
         poi_mat = np.zeros_like(coordinate_mat)
 
         poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
-   
+
+        self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
         self.poi_mat = poi_mat
 
@@ -247,7 +262,7 @@ class Environment:
                 target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
                 target_bb.color = [0, 1, 0] 
                 #vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
-
+                
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                 vis.add_geometry(bb, reset_bounding_box = reset_bb)
                 

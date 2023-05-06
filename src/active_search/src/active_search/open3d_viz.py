@@ -5,6 +5,7 @@ import rospy
 import copy
 import ros_numpy
 import vgn.srv
+import matplotlib.pyplot as plt
 
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 from queue import Queue
@@ -47,6 +48,19 @@ class Open3d_viz():
         print("Killing Open3d")
         exit()
 
+    def map_colours(self):
+        distances = self.distances
+        # define a colormap
+        cmap = plt.cm.get_cmap('jet')
+        # normalize the distances to the range [0, 1]
+        norm = plt.Normalize(vmin=np.min(distances), vmax=np.max(distances))
+        norm_distances = norm(distances).squeeze()
+        # convert the normalized distances to RGB values
+        rgb_values = cmap(norm_distances)
+        return rgb_values[:,:3]
+        
+        
+
     def to_pc(self):
         # tsdf_vol = o3d.pipelines.integration.UniformTSDFVolume(
         #     length=0.3,
@@ -58,15 +72,16 @@ class Open3d_viz():
         # print(tsdf.shape)
         # tsdf_vec = o3d.utility.Vector2dVector(tsdf)
         # tsdf_vol.inject_volume_tsdf(tsdf_vec)
-
         point_vec = o3d.utility.Vector3dVector(self.points)
+        colour_vec = o3d.utility.Vector3dVector(self.map_colours())
         pc = o3d.geometry.PointCloud(point_vec)
+        pc.colors = colour_vec
 
-        # v_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pc, 0.0075)
+        v_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pc, 0.0075)
 
         # distances
-
-        return pc
+        return v_grid
+        # return pc
 
 
     def open3d_window(self, reset_bb: bool = True):        

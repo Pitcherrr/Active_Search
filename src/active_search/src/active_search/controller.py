@@ -7,7 +7,7 @@ import rospy
 from sensor_msgs.msg import Image
 import trimesh
 
-from active_grasp.bbox import from_bbox_msg
+from active_grasp.bbox import from_bbox_msg, AABBox
 from active_grasp.timer import Timer
 from active_grasp.srv import Reset, ResetRequest
 from robot_helpers.ros import tf
@@ -22,6 +22,7 @@ from vgn.detection import select_local_maxima
 class GraspController:
     def __init__(self, policy):
         self.policy = policy
+        print(self.policy)
         self.load_parameters()
         self.init_service_proxies()
         self.init_robot_connection()
@@ -79,17 +80,25 @@ class GraspController:
 
     def run(self):
         bbs = self.reset()
-        bbox = bbs.pop(-1)
+        # bbox = bbs.pop(-1)
+        voxel_size = 0.0075
+        x_off = 0.35
+        y_off = -0.15
+        z_off = 0.2
+
+        bb_min = [x_off,y_off,z_off]
+        bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
+        bbox = AABBox(bb_min, bb_max)
         self.switch_to_cartesian_velocity_control()
-        grasps = []
-        for bb in bbs:
-            # result = self.get_scene_grasps(bb)
-            grasp = self.search_grasp(bb)
-            # print(result)
-            # result, grasp = result
-            # if result is True:
-            grasps.append(grasp)
-        print(grasps)
+        # grasps = []
+        # for bb in bbs:
+        #     # result = self.get_scene_grasps(bb)
+        #     grasp = self.search_grasp(bb)
+        #     # print(result)
+        #     # result, grasp = result
+        #     # if result is True:
+        #     grasps.append(grasp)
+        # print(grasps)
         
         with Timer("search_time"):
             grasp = self.search_grasp(bbox)

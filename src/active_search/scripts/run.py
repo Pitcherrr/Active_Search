@@ -11,7 +11,7 @@ from std_srvs.srv import SetBool, Empty
 from active_grasp.bbox import AABBox
 from active_search.controller import *
 from active_search.open3d_viz import *
-from active_grasp.policy import make, registry
+from active_search.search_policy import make, registry
 from active_grasp.srv import Seed
 from robot_helpers.ros import tf
 
@@ -38,29 +38,28 @@ def main():
     tsdf_response = reset_tsdf() # Call the service with argument True
     print(tsdf_response)
 
-    toggle_integration = rospy.ServiceProxy('toggle_integration', SetBool)
-    response = toggle_integration(True) # Call the service with argument True
-    print(response) # Print the response from the service
+    # toggle_integration = rospy.ServiceProxy('toggle_integration', SetBool)
+    # response = toggle_integration(True) # Call the service with argument True
+    # print(response) # Print the response from the service
 
-    rospy.sleep(1.0)
+    # rospy.sleep(1.0)
 
-    tsdf_view = Open3d_viz()
-    tsdf_view.run()
+    # tsdf_view = Open3d_viz()
+    # tsdf_view.run()
 
     # rospy.sleep(5.0) 
 
-
-    # for _ in tqdm(range(args.runs), disable=args.wait_for_input):
-    #     if args.wait_for_input:
-    #         controller.gripper.move(0.08)
-    #         controller.switch_to_joint_trajectory_control()
-    #         controller.moveit.goto("ready", velocity_scaling=0.4)
-    #         i = input("Run policy? [y/n] ")
-    #         if i != "y":
-    #             exit()
-    #         rospy.loginfo("Running policy ...")
-    #     info = controller.run()
-    #     logger.log_run(info)
+    for _ in tqdm(range(args.runs), disable=args.wait_for_input):
+        if args.wait_for_input:
+            controller.gripper.move(0.08)
+            controller.switch_to_joint_trajectory_control()
+            controller.moveit.goto("ready", velocity_scaling=0.4)
+            i = input("Run policy? [y/n] ")
+            if i != "y":
+                exit()
+            rospy.loginfo("Running policy ...")
+        info = controller.run()
+        logger.log_run(info)
 
 
 def create_parser():
