@@ -87,6 +87,7 @@ class NextBestView(MultiViewPolicy):
     def update(self, img, x, q):
         if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
             self.done = True
+            print("Done")
         else:
             with Timer("state_update"):
                 self.integrate(img, x, q)

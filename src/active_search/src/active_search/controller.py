@@ -5,6 +5,7 @@ from geometry_msgs.msg import Twist
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
+from std_srvs.srv import Empty
 import trimesh
 
 from active_grasp.bbox import from_bbox_msg, AABBox
@@ -99,15 +100,21 @@ class GraspController:
         #     # if result is True:
         #     grasps.append(grasp)
         # print(grasps)
-        
-        with Timer("search_time"):
-            grasp = self.search_grasp(bbox)
-        if grasp:
-            self.switch_to_joint_trajectory_control()
-            with Timer("grasp_time"):
-                res = self.execute_grasp(grasp)
-        else:
-            res = "aborted"
+
+        while True:
+            
+            with Timer("search_time"):
+                grasp = self.search_grasp(bbox)
+            if grasp:
+                self.switch_to_joint_trajectory_control()
+                with Timer("grasp_time"):
+                    res = self.execute_grasp(grasp)
+                    if res == 'succeeded':
+                        remove_body = rospy.ServiceProxy('remove_body', Empty)
+                        response = remove_body() # Call the service with argument True
+                        self.moveit.goto("ready", velocity_scaling=0.4)
+            else:
+                res = "aborted"
         return self.collect_info(res)
 
     def reset(self):

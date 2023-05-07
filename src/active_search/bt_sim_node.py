@@ -13,6 +13,7 @@ from sensor_msgs.msg import JointState, Image, CameraInfo
 from scipy import interpolate
 from std_msgs.msg import Header
 from threading import Thread
+from std_srvs.srv import Empty, EmptyResponse
 
 from active_search.dynamic_perception import SceneTSDFVolume 
 from active_grasp.bbox import to_bbox_msg
@@ -77,6 +78,7 @@ class BtSimNode:
             SwitchController,
             self.switch_controller,
         )
+        rospy.Service("remove_body", Empty, self.remove_body)
 
     def seed(self, req):
         self.sim.seed(req.seed)
@@ -97,8 +99,13 @@ class BtSimNode:
             bbox[i] = to_bbox_msg(bbox[i])
         # return ResetResponse(to_bbox_msg(bbox))
         return ResetResponse(bbox)
-
-
+    
+    def remove_body(self, req):
+        print("Removing Grasped OBJ")
+        uid = self.sim.get_grasp_uid()
+        self.sim.scene.remove_object(uid)
+        print('Removed Grasped OBJ')
+        return EmptyResponse()
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:

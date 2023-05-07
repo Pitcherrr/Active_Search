@@ -121,7 +121,6 @@ def select_best_grasp(grasps, qualities):
 
 class SingleViewPolicy(Policy):
     def update(self, img, x, q):
-        print("single view pol update")
         linear, _ = compute_error(self.x_d, x)
         if np.linalg.norm(linear) < 0.02:
             self.views.append(x)

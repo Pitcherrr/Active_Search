@@ -123,6 +123,34 @@ class Simulation:
     def get_target_bbox(self, uid):
         aabb_min, aabb_max = p.getAABB(uid)
         return AABBox(aabb_min, aabb_max)
+    
+    def get_grasp_uid(self):
+
+        print(self.object_uids)
+
+        for obj in self.object_uids:
+
+            contacts = p.getContactPoints(self.gripper.uid, obj)
+
+            print(contacts)
+
+            if contacts == ():
+                continue
+            elif contacts[0][2] == obj: #first contact point is in contact with obj B
+                print(obj)
+                return obj
+
+            # if len(contacts) > 0:
+            #     # If there is at least one contact, the robot arm is touching an object
+            #     # Get the UID of the object that the robot arm is touching
+            #     object_uid = contacts[0][2] if contacts[0][1] == self.gripper.uid else contacts[0][1]
+            #     print("Robot arm is touching object with UID:", object_uid)
+            #     return object_uid
+
+            # else:
+            #     # If there are no contacts, the robot arm is not touching any objects
+            #     print("Robot arm is not touching any object, obj")
+            #     return None
 
     def step(self):
         p.stepSimulation()
