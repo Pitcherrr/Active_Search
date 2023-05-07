@@ -89,7 +89,7 @@ class GraspController:
 
         bb_min = [x_off,y_off,z_off]
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
-        bbox = AABBox(bb_min, bb_max)
+        self.bbox = AABBox(bb_min, bb_max)
         self.switch_to_cartesian_velocity_control()
         # grasps = []
         # for bb in bbs:
@@ -104,7 +104,7 @@ class GraspController:
         while True:
             
             with Timer("search_time"):
-                grasp = self.search_grasp(bbox)
+                grasp = self.search_grasp(self.bbox)
             if grasp:
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
@@ -130,6 +130,7 @@ class GraspController:
     def search_grasp(self, bbox):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
         self.policy.activate(bbox, self.view_sphere)
+        print("sending velocity cmds")
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
         r = rospy.Rate(self.policy_rate)
         while not self.policy.done:
@@ -222,16 +223,25 @@ class GraspController:
 
         # Generate convex collision objects for each segment
         self.hulls = []
-        for label in range(labels.max() + 1):
-            segment = cloud.select_by_index(np.flatnonzero(labels == label))
-            try:
-                hull = compute_convex_hull(segment)
-                name = f"object_{label}"
-                self.add_collision_mesh(name, hull)
-                self.hulls.append(hull)
-            except:
-                # Qhull fails in some edge cases
-                pass
+
+        if len(labels) == 0: #with active seach sometimes this is empty
+            self.search_grasp(self.bbox)
+    
+        print("lables len:", len(labels))
+
+        if len(labels) > 0:
+            for label in range(labels.max() + 1):
+                segment = cloud.select_by_index(np.flatnonzero(labels == label))
+                try:
+                    hull = compute_convex_hull(segment)
+                    name = f"object_{label}"
+                    self.add_collision_mesh(name, hull)
+                    self.hulls.append(hull)
+                except:
+                    # Qhull fails in some edge cases
+                    pass
+        else:
+            self.search_grasp(self.bbox)
 
     def add_collision_mesh(self, name, mesh):
         frame, pose = self.base_frame, Transform.identity()

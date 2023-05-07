@@ -85,7 +85,8 @@ class NextBestView(MultiViewPolicy):
         super().activate(bbox, view_sphere)
 
     def update(self, img, x, q):
-        if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
+        if self.best_grasp_prediction_is_stable():
+        # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
             self.done = True
             print("Done")
         else:
@@ -101,6 +102,8 @@ class NextBestView(MultiViewPolicy):
             self.vis.ig_views(self.base_frame, self.intrinsic, views, utilities)
             i = np.argmax(utilities)
             nbv, gain = views[i], gains[i]
+
+            print(gain)
 
             if gain < self.min_gain and len(self.views) > self.T:
                 self.done = True
@@ -177,7 +180,7 @@ class NextBestView(MultiViewPolicy):
         # print(indices)
         indices = indices.intersection(self.coord_set)
         indices_list = list(indices)
-        # indices = [point for point in indices if point in self.coord_set]
+        
         bbox_min = self.T_task_base.apply(self.bbox.min) / voxel_size
         bbox_max = self.T_task_base.apply(self.bbox.max) / voxel_size
         mask = np.array([((i > bbox_min) & (i < bbox_max)).all() for i in indices_list], dtype = int)

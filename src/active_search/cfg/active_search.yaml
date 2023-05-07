@@ -44,5 +44,5 @@ policy:
 
 nbv_grasp:
   max_views: 80
-  min_gain: 10
+  min_gain: 3
   downsample: 10  # 10/20 for sim/hw respectively
