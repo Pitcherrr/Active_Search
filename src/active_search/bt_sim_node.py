@@ -78,7 +78,7 @@ class BtSimNode:
             SwitchController,
             self.switch_controller,
         )
-        rospy.Service("remove_body", Empty, self.remove_body)
+        rospy.Service("remove_body", Reset, self.remove_body)
 
     def seed(self, req):
         self.sim.seed(req.seed)
@@ -103,9 +103,9 @@ class BtSimNode:
     def remove_body(self, req):
         print("Removing Grasped OBJ")
         uid = self.sim.get_grasp_uid()
-        self.sim.scene.remove_object(uid)
+        bb = self.sim.scene.remove_object_ret_bb(uid)
         print('Removed Grasped OBJ')
-        return EmptyResponse()
+        return ResetResponse([to_bbox_msg(bb)])
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:

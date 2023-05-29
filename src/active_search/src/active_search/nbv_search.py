@@ -87,9 +87,11 @@ class NextBestView(MultiViewPolicy):
     def update(self, img, x, q):
         if self.best_grasp_prediction_is_stable():
         # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
+            print("stable grasp")
             self.done = True
             print("Done")
         else:
+            print("not grasping")
             with Timer("state_update"):
                 self.integrate(img, x, q)
             with Timer("view_generation"):
@@ -106,6 +108,7 @@ class NextBestView(MultiViewPolicy):
             print(gain)
 
             if gain < self.min_gain and len(self.views) > self.T:
+                print("done")
                 self.done = True
 
             self.x_d = nbv

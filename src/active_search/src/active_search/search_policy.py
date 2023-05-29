@@ -4,11 +4,13 @@ from pathlib import Path
 import rospy
 from trac_ik_python.trac_ik import IK
 import torch
+import open3d as o3d
 
 from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
 from vgn.detection import *
 from vgn.perception import UniformTSDFVolume
+# from active_search.dynamic_perception import SceneTSDFVolume
 
 from active_grasp.timer import Timer
 from active_grasp.rviz import Visualizer
@@ -60,7 +62,14 @@ class Policy:
         # self.calibrate_task_frame()
         self.vis.bbox(self.base_frame, self.bbox)
 
-        self.tsdf = UniformTSDFVolume(0.3, 40)
+        try:
+            x = self.tsdf
+            print("tsdf already here")
+            print(self.tsdf)
+        except:    
+            self.tsdf = UniformTSDFVolume(0.3, 40)
+            print("created a new tsdf")
+        
         self.vgn = VGN(Path(rospy.get_param("vgn/model")))
 
         self.views = []
@@ -99,6 +108,8 @@ class Policy:
             self.qual_thresh,
         )
         filtered_grasps, filtered_qualities = [], []
+
+        # print("grasps", grasps, qualities)
         for grasp, quality in zip(grasps, qualities):
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
@@ -242,6 +253,33 @@ class MultiViewPolicy(Policy):
         self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
         self.poi_mat = poi_mat
+
+
+    def tsdf_cut(self, bb):
+        min_bound = (np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int))
+        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int)
+        self.vis.bbox(self.base_frame, bb)
+        tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
+        tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
+        print(min_bound, max_bound)
+        min_bound, max_bound = [5, 13, 13], [26, 28, 34]
+        tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], 0:max_bound[2]] = 0
+        tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
+        self.tsdf = UniformTSDFVolume(0.3, 40)
+        self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+        rospy.sleep(3.0)
+
+        for _ in range(10):
+            scene_cloud = self.tsdf.get_scene_cloud()
+            self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
+
+            map_cloud = self.tsdf.get_map_cloud()
+            self.vis.map_cloud(
+                self.task_frame,
+                np.asarray(map_cloud.points),
+                np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
+            )
+
 
 
 def compute_error(x_d, x):

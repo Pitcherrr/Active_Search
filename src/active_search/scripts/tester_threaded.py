@@ -25,9 +25,9 @@ class Environment:
 
     def load_engine(self):
         self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
+        self.sim.reset()
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
         self.sim_state = Queue(maxsize=1)
-        self.sim.reset()
         self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
         self.reset_tsdf = False
 
@@ -120,13 +120,13 @@ class Environment:
 
 
         coordinate_mat = np.argwhere(occ_mat_result > 0)
-        coordinate_mat_set = set(coordinate_mat)
+        # coordinate_mat_set = set(coordinate_mat)
 
         poi_mat = np.zeros_like(coordinate_mat)
 
         poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
 
-        self.coord_set = coordinate_mat_set
+        # self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
         self.poi_mat = poi_mat
 
@@ -179,6 +179,8 @@ class Environment:
     def center_view(self, vis):
         vis.reset_view_point(True)
 
+    def remove_obj_tsdf(self, vis):
+        self.remove_rand_obj = True
 
     def kill_o3d(self, vis):
         vis.destroy_window()
@@ -194,6 +196,7 @@ class Environment:
     def open3d_window(self, reset_bb: bool = True):        
         self.paused = False
         self.o3d_window_active = True
+        self.remove_rand_obj = False
         tsdf_exists = False
 
         o3d.core.Device("cuda:0")
@@ -206,6 +209,7 @@ class Environment:
         vis.register_key_callback(ord("C"), self.center_view)
         vis.register_key_callback(ord("X"), self.kill_o3d)
         vis.register_key_callback(ord("G"), self.set_grasp)
+        vis.register_key_callback(ord("R"), self.remove_obj_tsdf)
 
         while self.sim_state.empty():
              continue
@@ -230,7 +234,13 @@ class Environment:
         for objects in object_bb:
             objects.color = [0, 0, 1] 
             vis.add_geometry(objects)
+        
+        total_space = o3d.geometry.AxisAlignedBoundingBox()
+        total_space.min_bound = [0,0,0]
+        total_space.max_bound = [0.3,0.3,0.3]
+        total_space.color = [0,0,0]
 
+        vis.add_geometry(total_space)
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
         # vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
@@ -246,11 +256,33 @@ class Environment:
                     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
                     vis.remove_geometry(target_pc, reset_bounding_box = reset_bb)
+                
+                if self.remove_rand_obj:
+                    state = self.sim_state.get()
+                    tsdf, image = state
+                    rand_bb = np.random.choice(object_bb)
+                    print(self.sim.scene.object_uids)
+                    print(object_bb.index(rand_bb))
+                    self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
+                    object_bb.remove(rand_bb)
+                    min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size).astype(int)
+                    max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size).astype(int)
+                    # tsdf_grid = tsdf.get_grid()
+                    print(min_bound, max_bound)
+                    tsdf_vec = np.asarray(tsdf.o3dvol.extract_volume_tsdf())
+                    tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
+                    print(tsdf_grid.shape)
+                    tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
+                    tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
+                    tsdf = tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+                    self.remove_rand_obj = False
+                else:
+                    state = self.sim_state.get()
+                    tsdf, image = state
 
                 state = self.sim_state.get()
-
-                tsdf_mesh, image = state
-                tsdf_mesh = tsdf_init.o3dvol.extract_triangle_mesh()
+                tsdf, image = state
+                tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
                 tsdf_mesh.compute_triangle_normals()
                 tsdf_mesh.compute_vertex_normals()
 
@@ -382,7 +414,8 @@ def solve_ik(q0, pose, solver):
 
 def main():
     gui = True
-    scene_id = "random"
+    # scene_id = "random"
+    scene_id = "as_test_scene.yaml"
     vgn_path = "src/vgn/assets/models/vgn_conv.pth" #was changed 
 
     env = Environment(gui, scene_id, vgn_path)

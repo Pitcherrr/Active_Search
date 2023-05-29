@@ -19,7 +19,7 @@ from .locate import *
 # import vgn.visualizer as vis
 
 rospack = rospkg.RosPack()
-pkg_root = Path(rospack.get_path("active_grasp"))
+pkg_root = Path(rospack.get_path("active_search"))
 urdfs_dir = pkg_root / "assets"
 
 
@@ -184,6 +184,12 @@ class Scene:
         p.removeBody(uid)
         self.object_uids.remove(uid)
 
+    def remove_object_ret_bb(self, uid):
+        bb = p.getAABB(uid)
+        p.removeBody(uid)
+        self.object_uids.remove(uid)
+        return AABBox(bb[0], bb[1])
+
     def remove_all_objects(self):
         for uid in list(self.object_uids):
             self.remove_object(uid)
@@ -197,12 +203,15 @@ class YamlScene(Scene):
     def load_config(self):
         self.scene = load_yaml(self.config_path)
         self.center = np.asarray(self.scene["center"])
-        self.length = 1 #0.3
+        self.length = 0.3
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]
+        print(pybullet_data.getDataPath())
 
     def generate(self, rng):
         self.load_config()
         self.add_support(self.center)
+        i = 0
         for object in self.scene["objects"]:
             urdf = urdfs_dir / object["object_id"] / "model.urdf"
             ori = Rotation.from_euler("xyz", object["rpy"], degrees=True)
@@ -214,6 +223,20 @@ class YamlScene(Scene):
                 b = np.asarray(randomize["pos"])
                 pos += rng.uniform(-b, b)
             self.add_object(urdf, ori, pos, scale)
+            # Simulate the mustard bottle going into the mug
+            # dont need anymore as urdf was just broken 
+            # if i == 1:
+            #     for _ in range(4000):
+            #         p.stepSimulation()
+
+            #         # Move the mustard bottle downwards
+            #         pos, orn = p.getBasePositionAndOrientation(2)
+            #         p.resetBasePositionAndOrientation(2, [pos[0], pos[1], pos[2] - 0.0005], orn)
+
+            #         # Check if the mustard bottle has entered the mug
+            #         if pos[2] < 0.02:
+            #             break
+            # i+=1
         for _ in range(60):
             p.stepSimulation()
         return self.scene["q"]
@@ -231,21 +254,60 @@ class RandomScene(Scene):
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=6, attempts=10):
-        self.add_support(self.center)
-        urdfs = rng.choice(self.object_urdfs, object_count)
+        self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
+        urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         for urdf in urdfs:
             scale = rng.uniform(0.8, 1.0)
             uid = self.add_object(urdf, Rotation.identity(), np.zeros(3), scale)
-            lower, upper = p.getAABB(uid)
-            z_offset = 0.5 * (upper[2] - lower[2]) + 0.002
+            lower, upper = p.getAABB(uid) #get the bounding box 
+            z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest
             state_id = p.saveState()
             for _ in range(attempts):
                 # Try to place and check for collisions
-                ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi))
-                pos = np.r_[rng.uniform(0.2, 0.8, 2) * self.length, z_offset]
-                p.resetBasePositionAndOrientation(uid, self.origin + pos, ori.as_quat())
-                p.stepSimulation()
-                if not p.getContactPoints(uid):
+                ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi)) #random rotation of object 
+                pos = np.r_[rng.uniform(0.2, 0.8, 2) * self.length, z_offset] #random position for object 
+                p.resetBasePositionAndOrientation(uid, self.origin + pos, ori.as_quat()) #move object to this location
+                p.stepSimulation() #step sim to run phyisics engine 
+                if not p.getContactPoints(uid): #check collisions 
+                    break
+                else:
+                    p.restoreState(stateId=state_id)
+                p.restoreState(stateId=state_id)
+            else:
+                # No placement found, remove the object
+                self.remove_object(uid)
+        q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
+        q += rng.uniform(-0.08, 0.08, 7)
+        return q
+    
+
+class RandomOccludedScene(Scene):
+    def __init__(self):
+        super().__init__()
+        self.center = np.r_[0.5, 0.0, 0.2]
+        print(self.center)
+        self.length = 0.3#not sure why this is 0.3, turns out this was the issue the whole time, scene length is a protion of the scene you want
+        self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        self.object_urdfs = find_urdfs(urdfs_dir / "test")
+        #print(self.object_urdfs)
+
+    def generate(self, rng, object_count=6, attempts=10):
+        self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
+        urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
+        for urdf in urdfs:
+            scale = rng.uniform(0.8, 1.0)
+            uid = self.add_object(urdf, Rotation.identity(), np.zeros(3), scale)
+            lower, upper = p.getAABB(uid) #get the bounding box 
+            z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest
+            state_id = p.saveState()
+            for _ in range(attempts):
+                # Try to place and check for collisions
+                ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi)) #random rotation of object 
+                pos = np.r_[rng.uniform(0.2, 0.8, 2) * self.length, z_offset] #random position for object 
+                p.resetBasePositionAndOrientation(uid, self.origin + pos, ori.as_quat()) #move object to this location
+                p.stepSimulation() #step sim to run phyisics engine 
+                if not p.getContactPoints(uid): #check collisions 
                     break
                 else:
                     p.restoreState(stateId=state_id)

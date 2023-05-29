@@ -1,7 +1,8 @@
 bt_sim:
   gui: True
   gripper_force: 10
-  scene: random
+  # scene: random
+  scene: as_test_scene.yaml
 
 tsdf_server:
   base_frame_id: panda_link0
@@ -44,5 +45,5 @@ policy:
 
 nbv_grasp:
   max_views: 80
-  min_gain: 3
+  min_gain: 3 #1
   downsample: 10  # 10/20 for sim/hw respectively

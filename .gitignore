@@ -3,6 +3,7 @@ logs/
 build/
 .catkin_tools/
 src/active_search/__pycache__/*
+src/active_search/assets/*
 src/kdl_parser_py/kdl_parser_py/__pycache__/*
 __pycache__/
 .vscode/

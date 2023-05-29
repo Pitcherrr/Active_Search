@@ -106,13 +106,20 @@ class GraspController:
             with Timer("search_time"):
                 grasp = self.search_grasp(self.bbox)
             if grasp:
+                print("grasping")
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
                     res = self.execute_grasp(grasp)
                     if res == 'succeeded':
-                        remove_body = rospy.ServiceProxy('remove_body', Empty)
-                        response = remove_body() # Call the service with argument True
-                        self.moveit.goto("ready", velocity_scaling=0.4)
+                        remove_body = rospy.ServiceProxy('remove_body', Reset)
+                        response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
+                        # response = remove_body() # Call the service with argument True
+                        # self.moveit.goto("ready", velocity_scaling=0.4)
+                        self.policy.tsdf_cut(response)
+                        x = tf.lookup(self.base_frame, self.cam_frame)
+                        cmd = self.compute_velocity_cmd(self.policy.x_d, x)
+                        self.cartesian_vel_pub.publish(to_twist_msg(cmd))
+                        self.init_camera_stream()
             else:
                 res = "aborted"
         return self.collect_info(res)
@@ -226,8 +233,6 @@ class GraspController:
 
         if len(labels) == 0: #with active seach sometimes this is empty
             self.search_grasp(self.bbox)
-    
-        print("lables len:", len(labels))
 
         if len(labels) > 0:
             for label in range(labels.max() + 1):
