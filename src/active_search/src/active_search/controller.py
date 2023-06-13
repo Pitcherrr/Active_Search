@@ -114,12 +114,16 @@ class GraspController:
                         remove_body = rospy.ServiceProxy('remove_body', Reset)
                         response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
                         # response = remove_body() # Call the service with argument True
-                        # self.moveit.goto("ready", velocity_scaling=0.4)
                         self.policy.tsdf_cut(response)
+
                         x = tf.lookup(self.base_frame, self.cam_frame)
                         cmd = self.compute_velocity_cmd(self.policy.x_d, x)
                         self.cartesian_vel_pub.publish(to_twist_msg(cmd))
-                        self.init_camera_stream()
+
+                        rospy.sleep(5)
+                        # self.moveit.goto("ready", velocity_scaling=0.4)
+                        # self.switch_to_joint_trajectory_control()
+
             else:
                 res = "aborted"
         return self.collect_info(res)
@@ -174,8 +178,10 @@ class GraspController:
         return img, pose, q
 
     def send_vel_cmd(self, event):
+        print(self.policy.done)
         if self.policy.x_d is None or self.policy.done:
             cmd = np.zeros(6)
+            print("sending nothing")
         else:
             x = tf.lookup(self.base_frame, self.cam_frame)
             cmd = self.compute_velocity_cmd(self.policy.x_d, x)

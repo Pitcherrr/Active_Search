@@ -186,9 +186,12 @@ class Scene:
 
     def remove_object_ret_bb(self, uid):
         bb = p.getAABB(uid)
+        origin = Transform.from_translation(self.origin)
+        bb_min = (Transform.from_translation(bb[0])*origin.inv()).translation
+        bb_max = (Transform.from_translation(bb[1])*origin.inv()).translation
         p.removeBody(uid)
         self.object_uids.remove(uid)
-        return AABBox(bb[0], bb[1])
+        return AABBox(bb_min, bb_max)
 
     def remove_all_objects(self):
         for uid in list(self.object_uids):

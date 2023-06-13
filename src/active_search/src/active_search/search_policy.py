@@ -10,6 +10,7 @@ from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
 from vgn.detection import *
 from vgn.perception import UniformTSDFVolume
+from robot_helpers.spatial import Transform
 # from active_search.dynamic_perception import SceneTSDFVolume
 
 from active_grasp.timer import Timer
@@ -256,29 +257,16 @@ class MultiViewPolicy(Policy):
 
 
     def tsdf_cut(self, bb):
-        min_bound = (np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int))
-        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int)
+        min_bound = np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int) + [0,0,6]
+        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int) + [0,0,6]
         self.vis.bbox(self.base_frame, bb)
         tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
         tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
         print(min_bound, max_bound)
-        min_bound, max_bound = [5, 13, 13], [26, 28, 34]
         tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], 0:max_bound[2]] = 0
         tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
         self.tsdf = UniformTSDFVolume(0.3, 40)
         self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
-        rospy.sleep(3.0)
-
-        for _ in range(10):
-            scene_cloud = self.tsdf.get_scene_cloud()
-            self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
-
-            map_cloud = self.tsdf.get_map_cloud()
-            self.vis.map_cloud(
-                self.task_frame,
-                np.asarray(map_cloud.points),
-                np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
-            )
 
 
 
