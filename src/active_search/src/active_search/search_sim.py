@@ -76,6 +76,8 @@ class Simulation:
         self.scene.generate(self.rng)
         self.object_uids = self.scene.object_uids
 
+        print("Cam position", p.getLinkState(self.camera.body_uid, self.camera.link_id))
+
         origin = Transform.from_translation(self.scene.origin)
 
         print(self.object_uids)
@@ -225,7 +227,7 @@ class YamlScene(Scene):
                 ori = Rotation.from_euler("z", angle, degrees=True) * ori
                 b = np.asarray(randomize["pos"])
                 pos += rng.uniform(-b, b)
-            self.add_object(urdf, ori, pos, scale)
+            uid = self.add_object(urdf, ori, pos, scale)
             # Simulate the mustard bottle going into the mug
             # dont need anymore as urdf was just broken 
             # if i == 1:
@@ -240,6 +242,19 @@ class YamlScene(Scene):
             #         if pos[2] < 0.02:
             #             break
             # i+=1
+            self.object_uids.append(uid)
+        #this is the initial position of the robots camera link
+        cam = (0.167987435473768, -0.00028228516747251644, 0.7347501344586954)
+
+        bottle = self.object_uids[0]
+
+        bb = p.getAABB(bottle)
+
+        mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
+ 
+        print("Ray result", p.rayTest(cam, mid_bb))
+
+
         for _ in range(60):
             p.stepSimulation()
         return self.scene["q"]
@@ -293,11 +308,13 @@ class RandomOccludedScene(Scene):
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
+        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs")
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=6, attempts=10):
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
+        occluding = rng.choice(self.occluding_objs)
         for urdf in urdfs:
             scale = rng.uniform(0.8, 1.0)
             uid = self.add_object(urdf, Rotation.identity(), np.zeros(3), scale)
@@ -318,6 +335,17 @@ class RandomOccludedScene(Scene):
             else:
                 # No placement found, remove the object
                 self.remove_object(uid)
+
+        #add the occluding object to the scene 
+        
+        target = rng.choice(self.object_uids)
+
+        bb = p.getAABB(target)
+
+        mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
+        
+        self.add_object(occluding, Rotation.identity(), np.asarray(mid_bb), 1)
+        
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
         q += rng.uniform(-0.08, 0.08, 7)
         return q
