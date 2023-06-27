@@ -1,8 +1,8 @@
 bt_sim:
   gui: True
   gripper_force: 10
-  # scene: random
-  scene: as_test_scene.yaml
+  scene: random
+  # scene: as_test_scene.yaml
 
 tsdf_server:
   base_frame_id: panda_link0

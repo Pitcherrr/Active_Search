@@ -311,7 +311,7 @@ class RandomOccludedScene(Scene):
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=6, attempts=10):
+    def generate(self, rng, object_count=3, attempts=10):
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         occluding = rng.choice(self.occluding_objs)
@@ -343,8 +343,10 @@ class RandomOccludedScene(Scene):
         bb = p.getAABB(target)
 
         mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
+
+        ori = Rotation.from_euler("xyz", [0, 180, 0], degrees=True)
         
-        self.add_object(occluding, Rotation.identity(), np.asarray(mid_bb), 1)
+        self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 1.2)
         
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
         q += rng.uniform(-0.08, 0.08, 7)
@@ -355,7 +357,7 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        return RandomScene()
+        return RandomOccludedScene()
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))
