@@ -116,11 +116,16 @@ class GraspController:
                         # response = remove_body() # Call the service with argument True
                         self.policy.tsdf_cut(response)
 
+                        rospy.sleep(2)
+
                         x = tf.lookup(self.base_frame, self.cam_frame)
                         cmd = self.compute_velocity_cmd(self.policy.x_d, x)
+                        print(cmd)
                         self.cartesian_vel_pub.publish(to_twist_msg(cmd))
 
-                        rospy.sleep(5)
+                        rospy.sleep(2)
+
+ 
                         # self.moveit.goto("ready", velocity_scaling=0.4)
                         # self.switch_to_joint_trajectory_control()
 

@@ -316,7 +316,7 @@ class RandomOccludedScene(Scene):
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         occluding = rng.choice(self.occluding_objs)
         for urdf in urdfs:
-            scale = rng.uniform(0.8, 1.0)
+            scale = rng.uniform(0.3, 0.5)
             uid = self.add_object(urdf, Rotation.identity(), np.zeros(3), scale)
             lower, upper = p.getAABB(uid) #get the bounding box 
             z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest

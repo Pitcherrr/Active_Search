@@ -177,7 +177,8 @@ class MultiViewPolicy(Policy):
         self.vis.path(self.base_frame, self.intrinsic, self.views)
 
         with Timer("tsdf_integration"):
-            self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
+            for _ in range(5):
+                self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
 
         self.get_poi_torch()
 
@@ -191,6 +192,7 @@ class MultiViewPolicy(Policy):
             np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
         )
 
+        print("################### predicting grasps ################################")
         with Timer("grasp_prediction"):
             tsdf_grid = self.tsdf.get_grid()
             out = self.vgn.predict(tsdf_grid)
