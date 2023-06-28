@@ -357,7 +357,7 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        return RandomOccludedScene()
+        return RandomScene()
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))
