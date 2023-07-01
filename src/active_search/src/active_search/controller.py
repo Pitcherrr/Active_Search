@@ -110,27 +110,37 @@ class GraspController:
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
                     res = self.execute_grasp(grasp)
+                    
                     if res == 'succeeded':
                         remove_body = rospy.ServiceProxy('remove_body', Reset)
                         response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
-                        # response = remove_body() # Call the service with argument True
+
                         self.policy.tsdf_cut(response)
+                        self.switch_to_cartesian_velocity_control()
+                        
+                        # x = tf.lookup(self.base_frame, self.cam_frame)
+                        # cmd = self.compute_velocity_cmd(self.policy.x_d, x)
 
-                        rospy.sleep(2)
+                        # print(cmd)
+                        # self.cartesian_vel_pub.publish(to_twist_msg(cmd))
 
-                        x = tf.lookup(self.base_frame, self.cam_frame)
-                        cmd = self.compute_velocity_cmd(self.policy.x_d, x)
-                        print(cmd)
-                        self.cartesian_vel_pub.publish(to_twist_msg(cmd))
-
-                        rospy.sleep(2)
+                        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                        # rospy.sleep(2)
+                        # timer.shutdown()
 
                     elif res == "failed":
                         print("failed")
-                        x = tf.lookup(self.base_frame, self.cam_frame)
-                        cmd = self.compute_velocity_cmd(self.policy.x_d, x)
-                        print(cmd)
-                        self.cartesian_vel_pub.publish(to_twist_msg(cmd))
+                        self.switch_to_cartesian_velocity_control()
+                        # x = tf.lookup(self.base_frame, self.cam_frame)
+                        # cmd = self.compute_velocity_cmd(self.policy.x_d, x)
+                        # print(cmd)
+                        # self.cartesian_vel_pub.publish(to_twist_msg(cmd))
+
+                        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                        # rospy.sleep(2)
+                        # timer.shutdown()
+
+                        # rospy.sleep(2)
 
  
                         # self.moveit.goto("ready", velocity_scaling=0.4)
@@ -138,6 +148,7 @@ class GraspController:
 
             else:
                 res = "aborted"
+
         return self.collect_info(res)
 
     def reset(self):

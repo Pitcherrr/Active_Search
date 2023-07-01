@@ -223,7 +223,7 @@ class MultiViewPolicy(Policy):
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [5,5,5]
+        bb_voxel = [10,10,10]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -259,8 +259,8 @@ class MultiViewPolicy(Policy):
 
 
     def tsdf_cut(self, bb):
-        min_bound = np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int) + [0,0,6]
-        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int) + [0,0,6]
+        min_bound = np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int) #+ [0,0,6]
+        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int) #- [0,0,6]
         self.vis.bbox(self.base_frame, bb)
         tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
         tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])

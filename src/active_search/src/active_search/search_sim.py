@@ -187,6 +187,11 @@ class Scene:
         self.object_uids.remove(uid)
 
     def remove_object_ret_bb(self, uid):
+        print(uid)
+
+        if uid is None:
+            return AABBox([0,0,0],[0,0,0])
+      
         bb = p.getAABB(uid)
         origin = Transform.from_translation(self.origin)
         bb_min = (Transform.from_translation(bb[0])*origin.inv()).translation
@@ -271,7 +276,7 @@ class RandomScene(Scene):
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=6, attempts=10):
+    def generate(self, rng, object_count=7, attempts=10):
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         for urdf in urdfs:
@@ -311,12 +316,12 @@ class RandomOccludedScene(Scene):
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=3, attempts=10):
+    def generate(self, rng, object_count=5, attempts=10):
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         occluding = rng.choice(self.occluding_objs)
         for urdf in urdfs:
-            scale = rng.uniform(0.3, 0.5)
+            scale = rng.uniform(0.4, 0.8)
             uid = self.add_object(urdf, Rotation.identity(), np.zeros(3), scale)
             lower, upper = p.getAABB(uid) #get the bounding box 
             z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest
@@ -357,7 +362,7 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        return RandomScene()
+        return RandomOccludedScene()
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))
