@@ -223,7 +223,7 @@ class MultiViewPolicy(Policy):
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [10,10,10]
+        bb_voxel = [5,5,5]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -252,6 +252,8 @@ class MultiViewPolicy(Policy):
         poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
         
         self.vis.target_locations(self.base_frame, poi_mat+[0.35,-0.15,0.2])
+
+        # print(coordinate_mat)
 
         self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 

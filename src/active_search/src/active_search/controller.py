@@ -105,7 +105,7 @@ class GraspController:
             
             with Timer("search_time"):
                 grasp = self.search_grasp(self.bbox)
-            if grasp:
+            if grasp and self.grasp_ig(grasp) > 10:
                 print("grasping")
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
@@ -164,7 +164,6 @@ class GraspController:
     def search_grasp(self, bbox):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
         self.policy.activate(bbox, self.view_sphere)
-        print("sending velocity cmds")
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
         r = rospy.Rate(self.policy_rate)
         while not self.policy.done:
@@ -192,6 +191,18 @@ class GraspController:
             if bbox.is_inside(tip):
                 return True, grasp
         return False, None
+    
+    def grasp_ig(self, grasp):
+        t = (self.policy.T_task_base * grasp.pose).translation
+        i, j, k = (t / self.policy.tsdf.voxel_size).astype(int)
+        print(i,j,k)
+        bb_voxel = [5,5,5] #place holder for the actual target object size 
+        grasp_ig = self.policy.occ_mat[i:i+bb_voxel[0],j:j+bb_voxel[1],:].sum() #slice the matrix and sum over it tp calc gain
+        print(grasp_ig)
+        return grasp_ig
+
+
+
 
     def get_state(self):
         q, _ = self.arm.get_state()
@@ -201,10 +212,8 @@ class GraspController:
         return img, pose, q
 
     def send_vel_cmd(self, event):
-        print(self.policy.done)
         if self.policy.x_d is None or self.policy.done:
             cmd = np.zeros(6)
-            print("sending nothing")
         else:
             x = tf.lookup(self.base_frame, self.cam_frame)
             cmd = self.compute_velocity_cmd(self.policy.x_d, x)
