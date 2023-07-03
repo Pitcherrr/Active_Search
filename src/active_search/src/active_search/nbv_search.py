@@ -130,6 +130,7 @@ class NextBestView(MultiViewPolicy):
             view = self.view_sphere.get_view(theta, phi)
             if self.solve_cam_ik(q, view):
                 view_candidates.append(view)
+        print("generating",len(view_candidates),"views")
         return view_candidates
 
     def ig_fn(self, view, downsample):

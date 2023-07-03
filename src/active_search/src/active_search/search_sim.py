@@ -316,7 +316,7 @@ class RandomOccludedScene(Scene):
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=7, attempts=10):
+    def generate(self, rng, object_count=3, attempts=10):
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         occluding = rng.choice(self.occluding_objs)

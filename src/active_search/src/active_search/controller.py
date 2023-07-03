@@ -193,12 +193,13 @@ class GraspController:
         return False, None
     
     def grasp_ig(self, grasp):
+        #naive estimation of information gain from the grasping of an opject
         t = (self.policy.T_task_base * grasp.pose).translation
         i, j, k = (t / self.policy.tsdf.voxel_size).astype(int)
-        print(i,j,k)
         bb_voxel = [5,5,5] #place holder for the actual target object size 
-        grasp_ig = self.policy.occ_mat[i:i+bb_voxel[0],j:j+bb_voxel[1],:].sum() #slice the matrix and sum over it tp calc gain
-        print(grasp_ig)
+        grasp_ig_mat = self.policy.occ_mat[i:,j-(bb_voxel[1]//2):j+(bb_voxel[1]//2),:] #slice the matrix and sum over it tp calc gain
+        grasp_ig = grasp_ig_mat.sum()
+        print("Grasp information gain:", grasp_ig)
         return grasp_ig
 
 
