@@ -33,6 +33,7 @@ class GraspController:
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
         self.T_grasp_ee = Transform.from_list(rospy.get_param("~ee_grasp_offset")).inv()
+        self.T_grasp_drop = Transform.from_list(rospy.get_param("~grasp_drop_config"))
         self.cam_frame = rospy.get_param("~camera/frame_id")
         self.depth_topic = rospy.get_param("~camera/depth_topic")
         self.min_z_dist = rospy.get_param("~camera/min_z_dist")
@@ -197,7 +198,8 @@ class GraspController:
         t = (self.policy.T_task_base * grasp.pose).translation
         i, j, k = (t / self.policy.tsdf.voxel_size).astype(int)
         bb_voxel = [5,5,5] #place holder for the actual target object size 
-        grasp_ig_mat = self.policy.occ_mat[i:,j-(bb_voxel[1]//2):j+(bb_voxel[1]//2),:] #slice the matrix and sum over it tp calc gain
+        # grasp_ig_mat = self.policy.occ_mat[i:i+2*bb_voxel[0],j-(bb_voxel[1]//2):j+(bb_voxel[1]//2),:] #most "correct approach" but gives some issues
+        grasp_ig_mat = self.policy.occ_mat[i:,j-(bb_voxel[1]//2):j+(bb_voxel[1]//2),:] #most "correct approach" but gives some issues
         grasp_ig = grasp_ig_mat.sum()
         print("Grasp information gain:", grasp_ig)
         return grasp_ig
@@ -248,6 +250,9 @@ class GraspController:
             self.moveit.gotoL(T_base_retreat)
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
             success = self.gripper.read() > 0.002
+            T_drop_location = T_base_retreat * self.T_grasp_drop
+            # self.moveit.gotoL(T_drop_location)
+            self.moveit.goto([0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
             return "succeeded" if success else "failed"
         else:
             return "no_motion_plan_found"

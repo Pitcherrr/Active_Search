@@ -23,6 +23,8 @@ hw:
 grasp_controller:
   base_frame_id: panda_link0
   ee_grasp_offset: [0.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065]  # offset to panda_link8
+  # grasp_drop_config: [2.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065] 
+  grasp_drop_config: [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
   control_rate: 30
   linear_vel: 0.05
   camera:
@@ -38,7 +40,7 @@ vgn:
   model: $(find vgn)/assets/models/vgn_conv.pth
   finger_depth: 0.05
   qual_threshold: 0.9
-
+  
 policy:
   rate: 4
   window_size: 12
