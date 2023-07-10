@@ -25,7 +25,12 @@ source devel/setup.bash
 ```
 
 ```
-python3 src/active_search/scripts/tester_threaded.py
+ roslaunch active_search env.launch sim:=true
+```
+
+Run the robot in another terminal:
+```
+python3 src/active_search/scripts/run.py nbv
 ```
 
 ## TODO:
