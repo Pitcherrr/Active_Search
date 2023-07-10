@@ -267,7 +267,7 @@ class MultiViewPolicy(Policy):
         tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
         tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
         print(min_bound, max_bound)
-        tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], 0:max_bound[2]] = 0
+        tsdf_grid[min_bound[0]-4:max_bound[0]+4, min_bound[1]-4:max_bound[1]+4, 0:max_bound[2]+4] = 0
         tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
         self.tsdf = UniformTSDFVolume(0.3, 40)
         self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)

@@ -106,17 +106,18 @@ class GraspController:
             
             with Timer("search_time"):
                 grasp = self.search_grasp(self.bbox)
-            if grasp and self.grasp_ig(grasp) > 10:
+            if grasp:
+            # if grasp and self.grasp_ig(grasp) > 10:
                 print("grasping")
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
                     res = self.execute_grasp(grasp)
                     
                     if res == 'succeeded':
-                        remove_body = rospy.ServiceProxy('remove_body', Reset)
-                        response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
+                        # remove_body = rospy.ServiceProxy('remove_body', Reset)
+                        # response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
 
-                        self.policy.tsdf_cut(response)
+                        # self.policy.tsdf_cut(response)
                         self.switch_to_cartesian_velocity_control()
                         
                         # x = tf.lookup(self.base_frame, self.cam_frame)
@@ -246,13 +247,18 @@ class GraspController:
             self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)
             rospy.sleep(0.5)
             self.gripper.grasp()
+            #remove the body from the scene
+            remove_body = rospy.ServiceProxy('remove_body', Reset)
+            response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
+            self.policy.tsdf_cut(response)
+            #####################
             T_base_retreat = Transform.t_[0, 0, 0.05] * T_base_grasp * self.T_grasp_ee
             self.moveit.gotoL(T_base_retreat)
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
             success = self.gripper.read() > 0.002
             T_drop_location = T_base_retreat * self.T_grasp_drop
             # self.moveit.gotoL(T_drop_location)
-            self.moveit.goto([0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
+            self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
             return "succeeded" if success else "failed"
         else:
             return "no_motion_plan_found"
