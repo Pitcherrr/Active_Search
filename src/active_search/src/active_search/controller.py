@@ -256,7 +256,7 @@ class GraspController:
             self.moveit.gotoL(T_base_retreat)
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
             success = self.gripper.read() > 0.002
-            T_drop_location = T_base_retreat * self.T_grasp_drop
+            # T_drop_location = T_base_retreat * self.T_grasp_drop
             # self.moveit.gotoL(T_drop_location)
             self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
             return "succeeded" if success else "failed"

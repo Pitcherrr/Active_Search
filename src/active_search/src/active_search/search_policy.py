@@ -261,13 +261,18 @@ class MultiViewPolicy(Policy):
 
 
     def tsdf_cut(self, bb):
-        min_bound = np.floor(np.asarray(bb.min) / self.tsdf.voxel_size).astype(int) #+ [0,0,6]
-        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size).astype(int) #- [0,0,6]
-        self.vis.bbox(self.base_frame, bb)
+        min_bound = np.floor(np.asarray(bb.min) / self.tsdf.voxel_size) - self.tsdf.sdf_trunc/self.tsdf.voxel_size #+ [0,0,6]
+        min_bound = np.clip(min_bound,0,np.inf).astype(int)
+        max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size) + self.tsdf.sdf_trunc/self.tsdf.voxel_size #- [0,0,6}
+        max_bound = np.clip(max_bound,0,np.inf).astype(int)
+        bb_vis = bb
+        bb_vis.min += [0.35,-0.15,0.2]
+        bb_vis.max += [0.35,-0.15,0.2]
+        self.vis.bbox(self.base_frame, bb_vis)
         tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
         tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
         print(min_bound, max_bound)
-        tsdf_grid[min_bound[0]-4:max_bound[0]+4, min_bound[1]-4:max_bound[1]+4, 0:max_bound[2]+4] = 0
+        tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], 0:max_bound[2]] = 0
         tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
         self.tsdf = UniformTSDFVolume(0.3, 40)
         self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
