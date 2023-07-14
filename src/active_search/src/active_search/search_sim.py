@@ -51,7 +51,9 @@ class Simulation:
         p.resetDebugVisualizerCamera(1.2, -120, -30, [0.4, 0.0, 0.2])
 
     def seed(self, seed=None):
-        self.rng = np.random.default_rng(seed) if seed else np.random
+        # self.rng = np.random.default_rng(seed) if seed else np.random
+        self.rng = np.random
+
 
     def load_robot(self):
         panda_urdf_path = urdfs_dir / "franka/panda_arm_hand.urdf"
@@ -349,9 +351,11 @@ class RandomOccludedScene(Scene):
 
         mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
 
-        ori = Rotation.from_euler("xyz", [0, 180, 0], degrees=True)
+        # ori = Rotation.from_euler("xyz", [0, 180, 0], degrees=True)
+        ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
         
-        self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.05)
+        self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
+        # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
         q += rng.uniform(-0.08, 0.08, 7)
@@ -362,7 +366,7 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        return RandomScene()
+        return RandomOccludedScene()
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))

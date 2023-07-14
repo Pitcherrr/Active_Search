@@ -276,6 +276,10 @@ class MultiViewPolicy(Policy):
         tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
         self.tsdf = UniformTSDFVolume(0.3, 40)
         self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+        #update rviz
+        scene_cloud = self.tsdf.get_scene_cloud()
+        self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
+
 
 
 
