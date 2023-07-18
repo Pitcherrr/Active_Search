@@ -347,6 +347,8 @@ class RandomOccludedScene(Scene):
         
         target = rng.choice(self.object_uids)
 
+        p.changeVisualShape(target, -1, rgbaColor=[1, 0, 0, 1])
+
         bb = p.getAABB(target)
 
         mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
