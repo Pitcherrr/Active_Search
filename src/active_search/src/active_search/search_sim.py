@@ -230,6 +230,7 @@ class YamlScene(Scene):
         print(pybullet_data.getDataPath())
 
     def generate(self, rng):
+        self.complete = False
         self.load_config()
         self.add_support(self.center)
         i = 0
@@ -288,6 +289,7 @@ class RandomScene(Scene):
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=8, attempts=10):
+        self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         for urdf in urdfs:
@@ -328,6 +330,7 @@ class RandomOccludedScene(Scene):
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=3, attempts=10):
+        self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
         occluding = rng.choice(self.occluding_objs)

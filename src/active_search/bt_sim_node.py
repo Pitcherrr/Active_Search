@@ -100,6 +100,9 @@ class BtSimNode:
         # return ResetResponse(to_bbox_msg(bbox))
         topic = "sim_complete"
         self.sim_complete_pub = rospy.Publisher(topic, Bool, queue_size=1)
+        msg = Bool()
+        msg.data = False
+        self.sim_complete_pub.publish(msg)
 
         return ResetResponse(bbox)
     
