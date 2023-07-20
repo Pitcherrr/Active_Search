@@ -11,7 +11,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState, Image, CameraInfo
 from scipy import interpolate
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Bool
 from threading import Thread
 from std_srvs.srv import Empty, EmptyResponse
 
@@ -98,6 +98,9 @@ class BtSimNode:
         for i in range(len(bbox)):
             bbox[i] = to_bbox_msg(bbox[i])
         # return ResetResponse(to_bbox_msg(bbox))
+        topic = "sim_complete"
+        self.sim_complete_pub = rospy.Publisher(topic, Bool, queue_size=1)
+
         return ResetResponse(bbox)
     
     def remove_body(self, req):
@@ -105,7 +108,15 @@ class BtSimNode:
         uid = self.sim.get_grasp_uid()
         bb = self.sim.scene.remove_object_ret_bb(uid)
         print('Removed Grasped OBJ')
+        self.sim_complete()
         return ResetResponse([to_bbox_msg(bb)])
+    
+    def sim_complete(self):
+        if self.sim.scene.complete:
+            msg = Bool()
+            msg.data = True
+            self.sim_complete_pub.pub(msg)
+            return 
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:

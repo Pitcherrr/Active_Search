@@ -2,6 +2,7 @@ bt_sim:
   gui: True
   gripper_force: 10
   scene: random
+  topic: /sim_complete
   # scene: as_test_scene.yaml
 
 tsdf_server:

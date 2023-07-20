@@ -15,6 +15,7 @@ from robot_helpers.spatial import Transform
 
 from active_grasp.timer import Timer
 from active_grasp.rviz import Visualizer
+from active_grasp.bbox import AABBox
 
 
 def solve_ik(q0, pose, solver):
@@ -114,7 +115,12 @@ class Policy:
         for grasp, quality in zip(grasps, qualities):
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
-            if self.bbox.is_inside(tip):
+            #need to add some padding to botting of bbox as grasps appear there sometimes
+            bbox_min = self.bbox.min + [0, 0, 3*self.tsdf.voxel_size]
+            bbox_max = self.bbox.max
+            bbox = AABBox(bbox_min, bbox_max)
+            print(bbox.min)
+            if bbox.is_inside(tip):
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:

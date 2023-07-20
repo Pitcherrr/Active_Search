@@ -165,6 +165,7 @@ class Scene:
         self.support_urdf = urdfs_dir / "plane/model.urdf"
         self.support_uid = -1
         self.object_uids = []
+        self.complete = False
 
     def clear(self):
         self.remove_support()
@@ -191,6 +192,10 @@ class Scene:
     def remove_object_ret_bb(self, uid):
         print(uid)
 
+        if uid == self.target:
+            self.complete_sim()
+            return AABBox([0,0,0],[0,0,0])
+
         if uid is None:
             return AABBox([0,0,0],[0,0,0])
       
@@ -201,10 +206,14 @@ class Scene:
         p.removeBody(uid)
         self.object_uids.remove(uid)
         return AABBox(bb_min, bb_max)
-
+    
     def remove_all_objects(self):
         for uid in list(self.object_uids):
             self.remove_object(uid)
+
+    def complete_sim(self):
+        print("############ Sim Complete ############")
+        self.complete = True
 
 
 class YamlScene(Scene):
@@ -315,7 +324,7 @@ class RandomOccludedScene(Scene):
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
-        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/cap")
+        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/hat")
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=5, attempts=10):
@@ -345,16 +354,16 @@ class RandomOccludedScene(Scene):
 
         #add the occluding object to the scene 
         
-        target = rng.choice(self.object_uids)
+        self.target = rng.choice(self.object_uids)
 
-        p.changeVisualShape(target, -1, rgbaColor=[1, 0, 0, 1])
+        p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
 
-        bb = p.getAABB(target)
+        self.target_bb = p.getAABB(self.target)
 
-        mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
+        mid_bb = tuple(np.asarray(self.target_bb[0])+(np.asarray(self.target_bb[1])-np.asarray(self.target_bb[0]))/2)
 
-        # ori = Rotation.from_euler("xyz", [0, 180, 0], degrees=True)
-        ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
+        ori = Rotation.from_euler("xyz", [90, 0, 0], degrees=True)
+        # ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
         
         self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
