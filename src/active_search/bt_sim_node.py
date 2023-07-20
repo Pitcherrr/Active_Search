@@ -115,7 +115,7 @@ class BtSimNode:
         if self.sim.scene.complete:
             msg = Bool()
             msg.data = True
-            self.sim_complete_pub.pub(msg)
+            self.sim_complete_pub.publish(msg)
             return 
 
     def switch_controller(self, req):

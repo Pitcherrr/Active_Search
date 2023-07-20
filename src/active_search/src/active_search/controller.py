@@ -5,6 +5,7 @@ from geometry_msgs.msg import Twist
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
+from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 import trimesh
 
@@ -52,6 +53,7 @@ class GraspController:
         self.gripper = PandaGripperClient()
         topic = rospy.get_param("cartesian_velocity_controller/topic")
         self.cartesian_vel_pub = rospy.Publisher(topic, Twist, queue_size=10)
+        rospy.Subscriber('sim_complete', Bool, self.sim_complete, queue_size=1)
 
     def init_moveit(self):
         self.moveit = MoveItClient("panda_arm")
@@ -80,8 +82,13 @@ class GraspController:
     def sensor_cb(self, msg):
         self.latest_depth_msg = msg
 
+    def sim_complete(self, msg):
+        if msg.data:
+            self.complete = True
+
     def run(self):
         bbs = self.reset()
+        self.complete = False
         # bbox = bbs.pop(-1)
         voxel_size = 0.0075
         x_off = 0.35
@@ -102,8 +109,7 @@ class GraspController:
         #     grasps.append(grasp)
         # print(grasps)
 
-        while True:
-            
+        while not self.complete:
             with Timer("search_time"):
                 grasp = self.search_grasp(self.bbox)
             if grasp:
