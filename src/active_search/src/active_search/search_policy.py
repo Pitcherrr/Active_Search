@@ -29,6 +29,7 @@ class Policy:
         self.load_parameters()
         self.init_ik_solver()
         self.init_visualizer()
+        self.init_tsdf()
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
@@ -44,6 +45,9 @@ class Policy:
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
         self.cam_ik_solver = IK(self.base_frame, self.cam_frame)
         self.ee_ik_solver = IK(self.base_frame, "panda_link8")
+
+    def init_tsdf(self):
+        self.tsdf = UniformTSDFVolume(0.3, 40)
 
     def solve_cam_ik(self, q0, view):
         return solve_ik(q0, view, self.cam_ik_solver)
@@ -64,13 +68,13 @@ class Policy:
         # self.calibrate_task_frame()
         self.vis.bbox(self.base_frame, self.bbox)
 
-        try:
-            x = self.tsdf
-            print("tsdf already here")
-            print(self.tsdf)
-        except:    
-            self.tsdf = UniformTSDFVolume(0.3, 40)
-            print("created a new tsdf")
+        # try:
+        #     x = self.tsdf
+        #     print("tsdf already here")
+        #     print(self.tsdf)
+        # except:    
+        #     self.tsdf = UniformTSDFVolume(0.3, 40)
+        #     print("created a new tsdf")
         
         self.vgn = VGN(Path(rospy.get_param("vgn/model")))
 

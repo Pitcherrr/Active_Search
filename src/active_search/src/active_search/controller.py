@@ -87,6 +87,7 @@ class GraspController:
             self.complete = True
 
     def run(self):
+        self.policy.init_tsdf()
         bbs = self.reset()
         self.complete = False
         # bbox = bbs.pop(-1)
@@ -157,7 +158,9 @@ class GraspController:
             else:
                 res = "aborted"
 
-        return self.collect_info(res)
+        info = self.collect_info(res)
+        # self.clear()
+        return info
 
     def reset(self):
         Timer.reset()
@@ -168,6 +171,10 @@ class GraspController:
         for i in range(len(bbs)):
             bbs[i] = from_bbox_msg(bbs[i])
         return bbs
+    
+    def clear(self):
+        return
+
 
     def search_grasp(self, bbox):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
