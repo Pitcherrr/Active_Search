@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import sys
 import rospkg
 from object2urdf import ObjectUrdfBuilder

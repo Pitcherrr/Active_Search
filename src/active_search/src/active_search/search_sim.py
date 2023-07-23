@@ -88,7 +88,7 @@ class Simulation:
         print(target_uid)
         target = get_target_bb(self, target_uid)
         tsdf = get_tsdf(self, reset_tsdf=True)
-        target_points = get_poi_torch(tsdf, target)
+        # target_points = get_poi_torch(tsdf, target)
         target = AABBox(target.min_bound, target.max_bound)
         min_bound_t = (Transform.from_translation(target.min)*origin).translation
         max_bound_t = (Transform.from_translation(target.max)*origin).translation

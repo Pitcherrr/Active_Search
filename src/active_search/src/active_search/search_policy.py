@@ -5,6 +5,8 @@ import rospy
 from trac_ik_python.trac_ik import IK
 import torch
 import open3d as o3d
+import rospkg
+import os
 
 from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
@@ -48,6 +50,7 @@ class Policy:
 
     def init_tsdf(self):
         self.tsdf = UniformTSDFVolume(0.3, 40)
+        self.point_index = 0
 
     def solve_cam_ik(self, q0, view):
         return solve_ik(q0, view, self.cam_ik_solver)
@@ -264,6 +267,17 @@ class MultiViewPolicy(Policy):
         self.vis.target_locations(self.base_frame, poi_mat+[0.35,-0.15,0.2])
 
         # print(coordinate_mat)
+        store_pc = True
+
+        if store_pc:
+            rospack = rospkg.RosPack()
+            pkg_root = Path(rospack.get_path("active_search"))
+            file_dir = str(pkg_root)+"/training/p"+str(self.point_index)+".pcd"
+            print(file_dir)
+            coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
+            poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
+            o3d.io.write_point_cloud(file_dir, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
+            self.point_index += 1
 
         self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
