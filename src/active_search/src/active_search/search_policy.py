@@ -274,6 +274,7 @@ class MultiViewPolicy(Policy):
             pkg_root = Path(rospack.get_path("active_search"))
             file_dir = str(pkg_root)+"/training/p"+str(self.point_index)+".pcd"
             print(file_dir)
+            # np.save(file_dir, coordinate_mat, allow_pickle=True, fix_imports=True)
             coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
             poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
             o3d.io.write_point_cloud(file_dir, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)

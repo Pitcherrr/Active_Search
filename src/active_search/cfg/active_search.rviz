@@ -10,7 +10,7 @@ Panels:
         - /Markers1/Namespaces1
         - /TargetLocations1
       Splitter Ratio: 0.6879875063896179
-    Tree Height: 509
+    Tree Height: 371
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
