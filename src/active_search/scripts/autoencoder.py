@@ -81,6 +81,7 @@ def train_autoencoder(train_data, val_data, input_shape, encoding_dim, num_epoch
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Training on:", device)
     autoencoder = Autoencoder(input_shape, encoding_dim).to(device)
+    # use binary cross entropy
     criterion = nn.MSELoss()
     optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
 
