@@ -1,17 +1,48 @@
 from pathlib import Path
 import os
 import rospkg
-import open3d as o3d
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+import numpy as np
+import open3d as o3d
+from tqdm import trange
 
-# Define the Autoencoder class
-class Autoencoder3D(nn.Module):
-    def __init__(self):
-        super(Autoencoder3D, self).__init__()
-        # Encoder layers
+# Step 1: Data Preprocessing
+def load_voxel_grids(file_paths):
+    voxel_grids = []
+    grid_size = (40, 40, 40)
+    for file_path in file_paths:
+        grid = np.zeros(grid_size)
+        pcd = o3d.io.read_point_cloud(file_path)
+        points = np.asarray(pcd.points).astype(int)
+        grid[points[:, 0], points[:, 1], points[:, 2]] = 1
+        # voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size=0.0075)
+
+        # Expand the voxel grid to have a single channel
+        grid = grid[np.newaxis, :, :, :]
+        voxel_grids.append(grid)
+    return voxel_grids
+
+def normalize_voxel_grids(voxel_grids):
+    max_value = np.max(voxel_grids)
+    min_value = np.min(voxel_grids)
+    normalized_grids = (voxel_grids - min_value) / (max_value - min_value)
+    return normalized_grids
+
+# Step 2: Autoencoder Architecture (define the neural network)
+class Autoencoder(nn.Module):
+    def __init__(self, input_shape, encoding_dim):
+        super(Autoencoder, self).__init__()
+        # self.encoder = nn.Sequential(
+        #     nn.Linear(input_shape, encoding_dim),
+        #     nn.ReLU()
+        # )
+        # self.decoder = nn.Sequential(
+        #     nn.Linear(encoding_dim, input_shape),
+        #     nn.Sigmoid()
+        # )
+                # Encoder layers
         self.encoder = nn.Sequential(
             nn.Conv3d(1, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -39,117 +70,117 @@ class Autoencoder3D(nn.Module):
         x = self.decoder(x)
         return x
 
-# Define a custom dataset for loading point clouds from .pcd files
-class PointCloudDataset(Dataset):
-    def __init__(self, root_dir):
-        self.root_dir = root_dir
-        self.file_list = os.listdir(root_dir)
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
 
-    def __len__(self):
-        return len(self.file_list)
-
-    def __getitem__(self, idx):
-        file_name = self.file_list[idx]
-        file_path = os.path.join(self.root_dir, file_name)
-        point_cloud = self.load_point_cloud(file_path)
-        return point_cloud
-
-    def load_point_cloud(self, file_path):
-        pcd = o3d.io.read_point_cloud(file_path)
-        voxel_data = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, 0.0075)
-        points = torch.tensor(voxel_data, dtype=torch.float32).unsqueeze(0)
-        return points
-
+# Step 3: Training
 # Training function
-def train_autoencoder(autoencoder, dataloader, epochs=50, batch_size=32):
+def train_autoencoder(train_data, val_data, input_shape, encoding_dim, num_epochs, batch_size):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Training on:", device)
+    autoencoder = Autoencoder(input_shape, encoding_dim).to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
 
-    for epoch in range(epochs):
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=False)
+
+
+    t = trange(num_epochs)
+    for epoch in t:
         running_loss = 0.0
-        for i, data in enumerate(dataloader, 0):
-            inputs = data
+        for batch in train_loader:  # Loop through batches in DataLoader
+            inputs = batch.to(device)
             optimizer.zero_grad()
             outputs = autoencoder(inputs)
             loss = criterion(outputs, inputs)
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
-        print(f"Epoch {epoch + 1}/{epochs}, Loss: {running_loss}")
+            running_loss += loss.item() * inputs.size(0)
+        epoch_loss = running_loss / len(train_loader.dataset)
+        # print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}")
 
-if __name__ == "__main__":
-    # Replace 'data_folder_path' with the folder containing your 1000 .pcd files
+        # Validation
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch in val_loader:  # Loop through batches in DataLoader
+                inputs = batch.to(device)
+                outputs = autoencoder(inputs)
+                loss = criterion(outputs, inputs)
+                val_loss += loss.item() * inputs.size(0)
+            val_loss /= len(val_loader.dataset)
+
+        # print(f'Epoch {epoch + 1}/{num_epochs}, Train Loss: {epoch_loss:.4f}, Val Loss: {val_loss:.4f}')
+        t.set_description(f'Epoch {epoch + 1}/{num_epochs}, Train Loss: {epoch_loss:.4f}, Val Loss: {val_loss:.4f}')
+
+    return autoencoder
+
+# Step 4: Evaluation
+# Evaluation can be done similarly as in the previous pseudo-code.
+# Calculate reconstruction error or other relevant metrics on the test dataset.
+
+# Step 5: Encoding and Decoding
+# Use the trained autoencoder to encode and decode new voxel grids
+def encode_voxel_grids(autoencoder, new_voxel_grids):
+    # new_voxel_grids = torch.tensor(new_voxel_grids.reshape(-1, 40*40*40), dtype=torch.float32)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    new_voxel_grids = new_voxel_grids.clone().detach().to(device)
+    encoded_voxel = autoencoder.encoder(new_voxel_grids)
+    return encoded_voxel
+
+def decode_voxel_grids(autoencoder, encoded_voxel):
+    decoded_voxel = autoencoder.decoder(encoded_voxel)
+    return decoded_voxel
+
+
+import os
+
+# Function to get file paths for all .pcd files in the specified directory
+def get_pcd_file_paths(directory_path):
+    file_paths = []
+    for filename in os.listdir(directory_path):
+        if filename.endswith(".pcd"):
+            file_path = os.path.join(directory_path, filename)
+            file_paths.append(file_path)
+    return file_paths
+
+def main():
+
     rospack = rospkg.RosPack()
     pkg_root = Path(rospack.get_path("active_search"))
     data_folder_path = str(pkg_root)+"/training/"
+    file_paths = get_pcd_file_paths(data_folder_path)  # List of file paths to your .pcd files
+    voxel_grids = load_voxel_grids(file_paths)
 
-    # Create the dataset and dataloader
-    dataset = PointCloudDataset(data_folder_path)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    # Convert to PyTorch tensors and flatten the voxel grids
+    # voxel_tensors = torch.tensor(np.asarray(voxel_grids).reshape(-1, 40*40*40), dtype=torch.float32)
+    voxel_tensors = torch.tensor(np.asarray(voxel_grids), dtype=torch.float32)
 
-    # Create an instance of the Autoencoder
-    autoencoder = Autoencoder3D()
+    num_data = int(voxel_tensors.shape[0]*0.9)
+    data = voxel_tensors[:num_data]
+    holdout_data = voxel_tensors[num_data:]
+
+    # Split into training and validation sets
+    num_train_samples = int(data.shape[0]*0.8)
+    train_data = data[:num_train_samples]
+    val_data = data[num_train_samples:]
+
+    # Define autoencoder parameters
+    input_shape = 40*40*40
+    encoding_dim = 200  # Dimension of the latent representation
+    num_epochs = 100
+    batch_size = 32
 
     # Train the autoencoder
-    train_autoencoder(autoencoder, dataloader)
+    trained_autoencoder = train_autoencoder(train_data, val_data, input_shape, encoding_dim, num_epochs, batch_size)
 
+    # Step 4: Evaluation (similar as before)
 
+    # Step 5: Encoding and Decoding  
+    encoded_voxel = encode_voxel_grids(trained_autoencoder, holdout_data)
+    decoded_voxel = decode_voxel_grids(trained_autoencoder, encoded_voxel)
 
-
-# # Create an instance of the Autoencoder
-# autoencoder = Autoencoder3D()
-
-# # Print model summary
-# print(autoencoder)
-
-
-# import torch.optim as optim
-
-# # Load your 3D point cloud data into 'data'
-# # data.shape should be (number_of_samples, 1, 40, 40, 40)
-
-# # Normalize the data to [0, 1]
-# # data = data.astype('float32') / 255.0
-
-# def load_pcd_file(file_path):
-#     pcd = o3d.io.read_point_cloud(file_path)
-#     return pcd
-
-# rospack = rospkg.RosPack()
-# pkg_root = Path(rospack.get_path("active_search"))
-# file_dir = str(pkg_root)+"/training/p"+str(1)+".pcd"
-# print(file_dir)
-
-# data = load_pcd_file(file_dir)
-
-# # Convert numpy array to torch tensor
-# x_train = torch.tensor(data.points)
-
-# # Define loss function and optimizer
-# criterion = nn.MSELoss()
-# optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
-
-# # Train the autoencoder
-# epochs = 50
-# batch_size = 32
-# for epoch in range(epochs):
-#     running_loss = 0.0
-#     for i in range(0, x_train.size(0), batch_size):
-#         inputs = x_train[i:i + batch_size]
-#         optimizer.zero_grad()
-#         outputs = autoencoder(inputs)
-#         loss = criterion(outputs, inputs)
-#         loss.backward()
-#         optimizer.step()
-#         running_loss += loss.item()
-#     print(f"Epoch {epoch + 1}/{epochs}, Loss: {running_loss}")
-
-# # Test the autoencoder by reconstructing a sample
-# sample = x_train[0:1]
-# reconstructed_sample = autoencoder(sample)
-
-# # Convert torch tensor to numpy array
-# reconstructed_sample = reconstructed_sample.detach().numpy()
-
-# # Print the shape of the reconstructed sample
-# print(reconstructed_sample.shape)
+if __name__ == "__main__":
+    main()
