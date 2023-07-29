@@ -272,13 +272,18 @@ class MultiViewPolicy(Policy):
         if store_pc:
             rospack = rospkg.RosPack()
             pkg_root = Path(rospack.get_path("active_search"))
-            file_dir = str(pkg_root)+"/training/p"+str(self.point_index)+".pcd"
-            print(file_dir)
-            # np.save(file_dir, coordinate_mat, allow_pickle=True, fix_imports=True)
+            file_dir_occ = str(pkg_root)+"/training/p"+str(self.point_index)+"_occ.pcd"
+            file_dir_tsdf = str(pkg_root)+"/training/p"+str(self.point_index)+"_tsdf.pcd"
+            print(file_dir_occ)
+            print(file_dir_tsdf)
             coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
             poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
-            o3d.io.write_point_cloud(file_dir, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
-            self.point_index += 1
+            write_occ = o3d.io.write_point_cloud(file_dir_occ, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
+            write_tsdf = o3d.io.write_point_cloud(file_dir_tsdf, self.tsdf.get_map_cloud(), write_ascii=False, compressed=False, print_progress=False)
+            print(write_occ, write_tsdf)
+            #only increment if we have created a set
+            if write_occ and write_tsdf:
+                self.point_index += 1
 
         self.coord_set = coordinate_mat_set
         self.occ_mat = occ_mat_result 
