@@ -52,6 +52,23 @@ def load_voxel_grids(file_paths):
 
     return voxel_grids
 
+def split_combined_voxel_grids(combined_grids):
+    assert len(combined_grids) % 2 == 0, "The number of combined voxel grids should be even."
+
+    voxel_grids = []
+    for i in range(0, len(combined_grids), 2):
+        # Extract the two voxel grids from the combined voxel grids
+        grid1, grid2 = combined_grids[i], combined_grids[i + 1]
+
+        # Remove the channel dimension (dim=0) to get the individual voxel grids
+        grid1 = grid1[0, :, :, :]
+        grid2 = grid2[0, :, :, :]
+
+        voxel_grids.append(grid1)
+        voxel_grids.append(grid2)
+
+    return voxel_grids
+
 # Step 2: Autoencoder Architecture (define the neural network)
 class Autoencoder(nn.Module):
     def __init__(self):
@@ -187,7 +204,7 @@ def main():
     voxel_tensors = torch.tensor(np.asarray(voxel_grids), dtype=torch.float32)
     print(voxel_tensors.shape)
 
-    num_data = int(voxel_tensors.shape[0]*0.9)
+    num_data = int(voxel_tensors.shape[0]*0.8)
     data = voxel_tensors[:num_data]
     holdout_data = voxel_tensors[num_data:]
 
@@ -208,6 +225,17 @@ def main():
     # Step 5: Encoding and Decoding  
     encoded_voxel = encode_voxel_grids(trained_autoencoder, holdout_data)
     decoded_voxel = decode_voxel_grids(trained_autoencoder, encoded_voxel)
+
+    print(decoded_voxel.shape)
+
+    open3d_viz(decoded_voxel)
+
+def open3d_viz(tsdfs):
+    grids = split_combined_voxel_grids(tsdfs)
+    print(len(grids))
+    return
+
+
 
 if __name__ == "__main__":
     main()
