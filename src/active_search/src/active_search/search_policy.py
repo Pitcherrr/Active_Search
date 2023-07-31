@@ -50,7 +50,23 @@ class Policy:
 
     def init_tsdf(self):
         self.tsdf = UniformTSDFVolume(0.3, 40)
-        self.point_index = 0
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        directory_path =  str(pkg_root)+"/training/"
+        files = os.listdir(directory_path)
+        matching_files = [file for file in files if file.startswith("p")]
+
+        if matching_files:
+            def extract_number(filename):
+                return int(filename[1:-9])  # Extract the numeric part, excluding the 'p' prefix and '.pcd' extension
+
+            sorted_files = sorted(matching_files, key=extract_number, reverse=True)
+            latest_file = sorted_files[0]
+            print("Latest file:", latest_file)
+            self.point_index = extract_number(latest_file) + 1
+        else:
+            self.point_index = 0
+
 
     def solve_cam_ik(self, q0, view):
         return solve_ik(q0, view, self.cam_ik_solver)
@@ -272,7 +288,7 @@ class MultiViewPolicy(Policy):
         if store_pc:
             rospack = rospkg.RosPack()
             pkg_root = Path(rospack.get_path("active_search"))
-            file_dir_occ = str(pkg_root)+"/training/p"+str(self.point_index)+"_occ.pcd"
+            file_dir_occ = str(pkg_root)+"/training/p"+str(self.point_index)+"_occu.pcd"
             file_dir_tsdf = str(pkg_root)+"/training/p"+str(self.point_index)+"_tsdf.pcd"
             print(file_dir_occ)
             print(file_dir_tsdf)
