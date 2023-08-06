@@ -3,12 +3,12 @@ import numpy as np
 import threading 
 import open3d as o3d
 import cv2
-import cProfile
-import pstats
+import rospkg
+import os
 import torch
-import torch.nn.functional as F
 from queue import Queue
 from trac_ik_python.trac_ik import IK
+from pathlib import Path
 
 from active_search.bullet_utils import *
 from robot_helpers.model import *
@@ -54,7 +54,7 @@ class Environment:
 
     def get_target_bb(self):
         target_bb =  o3d.geometry.AxisAlignedBoundingBox()
-        # target_bb =  o3d.geometry.OrientedBoundingBox()      
+ 
         min_bound, max_bound = pybullet.getAABB(self.target_uid)
         
         origin = Transform.from_translation(self.sim.scene.origin)
@@ -66,10 +66,6 @@ class Environment:
         target_bb.max_bound = max_bound_t + np.array([0,0,0.1])
 
         target_bb.scale(0.8, target_bb.get_center())
-
-        #target_bb = target_bb.get_minimal_oriented_bounding_box()
-
-        # print(np.asarray(target_bb.get_box_points()))
 
         self.target_bb = target_bb
 
@@ -103,24 +99,20 @@ class Environment:
  
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
 
+        # print(occ_mat.shape)
 
+        #as each occluded voxel currently represents a location of the center of the target object we are pooling half the object size around its center point to fill in the missing voxels. 
+
+        pooling = torch.nn.MaxPool3d(kernel_size=(3,3,3),stride=(1,1,1))
+
+        # occ_mat = pooling(occ_mat)
+        print(occ_mat.unsqueeze(0).unsqueeze(0).shape)
+
+        occ_mat = pooling(occ_mat.unsqueeze(0).unsqueeze(0)).squeeze()
 
         occ_mat_result = occ_mat.cpu().numpy()
 
-        # ones = np.ones((5, 5, 5), dtype=int)
-        # indices = np.argwhere(occ_mat_result == 1)
-        # i, j, k = np.ogrid[:5, :5, :5]
-        # box_indices = np.array([i, j, k], dtype=object)
-        # box_indices = (indices[:, np.newaxis, np.newaxis, np.newaxis, :] + box_indices)
-        # # Convert the box_indices array to an integer array
-        # box_indices = box_indices.reshape(-1, 3).astype(int)
-
-        # # Use array slicing and broadcasting to set all elements in each box to 1
-        # occ_mat_result[tuple(box_indices.T)] = ones.ravel()
-
-
         coordinate_mat = np.argwhere(occ_mat_result > 0)
-        # coordinate_mat_set = set(coordinate_mat)
 
         poi_mat = np.zeros_like(coordinate_mat)
 
@@ -141,8 +133,8 @@ class Environment:
             origin = Transform.from_translation(self.sim.scene.origin)
             min_bound_t = (Transform.from_translation(min_bound)*origin.inv()).translation
             max_bound_t = (Transform.from_translation(max_bound)*origin.inv()).translation
-            bb.min_bound = min_bound_t + np.array([0,0,0.1])
-            bb.max_bound = max_bound_t + np.array([0,0,0.1])
+            bb.min_bound = min_bound_t + np.array([0,0,0.0])
+            bb.max_bound = max_bound_t + np.array([0,0,0.0])
             object_bbs.append(bb)
             # target_bb.scale(0.8, target_bb.get_center())
         return object_bbs
@@ -217,11 +209,6 @@ class Environment:
         state = self.sim_state.get()
         tsdf_init, image = state
 
-        # tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
-        # tsdf_mesh_init = tsdf_init.o3dvol.extract_triangle_mesh()
-
-        # tsdf_mesh_init.compute_triangle_normals()
-        # tsdf_mesh_init.compute_vertex_normals()
         tsdf_mesh_init = tsdf_init.get_map_cloud()
 
         
@@ -229,7 +216,7 @@ class Environment:
         target_bb.color = [0, 1, 0] 
 
         frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.05)
-        origin_sphere = mesh = o3d.geometry.TriangleMesh.create_sphere(0.05)
+        origin_sphere = o3d.geometry.TriangleMesh.create_sphere(0.05)
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
 
         object_bb = self.get_object_bbox(self.sim.object_uids)
@@ -268,7 +255,9 @@ class Environment:
                     self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
                     object_bb.remove(rand_bb)
                     min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size).astype(int)
+                    min_bound = np.clip(min_bound,0,np.inf).astype(int)
                     max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size).astype(int)
+                    max_bound = np.clip(max_bound,0,np.inf).astype(int)
                     # tsdf_grid = tsdf.get_grid()
                     print(min_bound, max_bound)
                     tsdf_vec = np.asarray(tsdf.o3dvol.extract_volume_tsdf())
@@ -276,18 +265,15 @@ class Environment:
                     print(tsdf_grid.shape)
                     tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
                     tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
-                    tsdf = tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+                    self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+                    tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
                     self.remove_rand_obj = False
                 else:
                     state = self.sim_state.get()
                     tsdf, image = state
 
-                state = self.sim_state.get()
-                tsdf, image = state
-                # tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
-                # tsdf_mesh.compute_triangle_normals()
-                # tsdf_mesh.compute_vertex_normals()
-                tsdf_mesh = tsdf.get_map_cloud()
+
+                tsdf_mesh = tsdf.get_scene_cloud()
 
                 tsdf_exists = True
 
@@ -313,6 +299,47 @@ class Environment:
 
                 vis.poll_events()
                 vis.update_renderer()
+
+    def save_tsdfs(self):
+        # print(coordinate_mat)
+        store_pc = True
+
+        if store_pc:
+            rospack = rospkg.RosPack()
+            pkg_root = Path(rospack.get_path("active_search"))
+            file_dir_occ = str(pkg_root)+"/training/p"+str(self.point_index)+"_occu.pcd"
+            file_dir_tsdf = str(pkg_root)+"/training/p"+str(self.point_index)+"_tsdf.pcd"
+            print(file_dir_occ)
+            print(file_dir_tsdf)
+            coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
+            poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
+            write_occ = o3d.io.write_point_cloud(file_dir_occ, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
+            write_tsdf = o3d.io.write_point_cloud(file_dir_tsdf, self.tsdf.get_map_cloud(), write_ascii=False, compressed=False, print_progress=False)
+            print(write_occ, write_tsdf)
+            #only increment if we have created a set
+            if write_occ and write_tsdf:
+                self.point_index += 1
+
+
+    def init_tsdf(self):
+        self.tsdf = UniformTSDFVolume(0.3, 40)
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        directory_path =  str(pkg_root)+"/training_test/"
+        files = os.listdir(directory_path)
+        matching_files = [file for file in files if file.startswith("p")]
+
+        if matching_files:
+            def extract_number(filename):
+                return int(filename[1:-9])  # Extract the numeric part, excluding the 'p' prefix and '.pcd' extension
+
+            sorted_files = sorted(matching_files, key=extract_number, reverse=True)
+            latest_file = sorted_files[0]
+            print("Latest file:", latest_file)
+            self.point_index = extract_number(latest_file) + 1
+        else:
+            self.point_index = 0
+
 
 
     def live_feed(self):
