@@ -15,6 +15,7 @@ from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from active_search.search_sim import Simulation
 from active_search.dynamic_perception import SceneTSDFVolume
+# from vgn.perception import UniformTSDFVolume
 from vgn.detection import VGN, select_local_maxima, to_voxel_coordinates
 
 class Environment:
@@ -25,33 +26,94 @@ class Environment:
 
     def load_engine(self):
         self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
+        self.load_environment()
+
+    def load_environment(self):
         self.sim.reset()
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
         self.sim_state = Queue(maxsize=1)
-        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+        # self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+        self.init_tsdf()
         self.reset_tsdf = False
+        self.save_scene = False
+
+    def init_tsdf(self):
+        self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        directory_path =  str(pkg_root)+"/training_test/"
+        files = os.listdir(directory_path)
+        matching_files = [file for file in files if file.startswith("p")]
+
+        if matching_files:
+            def extract_number(filename):
+                return int(filename[1:-9])  # Extract the numeric part, excluding the 'p' prefix and '.pcd' extension
+
+            sorted_files = sorted(matching_files, key=extract_number, reverse=True)
+            latest_file = sorted_files[0]
+            print("Latest file:", latest_file)
+            self.point_index = extract_number(latest_file) + 1
+        else:
+            self.point_index = 0
 
     def get_tsdf(self):
-            
-        if self.reset_tsdf:
-            self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
-        
         cam_data = self.sim.camera.get_image()
         image = cam_data[0]
         depth_img = cam_data[1]
 
+        if self.remove_rand_obj:
+            object_bb = self.get_object_bbox(self.sim.object_uids)
+            rand_bb = np.random.choice(object_bb)
+            print(self.sim.scene.object_uids)
+            print(object_bb.index(rand_bb))
+            self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
+            object_bb.remove(rand_bb)
+            min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size) - [4,4,4]
+            min_bound = np.clip(min_bound,0,np.inf).astype(int)
+            max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size) + [4,4,4]
+            max_bound = np.clip(max_bound,0,np.inf).astype(int)
+            print(min_bound, max_bound)
+            tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
+            print(tsdf_vec)
+            tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
+            print(tsdf_grid.shape)
+            tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = [0,0]
+            tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
+            # self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+            self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+            self.remove_rand_obj = False
+
         self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
-        self.targets = self.get_poi_torch()
+        self.get_poi_torch()
+
         self.sim_state.put([self.tsdf, image])
 
+        if self.save_scene:
+            self.save_tsdfs()
+    
 
+    def save_tsdfs(self):
+
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        file_dir_occ = str(pkg_root)+"/training_test/p"+str(self.point_index)+"_occu.pcd"
+        file_dir_tsdf = str(pkg_root)+"/training_test/p"+str(self.point_index)+"_tsdf.pcd"
+        print(file_dir_occ)
+        print(file_dir_tsdf)
+        coord_o3d = o3d.utility.Vector3dVector(self.coordinate_mat)
+        poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
+        write_occ = o3d.io.write_point_cloud(file_dir_occ, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
+        write_tsdf = o3d.io.write_point_cloud(file_dir_tsdf, self.tsdf.get_map_cloud(), write_ascii=False, compressed=False, print_progress=False)
+        print(write_occ, write_tsdf)
+        #only increment if we have created a set
+        if write_occ and write_tsdf:
+            self.point_index += 1
+
+    
     def get_target(self):
-        print(self.sim.object_uids)
         self.target_uid = np.random.choice(self.sim.object_uids)
         
-  
-
     def get_target_bb(self):
         target_bb =  o3d.geometry.AxisAlignedBoundingBox()
  
@@ -106,7 +168,6 @@ class Environment:
         pooling = torch.nn.MaxPool3d(kernel_size=(3,3,3),stride=(1,1,1))
 
         # occ_mat = pooling(occ_mat)
-        print(occ_mat.unsqueeze(0).unsqueeze(0).shape)
 
         occ_mat = pooling(occ_mat.unsqueeze(0).unsqueeze(0)).squeeze()
 
@@ -119,6 +180,7 @@ class Environment:
         poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
 
         # self.coord_set = coordinate_mat_set
+        self.coordinate_mat = coordinate_mat
         self.occ_mat = occ_mat_result 
         self.poi_mat = poi_mat
 
@@ -146,28 +208,6 @@ class Environment:
             object_bbs.append(bb)
         return object_bbs
 
-
-    # def load_vgn(self, model_path):
-    #     self.vgn = VGN(model_path)
-
-    def check_for_grasps(self, bbox):
-        origin = Transform.from_translation(self.sim.scene.origin)
-        origin.translation[2] -= 0.05
-
-        voxel_size, tsdf_grid = self.tsdf.voxel_size, self.tsdf.get_grid()
-
-        # Then check whether VGN can find any grasps on the target
-        out = self.sim.vgn.predict(tsdf_grid)
-        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
-
-        for grasp in grasps:
-            pose = origin * grasp.pose
-            tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
-            if bbox.is_inside(tip):
-                return (True, grasp)
-        return (False,)
-    
-
     def center_view(self, vis):
         vis.reset_view_point(True)
 
@@ -179,11 +219,6 @@ class Environment:
         self.o3d_window_active = False
         print("Killing Open3d")
         exit()
-
-    def set_grasp(self, vis):
-        self.do_grasp_check = True
-        print("Checking Grasps...")
-
 
     def open3d_window(self, reset_bb: bool = True):        
         self.paused = False
@@ -200,7 +235,6 @@ class Environment:
         #some key call backs for controlling the sim 
         vis.register_key_callback(ord("C"), self.center_view)
         vis.register_key_callback(ord("X"), self.kill_o3d)
-        vis.register_key_callback(ord("G"), self.set_grasp)
         vis.register_key_callback(ord("R"), self.remove_obj_tsdf)
 
         while self.sim_state.empty():
@@ -246,34 +280,34 @@ class Environment:
                     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
                     vis.remove_geometry(target_pc, reset_bounding_box = reset_bb)
                 
-                if self.remove_rand_obj:
-                    state = self.sim_state.get()
-                    tsdf, image = state
-                    rand_bb = np.random.choice(object_bb)
-                    print(self.sim.scene.object_uids)
-                    print(object_bb.index(rand_bb))
-                    self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
-                    object_bb.remove(rand_bb)
-                    min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size).astype(int)
-                    min_bound = np.clip(min_bound,0,np.inf).astype(int)
-                    max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size).astype(int)
-                    max_bound = np.clip(max_bound,0,np.inf).astype(int)
-                    # tsdf_grid = tsdf.get_grid()
-                    print(min_bound, max_bound)
-                    tsdf_vec = np.asarray(tsdf.o3dvol.extract_volume_tsdf())
-                    tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
-                    print(tsdf_grid.shape)
-                    tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
-                    tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
-                    self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
-                    tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
-                    self.remove_rand_obj = False
-                else:
-                    state = self.sim_state.get()
-                    tsdf, image = state
+                # if self.remove_rand_obj:
+                #     state = self.sim_state.get()
+                #     tsdf, image = state
+                #     rand_bb = np.random.choice(object_bb)
+                #     print(self.sim.scene.object_uids)
+                #     print(object_bb.index(rand_bb))
+                #     self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
+                #     object_bb.remove(rand_bb)
+                #     min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size) - [4,4,4]
+                #     min_bound = np.clip(min_bound,0,np.inf).astype(int)
+                #     max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size) + [4,4,4]
+                #     max_bound = np.clip(max_bound,0,np.inf).astype(int)
+                #     # tsdf_grid = tsdf.get_grid()
+                #     print(min_bound, max_bound)
+                #     tsdf_vec = np.asarray(tsdf.o3dvol.extract_volume_tsdf())
+                #     tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
+                #     print(tsdf_grid.shape)
+                #     tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
+                #     tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
+                #     # self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+                #     tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+                #     self.tsdf = tsdf
+                #     self.remove_rand_obj = False
+                # else:
+                state = self.sim_state.get()
+                tsdf, image = state
 
-
-                tsdf_mesh = tsdf.get_scene_cloud()
+                tsdf_mesh = tsdf.get_map_cloud()
 
                 tsdf_exists = True
 
@@ -300,135 +334,45 @@ class Environment:
                 vis.poll_events()
                 vis.update_renderer()
 
-    def save_tsdfs(self):
-        # print(coordinate_mat)
-        store_pc = True
-
-        if store_pc:
-            rospack = rospkg.RosPack()
-            pkg_root = Path(rospack.get_path("active_search"))
-            file_dir_occ = str(pkg_root)+"/training/p"+str(self.point_index)+"_occu.pcd"
-            file_dir_tsdf = str(pkg_root)+"/training/p"+str(self.point_index)+"_tsdf.pcd"
-            print(file_dir_occ)
-            print(file_dir_tsdf)
-            coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
-            poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
-            write_occ = o3d.io.write_point_cloud(file_dir_occ, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
-            write_tsdf = o3d.io.write_point_cloud(file_dir_tsdf, self.tsdf.get_map_cloud(), write_ascii=False, compressed=False, print_progress=False)
-            print(write_occ, write_tsdf)
-            #only increment if we have created a set
-            if write_occ and write_tsdf:
-                self.point_index += 1
-
-
-    def init_tsdf(self):
-        self.tsdf = UniformTSDFVolume(0.3, 40)
-        rospack = rospkg.RosPack()
-        pkg_root = Path(rospack.get_path("active_search"))
-        directory_path =  str(pkg_root)+"/training_test/"
-        files = os.listdir(directory_path)
-        matching_files = [file for file in files if file.startswith("p")]
-
-        if matching_files:
-            def extract_number(filename):
-                return int(filename[1:-9])  # Extract the numeric part, excluding the 'p' prefix and '.pcd' extension
-
-            sorted_files = sorted(matching_files, key=extract_number, reverse=True)
-            latest_file = sorted_files[0]
-            print("Latest file:", latest_file)
-            self.point_index = extract_number(latest_file) + 1
-        else:
-            self.point_index = 0
-
-
-
-    def live_feed(self):
-
-        while self.sim_state.empty():
-             continue
-        
-        state = self.sim_state.get()
-        tsdf_mesh_init, image = state
-
-        cv2.namedWindow("RGB Camera", cv2.WINDOW_NORMAL)
-        
-        while True:
-            state = self.sim_state.get()
-            tsdf_mesh, image = state
-
-            cv2.imshow("RGB Camera", image)
-
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                break
-
-        cv2.destroyAllWindows()
-
 
     def run(self):
-
-        self.do_grasp_check = False
 
         # Create two threads, one for each window
         # self.thread_live_feed = threading.Thread(target=self.live_feed)
         # self.thread_live_feed.start()
-        self.thread_open3d = threading.Thread(target=self.open3d_window, args= (False,))
+        self.thread_open3d = threading.Thread(target=self.open3d_window, args=(False,))
         #self.thread_open3d = threading.Thread(target=self.full_scene, args= (False,))
         self.thread_open3d.start()
 
-
         [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(self.sim.arm.uid, range(7))]
 
-        #set up user inputs 
-        j1_comm = pybullet.addUserDebugParameter("J1", -np.pi, np.pi, 0)
-        j2_comm = pybullet.addUserDebugParameter("J2", -np.pi, np.pi, 0)
-        j3_comm = pybullet.addUserDebugParameter("J3", -np.pi, np.pi, 0)
-        j4_comm = pybullet.addUserDebugParameter("J4", -np.pi, np.pi, 0)    
-        j5_comm = pybullet.addUserDebugParameter("J5", -np.pi, np.pi, 0)
-        j6_comm = pybullet.addUserDebugParameter("J6", -np.pi, np.pi, 0)
-        j7_comm = pybullet.addUserDebugParameter("J7", -np.pi, np.pi, 0)
-        grip_comm = pybullet.addUserDebugParameter("Grip", 0,0.1,0)
-        # cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 1,0,1)
-        cam_rot_comm = pybullet.addUserDebugParameter("Rotate", 0, 2*np.pi, 0)
-
         frame_buff = 0  
+        tsdf_buff = 0
+        done = False
 
-        while self.o3d_window_active:
+        # while self.o3d_window_active:
+        while not done:
+            print(frame_buff)
 
-            j1 = j1_init + pybullet.readUserDebugParameter(j1_comm)
-            j2 = j2_init + pybullet.readUserDebugParameter(j2_comm)
-            j3 = j3_init + pybullet.readUserDebugParameter(j3_comm)
-            j4 = j4_init + pybullet.readUserDebugParameter(j4_comm)
-            j5 = j5_init + pybullet.readUserDebugParameter(j5_comm)
-            j6 = j6_init + pybullet.readUserDebugParameter(j6_comm)
-            j7 = j7_init + pybullet.readUserDebugParameter(j7_comm)
-            cam_rot = pybullet.readUserDebugParameter(cam_rot_comm)
-            grip_width = pybullet.readUserDebugParameter(grip_comm)
-
-
-            robot_pos = [j1, j2, j3, j4, j5, j6, j7]
-            self.sim.gripper.set_desired_width(grip_width)
-            self.sim.camera.rot = cam_rot
-
-            if self.do_grasp_check:
-                objs = self.get_object_bbox_bullet(self.sim.object_uids)
-                for obj in objs:
-                    grasp = self.check_for_grasps(obj)
-                    print(f"Grasp detected on object {objs.index(obj)}: {grasp[0]}")
-                    if grasp[0]:
-                        grasp_coord = to_voxel_coordinates(self.tsdf.voxel_size, grasp[1])
-                        print(grasp_coord.pose.translation)
-                self.do_grasp_check = False
-
-
-            if frame_buff == 10:
+            if tsdf_buff == 10:
                 self.get_tsdf()
+                tsdf_buff = 0
+
+            if frame_buff == 50:
+                self.get_tsdf()
+                print("In buffer")
+                if len(self.sim.object_uids) > 0:
+                    self.remove_rand_obj = True
+                else:
+                    self.load_environment()
+                    print("finished loading")
                 frame_buff = 0
 
-            pybullet.setJointMotorControlArray(self.sim.arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
+            # pybullet.setJointMotorControlArray(self.sim.arm.uid, range(7), pybullet.POSITION_CONTROL, targetPositions=robot_pos)
             self.sim.step()
 
             frame_buff += 1 
+            tsdf_buff += 1
 
     def init_ik_solver(self):
         self.q0 = self.sim.arm.configurations["ready"]
@@ -454,7 +398,10 @@ def main():
     env.get_target()
     env.get_target_bb()
     check_gpu()
-    env.run()
+
+    for _ in range(100):
+        env.run()
+
 
 def check_gpu():
     print('Cuda Available : {}'.format(torch.cuda.is_available())) 
