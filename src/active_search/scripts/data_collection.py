@@ -6,6 +6,7 @@ import cv2
 import rospkg
 import os
 import torch
+import time
 from queue import Queue
 from trac_ik_python.trac_ik import IK
 from pathlib import Path
@@ -76,21 +77,19 @@ class Environment:
             tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
             print(tsdf_vec)
             tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
-            print(tsdf_grid.shape)
-            tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = [0,0]
+            print(tsdf_grid)
+            tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
             tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
             # self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
+            self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
             self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
             self.remove_rand_obj = False
-
-        self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
+        else:
+            self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
         self.get_poi_torch()
 
         self.sim_state.put([self.tsdf, image])
-
-        if self.save_scene:
-            self.save_tsdfs()
     
 
     def save_tsdfs(self):
@@ -252,11 +251,6 @@ class Environment:
         frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.05)
         origin_sphere = o3d.geometry.TriangleMesh.create_sphere(0.05)
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
-
-        object_bb = self.get_object_bbox(self.sim.object_uids)
-        for objects in object_bb:
-            objects.color = [0, 0, 1] 
-            vis.add_geometry(objects)
         
         total_space = o3d.geometry.AxisAlignedBoundingBox()
         total_space.min_bound = [0,0,0]
@@ -275,35 +269,13 @@ class Environment:
             vis.update_renderer()
             if not self.sim_state.empty():
 
+                object_bb = self.get_object_bbox(self.sim.object_uids)
+
                 if tsdf_exists:
                     vis.remove_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
                     vis.remove_geometry(bb, reset_bounding_box = reset_bb)
                     vis.remove_geometry(target_pc, reset_bounding_box = reset_bb)
-                
-                # if self.remove_rand_obj:
-                #     state = self.sim_state.get()
-                #     tsdf, image = state
-                #     rand_bb = np.random.choice(object_bb)
-                #     print(self.sim.scene.object_uids)
-                #     print(object_bb.index(rand_bb))
-                #     self.sim.scene.remove_object(self.sim.scene.object_uids[object_bb.index(rand_bb)])
-                #     object_bb.remove(rand_bb)
-                #     min_bound = np.floor(np.asarray(rand_bb.min_bound) / self.tsdf.voxel_size) - [4,4,4]
-                #     min_bound = np.clip(min_bound,0,np.inf).astype(int)
-                #     max_bound = np.ceil(np.asarray(rand_bb.max_bound) / self.tsdf.voxel_size) + [4,4,4]
-                #     max_bound = np.clip(max_bound,0,np.inf).astype(int)
-                #     # tsdf_grid = tsdf.get_grid()
-                #     print(min_bound, max_bound)
-                #     tsdf_vec = np.asarray(tsdf.o3dvol.extract_volume_tsdf())
-                #     tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
-                #     print(tsdf_grid.shape)
-                #     tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], min_bound[2]:max_bound[2]] = 0
-                #     tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
-                #     # self.tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
-                #     tsdf.o3dvol.inject_volume_tsdf(tsdf_vec)
-                #     self.tsdf = tsdf
-                #     self.remove_rand_obj = False
-                # else:
+
                 state = self.sim_state.get()
                 tsdf, image = state
 
@@ -330,6 +302,9 @@ class Environment:
 
                 vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
                 #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
+                if self.save_scene:
+                    self.save_tsdfs()
+                    time.sleep(0.2)
 
                 vis.poll_events()
                 vis.update_renderer()
@@ -337,11 +312,7 @@ class Environment:
 
     def run(self):
 
-        # Create two threads, one for each window
-        # self.thread_live_feed = threading.Thread(target=self.live_feed)
-        # self.thread_live_feed.start()
         self.thread_open3d = threading.Thread(target=self.open3d_window, args=(False,))
-        #self.thread_open3d = threading.Thread(target=self.full_scene, args= (False,))
         self.thread_open3d.start()
 
         [j1_init, j2_init, j3_init, j4_init, j5_init, j6_init, j7_init] = [j[0] for j in pybullet.getJointStates(self.sim.arm.uid, range(7))]
@@ -352,17 +323,18 @@ class Environment:
 
         # while self.o3d_window_active:
         while not done:
-            print(frame_buff)
+            # print(frame_buff)
 
             if tsdf_buff == 10:
                 self.get_tsdf()
                 tsdf_buff = 0
-
+                
             if frame_buff == 50:
                 self.get_tsdf()
                 print("In buffer")
                 if len(self.sim.object_uids) > 0:
                     self.remove_rand_obj = True
+                    self.save_scene = True
                 else:
                     self.load_environment()
                     print("finished loading")
