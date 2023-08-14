@@ -26,7 +26,7 @@ class Autoencoder(nn.Module):
             nn.ReLU(),
 
             nn.Flatten(),  # Flatten the 3D tensor into a 1D vector
-            nn.Linear(128 * 10 * 10 * 10, 512)  # Map to the desired latent dimension of 1000
+            nn.Linear(128 * 10 * 10 * 10, 512)
         )
 
         # Decoder layers
@@ -56,7 +56,7 @@ class Autoencoder(nn.Module):
     def get_path(self):
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/"
+        self.model_path =  str(pkg_root)+"/models/autoencoder_weights.pth"
 
 
 class GraspEval(nn.Module):

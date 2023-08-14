@@ -1,6 +1,6 @@
 from .search_policy import register
 from active_grasp.baselines import *
-from .nbv_search import NextBestView
+from .active_search import NextBestView
 
 register("initial-view", InitialView)
 register("top-view", TopView)

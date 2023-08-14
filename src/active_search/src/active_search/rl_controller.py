@@ -21,7 +21,7 @@ from robot_helpers.spatial import Rotation, Transform
 from vgn.utils import look_at, cartesian_to_spherical, spherical_to_cartesian
 from vgn.detection import select_local_maxima
 
-from models import Autoencoder
+from .models import Autoencoder
 
 
 class GraspController:
@@ -33,7 +33,7 @@ class GraspController:
         self.init_robot_connection()
         self.init_moveit()
         self.init_camera_stream()
-        self.load_rl_model()
+        self.load_models()
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
@@ -46,9 +46,9 @@ class GraspController:
         self.linear_vel = rospy.get_param("~linear_vel")
         self.policy_rate = rospy.get_param("policy/rate")
 
-    def load_rl_model(self):
-        self.rl_model = Autoencoder()
-        self.rl_model.load_state_dict(torch.load(self.rl_model.model_path))
+    def load_models(self):
+        self.autoencoder = Autoencoder()
+        self.autoencoder.load_state_dict(torch.load(self.autoencoder.model_path))
     
     def init_service_proxies(self):
         self.reset_env = rospy.ServiceProxy("reset", Reset)
@@ -98,7 +98,6 @@ class GraspController:
         self.policy.init_tsdf()
         bbs = self.reset()
         self.complete = False
-        # bbox = bbs.pop(-1)
         voxel_size = 0.0075
         x_off = 0.35
         y_off = -0.15
@@ -109,61 +108,21 @@ class GraspController:
         self.bbox = AABBox(bb_min, bb_max)
         self.switch_to_cartesian_velocity_control()
 
-        # grasps = []
-        # for bb in bbs:
-        #     # result = self.get_scene_grasps(bb)
-        #     grasp = self.search_grasp(bb)
-        #     # print(result)
-        #     # result, grasp = result
-        #     # if result is True:
-        #     grasps.append(grasp)
-        # print(grasps)
-
         while not self.complete:
             with Timer("search_time"):
                 grasp = self.search_grasp(self.bbox)
             if grasp:
-            # if grasp and self.grasp_ig(grasp) > 10:
                 print("grasping")
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
                     res = self.execute_grasp(grasp)
                     
                     if res == 'succeeded':
-                        # remove_body = rospy.ServiceProxy('remove_body', Reset)
-                        # response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
-
-                        # self.policy.tsdf_cut(response)
                         self.switch_to_cartesian_velocity_control()
-                        
-                        # x = tf.lookup(self.base_frame, self.cam_frame)
-                        # cmd = self.compute_velocity_cmd(self.policy.x_d, x)
-
-                        # print(cmd)
-                        # self.cartesian_vel_pub.publish(to_twist_msg(cmd))
-
-                        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                        # rospy.sleep(2)
-                        # timer.shutdown()
 
                     elif res == "failed":
                         print("failed")
                         self.switch_to_cartesian_velocity_control()
-                        # x = tf.lookup(self.base_frame, self.cam_frame)
-                        # cmd = self.compute_velocity_cmd(self.policy.x_d, x)
-                        # print(cmd)
-                        # self.cartesian_vel_pub.publish(to_twist_msg(cmd))
-
-                        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                        # rospy.sleep(2)
-                        # timer.shutdown()
-
-                        # rospy.sleep(2)
-
- 
-                        # self.moveit.goto("ready", velocity_scaling=0.4)
-                        # self.switch_to_joint_trajectory_control()
-
             else:
                 res = "aborted"
 

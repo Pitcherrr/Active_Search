@@ -271,19 +271,19 @@ class MultiViewPolicy(Policy):
 
         occ_mat_result = occ_mat.cpu().numpy()
 
-        coordinate_mat = np.argwhere(occ_mat_result > 0)
+        self.coordinate_mat = np.argwhere(occ_mat_result > 0)
 
-        coordinate_mat_set = set(map(tuple, coordinate_mat)) 
+        coordinate_mat_set = set(map(tuple, self.coordinate_mat)) 
         # print(coordinate_mat_set)
 
-        poi_mat = np.zeros_like(coordinate_mat)
+        poi_mat = np.zeros_like(self.coordinate_mat)
 
-        poi_mat = coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
+        poi_mat = self.coordinate_mat*voxel_size+[0.009+round(bb_voxel[0]/2)*voxel_size,0.009+round(bb_voxel[1]/2)*voxel_size,round(bb_voxel[2]/2)*voxel_size]
         
         self.vis.target_locations(self.base_frame, poi_mat+[0.35,-0.15,0.2])
 
         # print(coordinate_mat)
-        store_pc = True
+        store_pc = False
 
         if store_pc:
             rospack = rospkg.RosPack()
@@ -292,7 +292,7 @@ class MultiViewPolicy(Policy):
             file_dir_tsdf = str(pkg_root)+"/training/p"+str(self.point_index)+"_tsdf.pcd"
             print(file_dir_occ)
             print(file_dir_tsdf)
-            coord_o3d = o3d.utility.Vector3dVector(coordinate_mat)
+            coord_o3d = o3d.utility.Vector3dVector(self.coordinate_mat)
             poi_mat_o3d = o3d.geometry.PointCloud(points = coord_o3d)
             write_occ = o3d.io.write_point_cloud(file_dir_occ, poi_mat_o3d, write_ascii=False, compressed=False, print_progress=False)
             write_tsdf = o3d.io.write_point_cloud(file_dir_tsdf, self.tsdf.get_map_cloud(), write_ascii=False, compressed=False, print_progress=False)
