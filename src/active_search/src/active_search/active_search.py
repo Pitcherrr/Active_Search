@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import open3d as o3d
 import rospy
+import time
 
 from active_search.search_policy import MultiViewPolicy
 from active_grasp.timer import Timer
@@ -98,14 +99,15 @@ class NextBestView(MultiViewPolicy):
 
     def update(self, img, x, q):
         self.integrate(img, x, q)
+        start = time.time()
         map_cloud = self.tsdf.get_map_cloud()
         occu_vec = o3d.utility.Vector3dVector(self.coordinate_mat)
         occu = o3d.geometry.PointCloud(points = occu_vec)
         cloud = self.join_clouds(map_cloud, occu)
         cloud_tensor = torch.tensor(np.asarray(cloud), dtype=torch.float32).to(self.device)
-        print(cloud_tensor.shape)
         encoded_voxel = self.autoencoder.encoder(cloud_tensor.view(1,2,40,40,40)) #need to view as a simgle sample
-        print("Encode Tensor", encoded_voxel)
+        print("Encode Time:", time.time()- start)
+        print("Encode Tensor", encoded_voxel.shape)
 
         if self.best_grasp_prediction_is_stable():
         # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
