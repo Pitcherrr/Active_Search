@@ -143,7 +143,7 @@ class Policy:
             bbox_max = self.bbox.max
             bbox = AABBox(bbox_min, bbox_max)
             print(bbox.min)
-            if bbox.is_inside(tip):
+            if bbox.is_inside(tip) and quality > 0.9:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
@@ -158,38 +158,6 @@ class Policy:
 def select_best_grasp(grasps, qualities):
     i = np.argmax(qualities)
     return grasps[i], qualities[i]
-
-
-class SingleViewPolicy(Policy):
-    def update(self, img, x, q):
-        linear, _ = compute_error(self.x_d, x)
-        if np.linalg.norm(linear) < 0.02:
-            self.views.append(x)
-            self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
-            tsdf_grid, voxel_size = self.tsdf.get_grid(), self.tsdf.voxel_size
-
-            self.get_poi_torch()
-
-            scene_cloud = self.tsdf.get_scene_cloud()
-            self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
-
-            map_cloud = self.tsdf.get_map_cloud()
-            self.vis.map_cloud(
-                self.task_frame,
-                np.asarray(map_cloud.points),
-                np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
-            )
-
-            out = self.vgn.predict(tsdf_grid)
-            self.vis.quality(self.task_frame, voxel_size, out.qual, 0.5)
-
-            grasps, qualities = self.filter_grasps(out, q)
-
-            if len(grasps) > 0:
-                self.best_grasp, quality = select_best_grasp(grasps, qualities)
-                self.vis.grasp(self.base_frame, self.best_grasp, quality)
-
-            self.done = True
 
 
 class MultiViewPolicy(Policy):
@@ -232,10 +200,11 @@ class MultiViewPolicy(Policy):
 
         with Timer("grasp_selection"):
             grasps, qualities = self.filter_grasps(out, q)
+            print(len(grasps)," grasps above 0.9")
 
         if len(grasps) > 0:
             self.best_grasp, quality = select_best_grasp(grasps, qualities)
-            self.vis.grasp(self.base_frame, self.best_grasp, quality)
+            self.vis.grasps(self.base_frame, grasps, qualities)
         else:
             self.best_grasp = None
             self.vis.clear_grasp()
