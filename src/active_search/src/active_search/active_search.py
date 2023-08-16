@@ -2,13 +2,14 @@ import itertools
 from numba import jit
 import numpy as np
 import torch
+import torch.nn.functional as F
 import open3d as o3d
 import rospy
 import time
 
 from active_search.search_policy import MultiViewPolicy
 from active_grasp.timer import Timer
-from .models import Autoencoder
+from .models import Autoencoder, GraspEval, ViewEval
 
 
 @jit(nopython=True)
@@ -73,6 +74,11 @@ class NextBestView(MultiViewPolicy):
             self.autoencoder.load_state_dict(torch.load(self.autoencoder.model_path))
             self.autoencoder.to(self.device)
 
+            self.grasp_nn = GraspEval()
+            self.grasp_nn.to(self.device)
+            
+            self.view_nn = ViewEval()
+            self.view_nn.to(self.device)
 
     def compile(self):
         # Trigger the JIT compilation
@@ -98,7 +104,18 @@ class NextBestView(MultiViewPolicy):
         super().activate(bbox, view_sphere)
 
     def update(self, img, x, q):
+        # First we integrate to gain data from the current scene
+        # This includes the TSDF, occluded lovcations, and grasps  
+ 
         self.integrate(img, x, q)
+
+        # Then generate the view candidates and their corresponding information gains
+        views = self.generate_views(q)
+        gains = [self.ig_fn(v, self.downsample) for v in views]
+
+        # We now have 2 sets of actions that can be evaluated
+
+        #Encode the scene using our trained autoencoder
         start = time.time()
         map_cloud = self.tsdf.get_map_cloud()
         occu_vec = o3d.utility.Vector3dVector(self.coordinate_mat)
@@ -109,33 +126,86 @@ class NextBestView(MultiViewPolicy):
         print("Encode Time:", time.time()- start)
         print("Encode Tensor", encoded_voxel.shape)
 
-        if self.best_grasp_prediction_is_stable():
-        # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
-            print("stable grasp")
-            self.done = True
-            print("Done")
+        # We now have a vactor of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
+        # and each action from the 2 sets
+
+        grasp_q = []
+        grasp_t = []
+        for grasp, quality in zip(self.grasps, self.qualities):
+            grasp_nn_input = torch.cat((encoded_voxel, torch.tensor([np.concatenate((q, grasp.pose.to_list(), [quality]), dtype=np.float32)]).to(self.device)), 1)
+            print(grasp_nn_input.shape)
+            # print(grasp_nn_input)
+            # From here evaluate the actions through the network
+            grasp_val = self.grasp_nn(grasp_nn_input.squeeze())
+            print("grasp val", grasp_val)
+            grasp_q.append(grasp_val[0])
+            grasp_t.append(grasp_val[1]) 
+
+        view_q = []
+        view_t = []
+        for view, info_gain in zip(views, gains):
+            view_nn_input = torch.cat((encoded_voxel, torch.tensor([np.concatenate((q, view.to_list(), [info_gain]), dtype=np.float32)]).to(self.device)), 1)
+            print(view_nn_input.shape)
+            # From here evaluate the actions through the network 
+            view_val = self.view_nn(view_nn_input.squeeze())
+            print("view val", view_val)
+            view_q.append(view_val[0])
+            view_t.append(view_val[1])
+
+        # output is a set of actions with values and estimated completion time
+
+        # Combine the grasp and view probabilities
+        combined_probabilities = torch.cat((F.softmax(torch.stack(grasp_q), dim=0), F.softmax(torch.stack(view_q), dim=0)), dim=0)
+
+        print(combined_probabilities)
+
+        # Sample a single action index from the combined distribution
+        selected_action_index = torch.multinomial(combined_probabilities, num_samples=1).item()
+
+        grasp, view = False, False
+        # Based on the selected index, determine whether it's a grasp or a view
+        if selected_action_index < len(self.grasps):
+            print("Grasp")
+            grasp = True
+            selected_action = self.grasps[selected_action_index]
+            time_est = grasp_t[selected_action_index]
         else:
-            print("not grasping")
-            with Timer("state_update"):
-                self.integrate(img, x, q)
-            with Timer("view_generation"):
-                views = self.generate_views(q)
-            with Timer("ig_computation"):
-                gains = [self.ig_fn(v, self.downsample) for v in views]
-            with Timer("cost_computation"):
-                costs = [self.cost_fn(v) for v in views]
-            utilities = gains / np.sum(gains) - costs / np.sum(costs)
-            self.vis.ig_views(self.base_frame, self.intrinsic, views, utilities)
-            i = np.argmax(utilities)
-            nbv, gain = views[i], gains[i]
+            print("View")
+            view = True
+            selected_action = views[selected_action_index - len(self.grasps)]
+            time_est = view_t[selected_action_index]
 
-            print(gain)
+        print(selected_action)
 
-            if gain < self.min_gain and len(self.views) > self.T:
-                print("done")
-                self.done = True
+        return grasp, view, selected_action, time_est
 
-            self.x_d = nbv
+        # if self.best_grasp_prediction_is_stable():
+        # # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
+        #     print("stable grasp")
+        #     self.done = True
+        #     print("Done")
+        # else:
+        #     print("not grasping")
+        #     with Timer("state_update"):
+        #         self.integrate(img, x, q)
+        #     with Timer("view_generation"):
+        #         views = self.generate_views(q)
+        #     with Timer("ig_computation"):
+        #         gains = [self.ig_fn(v, self.downsample) for v in views]
+        #     with Timer("cost_computation"):
+        #         costs = [self.cost_fn(v) for v in views]
+        #     utilities = gains / np.sum(gains) - costs / np.sum(costs)
+        #     self.vis.ig_views(self.base_frame, self.intrinsic, views, utilities)
+        #     i = np.argmax(utilities)
+        #     nbv, gain = views[i], gains[i]
+
+        #     print(gain)
+
+        #     if gain < self.min_gain and len(self.views) > self.T:
+        #         print("done")
+        #         self.done = True
+
+        #     self.x_d = nbv
 
     def join_clouds(self, map_cloud, occu):
         grid_size = (40, 40, 40)

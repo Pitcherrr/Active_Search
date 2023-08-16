@@ -62,27 +62,33 @@ class Autoencoder(nn.Module):
 class GraspEval(nn.Module):
     def __init__(self):
         super(GraspEval, self).__init__()
-        self.fc1 = nn.Linear(519, 256)  # Fully connected layer 1
-        self.fc2 = nn.Linear(256, 128)  # Fully connected layer 2
-        self.fc3 = nn.Linear(128, 2)    # Fully connected layer for outputs
+        self.fc1 = nn.Linear(527, 256) 
+        self.fc2 = nn.Linear(256, 128)  
+        self.fc3 = nn.Linear(128, 2)
+
+        self.optimizer = optim.Adam(self.parameters(), lr=0.00005)  
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))    # Apply ReLU activation to fc1 output
-        x = torch.relu(self.fc2(x))    # Apply ReLU activation to fc2 output
-        outputs = self.fc3(x)          # Output layer without activation
+        x = self.fc1(x)
+        x = torch.relu(x)
+        x = self.fc2(x) 
+        x = torch.relu(x)    
+        outputs = self.fc3(x)        
         return outputs
 
 
 class ViewEval(nn.Module):
     def __init__(self):
         super(ViewEval, self).__init__()
-        self.fc1 = nn.Linear(520, 256)  # Fully connected layer 1
-        self.fc2 = nn.Linear(256, 128)  # Fully connected layer 2
-        self.fc3 = nn.Linear(128, 2)    # Fully connected layer for outputs
+        self.fc1 = nn.Linear(527, 256) 
+        self.fc2 = nn.Linear(256, 128)  
+        self.fc3 = nn.Linear(128, 2)   
+
+        self.optimizer = optim.Adam(self.parameters(), lr=0.00005)
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))    # Apply ReLU activation to fc1 output
-        x = torch.relu(self.fc2(x))    # Apply ReLU activation to fc2 output
-        outputs = self.fc3(x)          # Output layer without activation
+        x = torch.relu(self.fc1(x))    
+        x = torch.relu(self.fc2(x))    
+        outputs = self.fc3(x)        
         return outputs
 

@@ -199,12 +199,12 @@ class MultiViewPolicy(Policy):
         self.qual_hist[t, ...] = out.qual
 
         with Timer("grasp_selection"):
-            grasps, qualities = self.filter_grasps(out, q)
-            print(len(grasps)," grasps above 0.9")
+            self.grasps, self.qualities = self.filter_grasps(out, q)
+            print(len(self.grasps)," grasps above 0.9")
 
-        if len(grasps) > 0:
-            self.best_grasp, quality = select_best_grasp(grasps, qualities)
-            self.vis.grasps(self.base_frame, grasps, qualities)
+        if len(self.grasps) > 0:
+            self.best_grasp, quality = select_best_grasp(self.grasps, self.qualities)
+            self.vis.grasps(self.base_frame, self.grasps, self.qualities)
         else:
             self.best_grasp = None
             self.vis.clear_grasp()
