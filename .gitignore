@@ -7,6 +7,7 @@ src/active_search/assets/*
 src/active_search/training/*
 src/active_search/training_2/*
 src/active_search/training_test/*
+src/active_search/models/*
 src/kdl_parser_py/kdl_parser_py/__pycache__/*
 __pycache__/
 .vscode/
