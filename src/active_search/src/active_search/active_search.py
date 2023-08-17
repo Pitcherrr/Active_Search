@@ -108,6 +108,7 @@ class NextBestView(MultiViewPolicy):
         # This includes the TSDF, occluded lovcations, and grasps  
  
         self.integrate(img, x, q)
+        self.get_grasps(img, x, q)
 
         # Then generate the view candidates and their corresponding information gains
         views = self.generate_views(q)
@@ -125,7 +126,7 @@ class NextBestView(MultiViewPolicy):
         encoded_voxel = self.autoencoder.encoder(cloud_tensor.view(1,2,40,40,40)) #need to view as a simgle sample
         # print("Encode Time:", time.time()- start)
 
-        # We now have a vactor of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
+        # We now have a vector of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
         # and each action from the 2 sets
 
         grasp_q = []

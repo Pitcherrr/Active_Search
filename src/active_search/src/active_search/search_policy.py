@@ -181,6 +181,8 @@ class MultiViewPolicy(Policy):
             np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
         )
 
+
+    def get_grasps(self, img, x, q):
         # print("################### predicting grasps ################################")
         with Timer("grasp_prediction"):
             tsdf_grid = self.tsdf.get_grid()
@@ -192,7 +194,7 @@ class MultiViewPolicy(Policy):
 
         with Timer("grasp_selection"):
             self.grasps, self.qualities = self.filter_grasps(out, q)
-            print(len(self.grasps)," grasps above 0.9")
+            print(len(self.grasps),"grasps above 0.9")
 
         if len(self.grasps) > 0:
             self.best_grasp, quality = select_best_grasp(self.grasps, self.qualities)
@@ -200,7 +202,6 @@ class MultiViewPolicy(Policy):
         else:
             self.best_grasp = None
             self.vis.clear_grasp()
-
 
 
     def get_poi_torch(self):

@@ -8,7 +8,8 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 import trimesh
-import torch
+import threading
+
 
 from active_grasp.bbox import from_bbox_msg, AABBox
 from active_grasp.timer import Timer
@@ -102,6 +103,7 @@ class GraspController:
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
         self.bbox = AABBox(bb_min, bb_max)
         self.switch_to_cartesian_velocity_control()
+        r = rospy.Rate(self.policy_rate)
 
         while not self.complete:
             with Timer("sample_time"):
@@ -113,14 +115,28 @@ class GraspController:
             if grasp:
                 print("grasping")
                 self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_grasp, args= (action,))
                 with Timer("grasp_time"):
-                    res = self.execute_grasp(action)
-                    self.switch_to_cartesian_velocity_control()
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = self.grasp_result
+                            break
+                self.switch_to_cartesian_velocity_control()
             elif view:
+                t = 0
                 self.policy.x_d = action
                 timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for:", int(abs(time_est)), "seconds")
-                rospy.sleep(int(abs(time_est))+3)
+                print("Executing for:", int(time_est + 3.0), "seconds")
+                while t < (time_est+3.0):
+                    img, pose, q = self.get_state()
+                    self.policy.integrate(img, pose, q)
+                    t += 1/self.policy_rate
+                    r.sleep()
+                rospy.sleep(0.2)        
                 timer.shutdown()
 
             else:
@@ -259,10 +275,10 @@ class GraspController:
             # self.moveit.gotoL(T_drop_location)
 
             self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
-            
-            return "succeeded" if success else "failed"
+
+            self.grasp_result = "succeeded" if success else "failed" 
         else:
-            return "no_motion_plan_found"
+            self.grasp_result = "no_motion_plan_found"
 
     def create_collision_scene(self):
         # Segment support surface

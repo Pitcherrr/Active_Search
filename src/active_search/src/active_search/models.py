@@ -73,7 +73,8 @@ class GraspEval(nn.Module):
         x = torch.relu(x)
         x = self.fc2(x) 
         x = torch.relu(x)    
-        outputs = self.fc3(x)        
+        x = self.fc3(x)
+        outputs = torch.relu(x)        
         return outputs
 
 
@@ -89,6 +90,6 @@ class ViewEval(nn.Module):
     def forward(self, x):
         x = torch.relu(self.fc1(x))    
         x = torch.relu(self.fc2(x))    
-        outputs = self.fc3(x)        
+        outputs = torch.relu(self.fc3(x))        
         return outputs
 
