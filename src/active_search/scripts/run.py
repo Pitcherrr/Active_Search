@@ -9,7 +9,7 @@ from tqdm import tqdm
 from std_srvs.srv import SetBool, Empty
 
 from active_grasp.bbox import AABBox
-from active_search.controller import *
+from active_search.rl_controller import *
 from active_search.open3d_viz import *
 from active_search.search_policy import make, registry
 from active_grasp.srv import Seed

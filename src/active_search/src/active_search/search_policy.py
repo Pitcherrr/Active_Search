@@ -86,14 +86,6 @@ class Policy:
         self.init_task_frame()
         # self.calibrate_task_frame()
         self.vis.bbox(self.base_frame, self.bbox)
-
-        # try:
-        #     x = self.tsdf
-        #     print("tsdf already here")
-        #     print(self.tsdf)
-        # except:    
-        #     self.tsdf = UniformTSDFVolume(0.3, 40)
-        #     print("created a new tsdf")
         
         self.vgn = VGN(Path(rospy.get_param("vgn/model")))
 
@@ -142,7 +134,7 @@ class Policy:
             bbox_min = self.bbox.min + [0, 0, 3*self.tsdf.voxel_size]
             bbox_max = self.bbox.max
             bbox = AABBox(bbox_min, bbox_max)
-            print(bbox.min)
+            # print(bbox.min)
             if bbox.is_inside(tip) and quality > 0.9:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
@@ -189,7 +181,7 @@ class MultiViewPolicy(Policy):
             np.expand_dims(np.asarray(map_cloud.colors)[:, 0], 1),
         )
 
-        print("################### predicting grasps ################################")
+        # print("################### predicting grasps ################################")
         with Timer("grasp_prediction"):
             tsdf_grid = self.tsdf.get_grid()
             out = self.vgn.predict(tsdf_grid)
@@ -286,7 +278,7 @@ class MultiViewPolicy(Policy):
         self.vis.bbox(self.base_frame, bb_vis)
         tsdf_vec = np.asarray(self.tsdf.o3dvol.extract_volume_tsdf())
         tsdf_grid = np.reshape(tsdf_vec, [40,40,40,2])
-        print(min_bound, max_bound)
+        # print(min_bound, max_bound)
         tsdf_grid[min_bound[0]:max_bound[0], min_bound[1]:max_bound[1], 0:max_bound[2]] = 0
         tsdf_vec = o3d.utility.Vector2dVector(np.reshape(tsdf_grid, [40*40*40,2]))
         self.tsdf = UniformTSDFVolume(0.3, 40)

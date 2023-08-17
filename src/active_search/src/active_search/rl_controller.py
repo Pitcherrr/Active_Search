@@ -33,7 +33,6 @@ class GraspController:
         self.init_robot_connection()
         self.init_moveit()
         self.init_camera_stream()
-        self.load_models()
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
@@ -45,10 +44,6 @@ class GraspController:
         self.control_rate = rospy.get_param("~control_rate")
         self.linear_vel = rospy.get_param("~linear_vel")
         self.policy_rate = rospy.get_param("policy/rate")
-
-    def load_models(self):
-        self.autoencoder = Autoencoder()
-        self.autoencoder.load_state_dict(torch.load(self.autoencoder.model_path))
     
     def init_service_proxies(self):
         self.reset_env = rospy.ServiceProxy("reset", Reset)
@@ -109,20 +104,25 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
 
         while not self.complete:
-            with Timer("search_time"):
-                grasp = self.search_grasp(self.bbox)
+            with Timer("sample_time"):
+                sample = self.sample_environment(self.bbox)
+                grasp = sample[0]
+                view = sample[1]
+                action = sample[2]
+                time_est = sample[3]
             if grasp:
                 print("grasping")
                 self.switch_to_joint_trajectory_control()
                 with Timer("grasp_time"):
-                    res = self.execute_grasp(grasp)
-                    
-                    if res == 'succeeded':
-                        self.switch_to_cartesian_velocity_control()
+                    res = self.execute_grasp(action)
+                    self.switch_to_cartesian_velocity_control()
+            elif view:
+                self.policy.x_d = action
+                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                print("Executing for:", int(abs(time_est)), "seconds")
+                rospy.sleep(int(abs(time_est))+3)
+                timer.shutdown()
 
-                    elif res == "failed":
-                        print("failed")
-                        self.switch_to_cartesian_velocity_control()
             else:
                 res = "aborted"
 
@@ -142,6 +142,21 @@ class GraspController:
     
     def clear(self):
         return
+    
+    def sample_environment(self, bbox):
+        self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
+        self.policy.activate(bbox, self.view_sphere)
+        timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+        # r = rospy.Rate(self.policy_rate)
+
+        img, pose, q = self.get_state()
+        sample = self.policy.update(img, pose, q)
+
+        # r.sleep()
+        rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
+        # self.policy.deactivate()
+        timer.shutdown()
+        return sample
 
 
     def search_grasp(self, bbox):
