@@ -100,6 +100,8 @@ class GraspController:
         y_off = -0.15
         z_off = 0.2
 
+        print("BBS",bbs)
+
         bb_min = [x_off,y_off,z_off]
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
         self.bbox = AABBox(bb_min, bb_max)
@@ -160,10 +162,10 @@ class GraspController:
         self.moveit.scene.clear()
         res = self.reset_env(ResetRequest())
         rospy.sleep(1.0)  # Wait for the TF tree to be updated.
-        bbs = res.bbox
-        for i in range(len(bbs)):
-            bbs[i] = from_bbox_msg(bbs[i])
-        return bbs
+        bb = from_bbox_msg(res.bbox)
+        # for i in range(len(bbs)):
+            # bbs[i] = from_bbox_msg(bbs[i])
+        return bb
     
     def clear(self):
         return
@@ -296,12 +298,12 @@ class GraspController:
             success = self.gripper.read() > 0.002
 
             if success:
+                self.grasp_result = "succeeded"
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
-                response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
+                response = from_bbox_msg(remove_body(ResetRequest()).bbox)
                 self.policy.tsdf_cut(response)
                 self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 self.gripper.move(0.08)
-                self.grasp_result = "succeeded"
             else:
                 self.grasp_result = "failed" 
  

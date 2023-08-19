@@ -114,7 +114,7 @@ class Simulation:
         bbs.append(target)
         #--------------------------------
         # return target_points
-        return bbs
+        return target
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):

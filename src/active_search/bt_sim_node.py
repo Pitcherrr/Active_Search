@@ -90,13 +90,14 @@ class BtSimNode:
         self.deactivate_controllers()
         rospy.sleep(1.0)  # TODO replace with a read-write lock
         bbox = self.sim.reset()
-        while bbox == None:
-            bbox = self.sim.reset()
+        bbox = to_bbox_msg(bbox)
+        # while bbox == None:
+        #     bbox = self.sim.reset()
         # bbox = bbox[1]
         print("BBOX",bbox)
         self.activate_plugins()
-        for i in range(len(bbox)):
-            bbox[i] = to_bbox_msg(bbox[i])
+        # for i in range(len(bbox)):
+        #     bbox[i] = to_bbox_msg(bbox[i])
         # return ResetResponse(to_bbox_msg(bbox))
         topic = "sim_complete"
         self.sim_complete_pub = rospy.Publisher(topic, Bool, queue_size=1)
@@ -112,7 +113,7 @@ class BtSimNode:
         bb = self.sim.scene.remove_object_ret_bb(uid)
         print('Removed Grasped OBJ')
         self.sim_complete()
-        return ResetResponse([to_bbox_msg(bb)])
+        return ResetResponse(to_bbox_msg(bb))
     
     def sim_complete(self):
         if self.sim.scene.complete:
