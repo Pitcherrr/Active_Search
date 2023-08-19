@@ -9,6 +9,7 @@ from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 import trimesh
 import threading
+import time
 
 
 from active_grasp.bbox import from_bbox_msg, AABBox
@@ -112,8 +113,11 @@ class GraspController:
                 view = sample[1]
                 action = sample[2]
                 time_est = sample[3]
+
+            init_occ = len(self.policy.coordinate_mat)
             if grasp:
                 print("grasping")
+                start_time = time.time()
                 self.switch_to_joint_trajectory_control()
                 grasp_thread = threading.Thread(target=self.execute_grasp, args= (action,))
                 with Timer("grasp_time"):
@@ -126,7 +130,11 @@ class GraspController:
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
+                occ_diff = init_occ - len(self.policy.coordinate_mat) #+ve diff is good
+                exec_time = time.time() - start_time
+                info = self.collect_info(res)
             elif view:
+                exec_time = 0
                 t = 0
                 self.policy.x_d = action
                 timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
@@ -138,12 +146,13 @@ class GraspController:
                     r.sleep()
                 rospy.sleep(0.2)        
                 timer.shutdown()
-
+                occ_diff = init_occ - len(self.policy.coordinate_mat) #+ve diff is good
             else:
                 res = "aborted"
 
-        info = self.collect_info(res)
-        # self.clear()
+            reward = self.compute_reward(grasp, view, occ_diff, time_est, exec_time)
+            print("Reward", reward)
+            self.update_networks(grasp, view, action, reward)
         return info
 
     def reset(self):
@@ -217,8 +226,27 @@ class GraspController:
         print("Grasp information gain:", grasp_ig)
         return grasp_ig
 
-
-
+    def compute_reward(self, grasp, view, occ_diff, est_time, action_time):
+        if grasp:
+            reward = occ_diff - est_time + action_time
+            return reward
+        elif view:
+            reward = occ_diff - est_time
+            return reward
+        
+    def update_networks(self, grasp, view, action, reward):
+        if grasp:
+            self.policy.grasp_nn.optimizer.zero_grad()
+            # prob = self.policy.grasp_nn.log_prob(action)
+            # loss = prob * reward
+            reward.backward()
+            self.policy.grasp_nn.optimizer.step()
+        elif view:
+            self.policy.view_nn.optimizer.zero_grad()
+            # prob = self.policy.view_nn.log_prob(action)
+            # loss = prob * reward
+            reward.backward()
+            self.policy.view_nn.optimizer.step()
 
     def get_state(self):
         q, _ = self.arm.get_state()
@@ -267,16 +295,16 @@ class GraspController:
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
             success = self.gripper.read() > 0.002
 
-            remove_body = rospy.ServiceProxy('remove_body', Reset)
-            response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
-            self.policy.tsdf_cut(response)
-
-            # T_drop_location = T_base_retreat * self.T_grasp_drop
-            # self.moveit.gotoL(T_drop_location)
-
-            self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
-
-            self.grasp_result = "succeeded" if success else "failed" 
+            if success:
+                remove_body = rospy.ServiceProxy('remove_body', Reset)
+                response = from_bbox_msg(remove_body(ResetRequest()).bbox[0])
+                self.policy.tsdf_cut(response)
+                self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
+                self.gripper.move(0.08)
+                self.grasp_result = "succeeded"
+            else:
+                self.grasp_result = "failed" 
+ 
         else:
             self.grasp_result = "no_motion_plan_found"
 
