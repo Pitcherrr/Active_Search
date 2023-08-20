@@ -129,6 +129,13 @@ class NextBestView(MultiViewPolicy):
         # We now have a vector of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
         # and each action from the 2 sets
 
+        if self.done:
+            grasp = True
+            view = False
+            selected_action = self.grasps[0]
+            time_est = 0
+            return [grasp, view, selected_action, time_est]
+
         grasp_q = []
         grasp_t = []
         for grasp, quality in zip(self.grasps, self.qualities):
@@ -180,33 +187,6 @@ class NextBestView(MultiViewPolicy):
 
         return [grasp, view, selected_action, time_est]
 
-        # if self.best_grasp_prediction_is_stable():
-        # # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
-        #     print("stable grasp")
-        #     self.done = True
-        #     print("Done")
-        # else:
-        #     print("not grasping")
-        #     with Timer("state_update"):
-        #         self.integrate(img, x, q)
-        #     with Timer("view_generation"):
-        #         views = self.generate_views(q)
-        #     with Timer("ig_computation"):
-        #         gains = [self.ig_fn(v, self.downsample) for v in views]
-        #     with Timer("cost_computation"):
-        #         costs = [self.cost_fn(v) for v in views]
-        #     utilities = gains / np.sum(gains) - costs / np.sum(costs)
-        #     self.vis.ig_views(self.base_frame, self.intrinsic, views, utilities)
-        #     i = np.argmax(utilities)
-        #     nbv, gain = views[i], gains[i]
-
-        #     print(gain)
-
-        #     if gain < self.min_gain and len(self.views) > self.T:
-        #         print("done")
-        #         self.done = True
-
-        #     self.x_d = nbv
 
     def join_clouds(self, map_cloud, occu):
         grid_size = (40, 40, 40)

@@ -42,6 +42,7 @@ class Policy:
         msg = rospy.wait_for_message(info_topic, CameraInfo, rospy.Duration(2.0))
         self.intrinsic = from_camera_info_msg(msg)
         self.qual_thresh = rospy.get_param("vgn/qual_threshold")
+        self.target_bb = AABBox([0,0,0],[0,0,0])
 
     def init_ik_solver(self):
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
@@ -126,21 +127,42 @@ class Policy:
         )
         filtered_grasps, filtered_qualities = [], []
 
+        bbox_min = self.bbox.min + [0, 0, 3*self.tsdf.voxel_size]
+        bbox_max = self.bbox.max
+        bbox = AABBox(bbox_min, bbox_max)
+
+        print(self.target_bb.min)
+        print(self.target_bb.max)
+
+        target_min = self.target_bb.min * 0.8
+        target_max = self.target_bb.max * 1.2
+        target = AABBox(target_min, target_max)
+
+        self.vis.bbox(self.base_frame, target)
         # print("grasps", grasps, qualities)
         for grasp, quality in zip(grasps, qualities):
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
-            bbox_min = self.bbox.min + [0, 0, 3*self.tsdf.voxel_size]
-            bbox_max = self.bbox.max
-            bbox = AABBox(bbox_min, bbox_max)
             # print(bbox.min)
             if bbox.is_inside(tip) and quality > 0.9:
                 grasp.pose = pose
-                q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
+                q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
+
+            elif target.is_inside(tip):
+                print("Checking grasp on target")
+                grasp.pose = pose
+                q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
+                if q_grasp is not None:
+                    print("Found grasp on target")
+                    self.done = True
+                    filtered_grasps = [grasp]
+                    filtered_qualities = [quality]
+                    return filtered_grasps, filtered_qualities
+
         return filtered_grasps, filtered_qualities
 
     def deactivate(self):

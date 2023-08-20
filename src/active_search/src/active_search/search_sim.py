@@ -98,23 +98,24 @@ class Simulation:
         
         bbs = []
         #temporary-----------------------
-        for i in self.object_uids:
-            if i != target_uid:
-                bb = get_target_bb(self, i)
-                bb = AABBox(bb.min_bound, bb.max_bound)
+        # for i in self.object_uids:
+        #     if i != target_uid:
+        #         bb = get_target_bb(self, i)
+        #         bb = AABBox(bb.min_bound, bb.max_bound)
   
-                min_bound_t = (Transform.from_translation(bb.min)*origin).translation
-                max_bound_t = (Transform.from_translation(bb.max)*origin).translation
+        #         min_bound_t = (Transform.from_translation(bb.min)*origin).translation
+        #         max_bound_t = (Transform.from_translation(bb.max)*origin).translation
 
-                bb.min = min_bound_t - np.array([0,0,0.1])
-                bb.max = max_bound_t - np.array([0,0,0.1])
+        #         bb.min = min_bound_t - np.array([0,0,0.1])
+        #         bb.max = max_bound_t - np.array([0,0,0.1])
 
-                bbs.append(bb)
+        #         bbs.append(bb)
 
-        bbs.append(target)
+        # bbs.append(target)
         #--------------------------------
         # return target_points
-        return target
+        target_bb = AABBox(self.scene.target_bb[0], self.scene.target_bb[1])
+        return target_bb
         #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):

@@ -93,14 +93,12 @@ class GraspController:
 
     def run(self):
         self.policy.init_tsdf()
-        bbs = self.reset()
+        self.policy.target_bb = self.reset() 
         self.complete = False
         voxel_size = 0.0075
         x_off = 0.35
         y_off = -0.15
         z_off = 0.2
-
-        print("BBS",bbs)
 
         bb_min = [x_off,y_off,z_off]
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
@@ -290,8 +288,6 @@ class GraspController:
             rospy.sleep(0.5)
             self.gripper.grasp()
             #remove the body from the scene
-
-            #####################
             T_base_retreat = Transform.t_[0, 0, 0.05] * T_base_grasp * self.T_grasp_ee
             self.moveit.gotoL(T_base_retreat)
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
