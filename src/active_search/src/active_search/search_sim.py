@@ -246,6 +246,12 @@ class YamlScene(Scene):
                 b = np.asarray(randomize["pos"])
                 pos += rng.uniform(-b, b)
             uid = self.add_object(urdf, ori, pos, scale)
+
+            self.target = rng.choice(self.object_uids)
+
+            p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
+
+            self.target_bb = p.getAABB(self.target)
             # Simulate the mustard bottle going into the mug
             # dont need anymore as urdf was just broken 
             # if i == 1:

@@ -40,6 +40,8 @@ class Environment:
         image = cam_data[0]
         depth_img = cam_data[1]
 
+        print((self.sim.camera.pose.inv()*self.scene_origin).as_matrix())
+
         self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
         self.targets = self.get_poi_torch()
