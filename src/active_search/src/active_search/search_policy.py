@@ -131,12 +131,15 @@ class Policy:
         bbox_max = self.bbox.max
         bbox = AABBox(bbox_min, bbox_max)
 
-        print(self.target_bb.min)
-        print(self.target_bb.max)
 
-        target_min = self.target_bb.min * 0.8
-        target_max = self.target_bb.max * 1.2
+        # target_min = np.clip(self.target_bb.min * 0.8, 0, np.inf)
+        # target_max = np.clip(self.target_bb.max * 1.2, 0, np.inf)
+        target_min = self.target_bb.min
+        target_max = self.target_bb.max
         target = AABBox(target_min, target_max)
+
+        print(target.min)
+        print(target.max)
 
         self.vis.bbox(self.base_frame, target)
         # print("grasps", grasps, qualities)
@@ -151,8 +154,8 @@ class Policy:
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-
-            elif target.is_inside(tip):
+                print(target.is_inside(tip))
+            if target.is_inside(tip) and quality > 0.9:
                 print("Checking grasp on target")
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)

@@ -22,6 +22,7 @@ from robot_helpers.ros.moveit import MoveItClient, create_collision_object_from_
 from robot_helpers.spatial import Rotation, Transform
 from vgn.utils import look_at, cartesian_to_spherical, spherical_to_cartesian
 from vgn.detection import select_local_maxima
+from torch import tensor
 
 from .models import Autoencoder
 
@@ -130,7 +131,7 @@ class GraspController:
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
-                occ_diff = init_occ - len(self.policy.coordinate_mat) #+ve diff is good
+                occ_diff = tensor(float(init_occ - len(self.policy.coordinate_mat)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
             elif view:
@@ -146,7 +147,7 @@ class GraspController:
                     r.sleep()
                 rospy.sleep(0.2)        
                 timer.shutdown()
-                occ_diff = init_occ - len(self.policy.coordinate_mat) #+ve diff is good
+                occ_diff = tensor(float(init_occ - len(self.policy.coordinate_mat)), requires_grad= True).to("cuda")  #+ve diff is good
             else:
                 res = "aborted"
 
