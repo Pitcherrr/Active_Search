@@ -10,6 +10,7 @@ import time
 from active_search.search_policy import MultiViewPolicy
 from active_grasp.timer import Timer
 from .models import Autoencoder, GraspEval, ViewEval
+from .ppo import * 
 
 
 @jit(nopython=True)
@@ -79,6 +80,11 @@ class NextBestView(MultiViewPolicy):
             
             self.view_nn = ViewEval()
             self.view_nn.to(self.device)
+
+    def load_ppo(self):
+        self.ppo = True
+        self.ppo_agent = Agent(input_dims=518)
+
 
     def compile(self):
         # Trigger the JIT compilation
@@ -161,12 +167,22 @@ class NextBestView(MultiViewPolicy):
         # output is a set of actions with values and estimated completion time
 
         # Combine the grasp and view probabilities
-        combined_probabilities = torch.cat((F.softmax(torch.stack(grasp_q), dim=0), F.softmax(torch.stack(view_q), dim=0)), dim=0)
+        if len(grasp_q) > 0:
+            combined_probabilities = F.softmax(torch.cat((torch.stack(grasp_q), torch.stack(view_q)), dim=0), dim=0)
 
+        else:
+            combined_probabilities = F.softmax(torch.stack(view_q), dim=0)
         # print(combined_probabilities)
+ 
+        action_dist = torch.distributions.Categorical(combined_probabilities)
 
-        # Sample a single action index from the combined distribution
-        selected_action_index = torch.multinomial(combined_probabilities, num_samples=1).item()
+        selected_action_index = action_dist.sample()
+
+        action_lprob = action_dist.log_prob(selected_action_index)
+
+        print("Selected index", selected_action_index)
+
+        print("Action prob", action_lprob)
 
         grasp, view = False, False
         # Based on the selected index, determine whether it's a grasp or a view
@@ -185,7 +201,7 @@ class NextBestView(MultiViewPolicy):
 
         # self.done = True
 
-        return [grasp, view, selected_action, time_est]
+        return [grasp, view, selected_action, time_est, action_lprob]
 
 
     def join_clouds(self, map_cloud, occu):

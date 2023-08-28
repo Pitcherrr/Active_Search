@@ -10,6 +10,7 @@ from std_srvs.srv import Empty
 import trimesh
 import threading
 import time
+from torch.utils.tensorboard import SummaryWriter
 
 
 from active_grasp.bbox import from_bbox_msg, AABBox
@@ -36,6 +37,7 @@ class GraspController:
         self.init_robot_connection()
         self.init_moveit()
         self.init_camera_stream()
+        self.init_tensorboard()
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
@@ -85,6 +87,9 @@ class GraspController:
         self.cv_bridge = cv_bridge.CvBridge()
         rospy.Subscriber(self.depth_topic, Image, self.sensor_cb, queue_size=1)
 
+    def init_tensorboard(self):
+        self.writer = SummaryWriter()
+
     def sensor_cb(self, msg):
         self.latest_depth_msg = msg
 
@@ -107,13 +112,22 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
         r = rospy.Rate(self.policy_rate)
 
+        self.frame = 0
+
+        sample = self.sample_environment(self.bbox)
+
+        # init_occ = len(self.policy.coordinate_mat)
+
         while not self.complete:
             with Timer("sample_time"):
                 sample = self.sample_environment(self.bbox)
-                grasp = sample[0]
-                view = sample[1]
-                action = sample[2]
-                time_est = sample[3]
+                self.frame += 1
+                # grasp = sample[0]
+                # view = sample[1]
+                # action = sample[2]
+                # time_est = sample[3]
+                # prob = sample[4]
+                [grasp, view, action, time_est, lprob] = sample
 
             init_occ = len(self.policy.coordinate_mat)
             if grasp:
@@ -131,7 +145,7 @@ class GraspController:
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
-                occ_diff = tensor(float(init_occ - len(self.policy.coordinate_mat)), requires_grad= True).to("cuda") #+ve diff is good
+                occ_diff = tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
             elif view:
@@ -147,13 +161,15 @@ class GraspController:
                     r.sleep()
                 rospy.sleep(0.2)        
                 timer.shutdown()
-                occ_diff = tensor(float(init_occ - len(self.policy.coordinate_mat)), requires_grad= True).to("cuda")  #+ve diff is good
+                occ_diff = tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
             else:
                 res = "aborted"
 
             reward = self.compute_reward(grasp, view, occ_diff, time_est, exec_time)
             print("Reward", reward)
-            self.update_networks(grasp, view, action, reward)
+            self.update_networks(grasp, view, action, reward, lprob)
+
+        self.writer.flush()
         return info
 
     def reset(self):
@@ -235,19 +251,19 @@ class GraspController:
             reward = occ_diff - est_time
             return reward
         
-    def update_networks(self, grasp, view, action, reward):
+    def update_networks(self, grasp, view, action, reward, lprob):
         if grasp:
             self.policy.grasp_nn.optimizer.zero_grad()
-            # prob = self.policy.grasp_nn.log_prob(action)
-            # loss = prob * reward
-            reward.backward()
+            loss = lprob * reward
+            loss.backward()
             self.policy.grasp_nn.optimizer.step()
         elif view:
             self.policy.view_nn.optimizer.zero_grad()
-            # prob = self.policy.view_nn.log_prob(action)
-            # loss = prob * reward
+            loss = lprob * reward
             reward.backward()
             self.policy.view_nn.optimizer.step()
+
+        self.writer.add_scalar("Loss/train", loss, self.frame)
 
     def get_state(self):
         q, _ = self.arm.get_state()

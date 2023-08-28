@@ -375,7 +375,7 @@ class RandomOccludedScene(Scene):
         ori = Rotation.from_euler("xyz", [90, 0, 0], degrees=True)
         # ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
         
-        # self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
+        self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
