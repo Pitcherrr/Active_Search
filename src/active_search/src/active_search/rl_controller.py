@@ -7,6 +7,7 @@ import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
+from random import sample
 import trimesh
 import threading
 import time
@@ -23,7 +24,7 @@ from robot_helpers.ros.moveit import MoveItClient, create_collision_object_from_
 from robot_helpers.spatial import Rotation, Transform
 from vgn.utils import look_at, cartesian_to_spherical, spherical_to_cartesian
 from vgn.detection import select_local_maxima
-from torch import tensor
+import torch
 
 from .models import Autoencoder
 
@@ -99,7 +100,7 @@ class GraspController:
 
     def run(self):
         self.policy.init_tsdf()
-        self.policy.target_bb = self.reset() 
+        self.policy.target_bb = self.reset()
         self.complete = False
         voxel_size = 0.0075
         x_off = 0.35
@@ -109,25 +110,36 @@ class GraspController:
         bb_min = [x_off,y_off,z_off]
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
         self.bbox = AABBox(bb_min, bb_max)
+
+        self.view_sphere = ViewHalfSphere(self.bbox, self.min_z_dist)
+        self.policy.activate(self.bbox, self.view_sphere)
+
         self.switch_to_cartesian_velocity_control()
         r = rospy.Rate(self.policy_rate)
 
         self.frame = 0
 
-        sample = self.sample_environment(self.bbox)
+        # sample = self.sample_environment(self.bbox)
+
+        state = self.get_state()
+        enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
 
         # init_occ = len(self.policy.coordinate_mat)
 
-        while not self.complete:
-            with Timer("sample_time"):
-                sample = self.sample_environment(self.bbox)
+        replay_mem = []
+        it = 0 
+        max_it = 10
+        replay_size = 100
+        batch_size = 32
+        gamma = 0.9
+
+        while not self.complete and it < max_it:
+            with Timer("inference_time"):
+                state = self.get_state()
+                enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+                model_sample = self.action_inference(enc_state, state[2], self.bbox)
                 self.frame += 1
-                # grasp = sample[0]
-                # view = sample[1]
-                # action = sample[2]
-                # time_est = sample[3]
-                # prob = sample[4]
-                [grasp, view, action, time_est, lprob] = sample
+                [grasp, view, action, value, time_est, lprob, terminal] = model_sample
 
             init_occ = len(self.policy.coordinate_mat)
             if grasp:
@@ -145,7 +157,7 @@ class GraspController:
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
-                occ_diff = tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
             elif view:
@@ -161,13 +173,47 @@ class GraspController:
                     r.sleep()
                 rospy.sleep(0.2)        
                 timer.shutdown()
-                occ_diff = tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
             else:
                 res = "aborted"
 
             reward = self.compute_reward(grasp, view, occ_diff, time_est, exec_time)
             print("Reward", reward)
+
+            next_state = self.get_state()
+            next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
+
+            replay_mem.append([enc_state, q, action, reward, next_enc_state, next_state[2], self.policy.done])
+
+            if len(replay_mem) > replay_size:
+                del replay_mem[0]
+            batch = sample(replay_mem, min(len(replay_mem), batch_size))
+            state_batch, q_batch, action_batch, reward_batch, next_state_batch, next_q_batch, terminal_batch = zip(*batch)
+
+            print("state", state_batch)
+
+            cur_pred_batch = []
+            for enum_state, enum_q in zip(state_batch, q_batch):
+                val = self.action_inference(enum_state, enum_q, self.bbox)
+                cur_pred_batch.append(val)
+
+            next_pred_batch = []
+            for enum_state, enum_q in zip(next_state_batch, next_q_batch):
+                val = self.action_inference(enum_state, enum_q, self.bbox)
+                next_pred_batch.append(val)
+                
+            # cur_pred_batch = self.action_inference(state_batch, q_batch, self.bbox)
+            # next_pred_batch = self.action_inference(next_state_batch, next_q_batch, self.bbox)
+
+            y_batch = tuple(reward if terminal else reward + gamma * prediction[3] for reward, terminal, prediction in
+                  zip(reward_batch, terminal_batch, next_pred_batch))
+            
+            print(y_batch)
+
             self.update_networks(grasp, view, action, reward, lprob)
+
+            it += 1
+
 
         self.writer.flush()
         return info
@@ -182,23 +228,16 @@ class GraspController:
             # bbs[i] = from_bbox_msg(bbs[i])
         return bb
     
-    def clear(self):
-        return
     
-    def sample_environment(self, bbox):
+    def action_inference(self, state, q, bbox):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
-        self.policy.activate(bbox, self.view_sphere)
+        self.policy.init_data()
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-        # r = rospy.Rate(self.policy_rate)
-
-        img, pose, q = self.get_state()
-        sample = self.policy.update(img, pose, q)
-
-        # r.sleep()
-        rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
-        # self.policy.deactivate()
+        # model_sample = self.policy.update(state, q)
+        grasp_q, grasp_t, view_q, view_t = self.policy.update(state, q)
+        model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
         timer.shutdown()
-        return sample
+        return model_sample
 
 
     def search_grasp(self, bbox):

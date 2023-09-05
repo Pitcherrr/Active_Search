@@ -333,7 +333,7 @@ class RandomOccludedScene(Scene):
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
-        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/cap")
+        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=3, attempts=10):
@@ -375,7 +375,7 @@ class RandomOccludedScene(Scene):
         ori = Rotation.from_euler("xyz", [90, 0, 0], degrees=True)
         # ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
         
-        self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
+        # self.add_object(occluding, ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]

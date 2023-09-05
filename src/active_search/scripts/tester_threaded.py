@@ -40,7 +40,20 @@ class Environment:
         image = cam_data[0]
         depth_img = cam_data[1]
 
-        print((self.sim.camera.pose.inv()*self.scene_origin).as_matrix())
+        intrinsic = self.sim.camera.intrinsic
+
+        cam_int = o3d.camera.PinholeCameraIntrinsic(
+            width=intrinsic.width,
+            height=intrinsic.height,
+            fx=intrinsic.fx,
+            fy=intrinsic.fy,
+            cx=intrinsic.cx,
+            cy=intrinsic.cy,
+        )
+
+        self.pcd = o3d.geometry.PointCloud.create_from_depth_image(o3d.geometry.Image(depth_img), cam_int, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix(), depth_scale=1.0, depth_trunc=0.3, stride=1)
+
+        # print((self.sim.camera.pose.inv()*self.scene_origin).as_matrix())
 
         self.tsdf.integrate(depth_img, self.sim.camera.intrinsic, (self.sim.camera.pose.inv()*self.scene_origin).as_matrix()) 
 
@@ -219,11 +232,11 @@ class Environment:
         state = self.sim_state.get()
         tsdf_init, image = state
 
-        # tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
-        tsdf_mesh_init = tsdf_init.o3dvol.extract_triangle_mesh()
+        tsdf_mesh_init = tsdf_init.o3dvol.extract_point_cloud()
+        # tsdf_mesh_init = tsdf_init.o3dvol.extract_triangle_mesh()
 
-        tsdf_mesh_init.compute_triangle_normals()
-        tsdf_mesh_init.compute_vertex_normals()
+        # tsdf_mesh_init.compute_triangle_normals()
+        # tsdf_mesh_init.compute_vertex_normals()
 
         target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
         target_bb.color = [0, 1, 0] 
@@ -284,9 +297,11 @@ class Environment:
 
                 state = self.sim_state.get()
                 tsdf, image = state
-                tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
-                tsdf_mesh.compute_triangle_normals()
-                tsdf_mesh.compute_vertex_normals()
+                # tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
+                tsdf_mesh = self.pcd
+                # tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
+                # tsdf_mesh.compute_triangle_normals()
+                # tsdf_mesh.compute_vertex_normals()
 
                 tsdf_exists = True
 

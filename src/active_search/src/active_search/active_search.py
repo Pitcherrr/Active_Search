@@ -73,13 +73,13 @@ class NextBestView(MultiViewPolicy):
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.autoencoder = Autoencoder()
             self.autoencoder.load_state_dict(torch.load(self.autoencoder.model_path))
-            self.autoencoder.to(self.device)
+            self.autoencoder.to(self.device).float()
 
             self.grasp_nn = GraspEval()
-            self.grasp_nn.to(self.device)
+            self.grasp_nn.to(self.device).float()
             
             self.view_nn = ViewEval()
-            self.view_nn.to(self.device)
+            self.view_nn.to(self.device).float()
 
     def load_ppo(self):
         self.ppo = True
@@ -109,19 +109,8 @@ class NextBestView(MultiViewPolicy):
     def activate(self, bbox, view_sphere):
         super().activate(bbox, view_sphere)
 
-    def update(self, img, x, q):
-        # First we integrate to gain data from the current scene
-        # This includes the TSDF, occluded lovcations, and grasps  
- 
+    def get_encoded_state(self, img, x, q):
         self.integrate(img, x, q)
-        self.get_grasps(img, x, q)
-
-        # Then generate the view candidates and their corresponding information gains
-        views = self.generate_views(q)
-        gains = [self.ig_fn(v, self.downsample) for v in views]
-
-        # We now have 2 sets of actions that can be evaluated
-
         #Encode the scene using our trained autoencoder
         # start = time.time()
         map_cloud = self.tsdf.get_map_cloud()
@@ -131,21 +120,29 @@ class NextBestView(MultiViewPolicy):
         cloud_tensor = torch.tensor(np.asarray(cloud), dtype=torch.float32).to(self.device)
         encoded_voxel = self.autoencoder.encoder(cloud_tensor.view(1,2,40,40,40)) #need to view as a simgle sample
         # print("Encode Time:", time.time()- start)
+        state = torch.cat((encoded_voxel, torch.tensor([q]).to(self.device)), 1)
+        return state
+
+    def update(self, state, q):
+        # First we integrate to gain data from the current scene
+        # This includes the TSDF, occluded lovcations, and grasps  
+ 
+        # self.integrate(img, x, q)
+        self.get_grasps(q)
+
+        # Then generate the view candidates and their corresponding information gains
+        self.views = self.generate_views(q)
+        self.gains = [self.ig_fn(v, self.downsample) for v in self.views]
+
+        # We now have 2 sets of actions that can be evaluated
 
         # We now have a vector of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
         # and each action from the 2 sets
 
-        if self.done:
-            grasp = True
-            view = False
-            selected_action = self.grasps[0]
-            time_est = 0
-            return [grasp, view, selected_action, time_est]
-
         grasp_q = []
         grasp_t = []
         for grasp, quality in zip(self.grasps, self.qualities):
-            grasp_nn_input = torch.cat((encoded_voxel, torch.tensor([np.concatenate((q, grasp.pose.to_list(), [quality]), dtype=np.float32)]).to(self.device)), 1)
+            grasp_nn_input = torch.cat((state, torch.tensor([np.concatenate((grasp.pose.to_list(), [quality]), dtype=np.float32)]).to(self.device)), 1).float()
             # print(grasp_nn_input.shape)
             # From here evaluate the actions through the network
             grasp_val = self.grasp_nn(grasp_nn_input.squeeze())
@@ -155,8 +152,8 @@ class NextBestView(MultiViewPolicy):
 
         view_q = []
         view_t = []
-        for view, info_gain in zip(views, gains):
-            view_nn_input = torch.cat((encoded_voxel, torch.tensor([np.concatenate((q, view.to_list(), [info_gain]), dtype=np.float32)]).to(self.device)), 1)
+        for view, info_gain in zip(self.views, self.gains):
+            view_nn_input = torch.cat((state, torch.tensor([np.concatenate((view.to_list(), [info_gain]), dtype=np.float32)]).to(self.device)), 1).float()
             # print(view_nn_input.shape)
             # From here evaluate the actions through the network 
             view_val = self.view_nn(view_nn_input.squeeze())
@@ -166,6 +163,54 @@ class NextBestView(MultiViewPolicy):
 
         # output is a set of actions with values and estimated completion time
 
+        # # Combine the grasp and view probabilities
+        # if len(grasp_q) > 0:
+        #     combined_probabilities = F.softmax(torch.cat((torch.stack(grasp_q), torch.stack(view_q)), dim=0), dim=0)
+
+        # else:
+        #     combined_probabilities = F.softmax(torch.stack(view_q), dim=0)
+        # # print(combined_probabilities)
+ 
+        # action_dist = torch.distributions.Categorical(combined_probabilities)
+
+        # selected_action_index = action_dist.sample()
+
+        # action_lprob = action_dist.log_prob(selected_action_index)
+
+        # print("Selected index", selected_action_index)
+
+        # print("Action prob", action_lprob)
+
+        # grasp, view = False, False
+        # # Based on the selected index, determine whether it's a grasp or a view
+        # if selected_action_index < len(self.grasps):
+        #     print("Grasp")
+        #     grasp = True
+        #     selected_action = self.grasps[selected_action_index]
+        #     time_est = grasp_t[selected_action_index]
+        #     value = grasp_q[selected_action_index]
+        # else:
+        #     print("View")
+        #     view = True
+        #     selected_action = views[selected_action_index - len(self.grasps)]
+        #     time_est = view_t[selected_action_index - len(self.grasps)]
+        #     value = view_q[selected_action_index - len(self.grasps)]
+
+        # print(selected_action)
+        return grasp_q, grasp_t, view_q, view_t
+        return [grasp, view, selected_action, value, time_est, action_lprob, self.done]
+    
+    
+    def sample_action(self, grasp_q, grasp_t, view_q, view_t):
+
+        if self.done:
+            grasp = True
+            view = False
+            selected_action = self.grasps[0]
+            time_est = 0
+            value = 100
+            return [grasp, view, selected_action, value, time_est, np.log(1), self.done]
+        
         # Combine the grasp and view probabilities
         if len(grasp_q) > 0:
             combined_probabilities = F.softmax(torch.cat((torch.stack(grasp_q), torch.stack(view_q)), dim=0), dim=0)
@@ -191,17 +236,20 @@ class NextBestView(MultiViewPolicy):
             grasp = True
             selected_action = self.grasps[selected_action_index]
             time_est = grasp_t[selected_action_index]
+            value = grasp_q[selected_action_index]
         else:
             print("View")
             view = True
-            selected_action = views[selected_action_index - len(self.grasps)]
+            selected_action = self.views[selected_action_index - len(self.grasps)]
             time_est = view_t[selected_action_index - len(self.grasps)]
+            value = view_q[selected_action_index - len(self.grasps)]
 
         # print(selected_action)
 
         # self.done = True
 
-        return [grasp, view, selected_action, time_est, action_lprob]
+        return [grasp, view, selected_action, value, time_est, action_lprob, self.done]
+
 
 
     def join_clouds(self, map_cloud, occu):

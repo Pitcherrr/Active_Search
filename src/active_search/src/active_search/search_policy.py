@@ -96,6 +96,14 @@ class Policy:
         self.done = False
         self.info = {}
 
+    def init_data(self):
+        self.views = []
+        self.best_grasp = None
+        self.x_d = None
+        self.done = False
+        self.info = {}
+        self.qual_hist = np.zeros((self.T,) + (40,) * 3, np.float32)
+
     #I think this is contraining the frame in which the robot can operate
     def calibrate_task_frame(self):
         xyz = np.r_[self.bbox.center[:2] - 0.15, self.bbox.min[2] - 0.05]
@@ -155,7 +163,7 @@ class Policy:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
                 print(target.is_inside(tip))
-            if target.is_inside(tip) and quality > 0.9:
+            elif target.is_inside(tip) and quality > 0.9:
                 print("Checking grasp on target")
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
@@ -207,7 +215,7 @@ class MultiViewPolicy(Policy):
         )
 
 
-    def get_grasps(self, img, x, q):
+    def get_grasps(self, q):
         # print("################### predicting grasps ################################")
         with Timer("grasp_prediction"):
             tsdf_grid = self.tsdf.get_grid()

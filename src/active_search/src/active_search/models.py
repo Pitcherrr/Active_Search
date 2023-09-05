@@ -66,7 +66,7 @@ class GraspEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 2)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.00005)  
+        self.optimizer = optim.Adam(self.parameters(), lr=0.005)  
 
     def forward(self, x):
         x = self.fc1(x)
@@ -85,7 +85,7 @@ class ViewEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 2)   
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.00005)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))    
