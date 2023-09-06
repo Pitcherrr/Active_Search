@@ -62,9 +62,9 @@ class Autoencoder(nn.Module):
 class GraspEval(nn.Module):
     def __init__(self):
         super(GraspEval, self).__init__()
-        self.fc1 = nn.Linear(527, 256) 
+        self.fc1 = nn.Linear(526, 256) 
         self.fc2 = nn.Linear(256, 128)  
-        self.fc3 = nn.Linear(128, 2)
+        self.fc3 = nn.Linear(128, 1)
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.005)  
 
@@ -74,22 +74,22 @@ class GraspEval(nn.Module):
         x = self.fc2(x) 
         x = torch.relu(x)    
         x = self.fc3(x)
-        outputs = torch.relu(x)        
-        return outputs
+        # outputs = torch.relu(x)    
+        return x
 
 
 class ViewEval(nn.Module):
     def __init__(self):
         super(ViewEval, self).__init__()
-        self.fc1 = nn.Linear(527, 256) 
+        self.fc1 = nn.Linear(526, 256) 
         self.fc2 = nn.Linear(256, 128)  
-        self.fc3 = nn.Linear(128, 2)   
+        self.fc3 = nn.Linear(128, 1)   
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.005)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))    
         x = torch.relu(self.fc2(x))    
-        outputs = torch.relu(self.fc3(x))        
-        return outputs
+        x = self.fc3(x)        
+        return x
 

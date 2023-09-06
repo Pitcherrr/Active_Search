@@ -139,9 +139,11 @@ class GraspController:
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
                 model_sample = self.action_inference(enc_state, state[2], self.bbox)
                 self.frame += 1
-                [grasp, view, action, value, time_est, lprob, terminal] = model_sample
+                [grasp, view, action, value, lprob, terminal] = model_sample
 
-            init_occ = len(self.policy.coordinate_mat)
+
+            init_occ = len(self.policy.coordinate_mat) if len(self.policy.coordinate_mat) > 0 else 1
+            
             if grasp:
                 print("grasping")
                 start_time = time.time()
@@ -165,8 +167,8 @@ class GraspController:
                 t = 0
                 self.policy.x_d = action
                 timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for:", int(time_est + 3.0), "seconds")
-                while t < (time_est+3.0):
+                print("Executing for: 3 seconds")
+                while t < (3.0):
                     img, pose, q = self.get_state()
                     self.policy.integrate(img, pose, q)
                     t += 1/self.policy_rate
@@ -177,7 +179,7 @@ class GraspController:
             else:
                 res = "aborted"
 
-            reward = self.compute_reward(grasp, view, occ_diff, time_est, exec_time)
+            reward = self.compute_reward(grasp, view, occ_diff, exec_time)
             print("Reward", reward)
 
             next_state = self.get_state()
@@ -234,8 +236,14 @@ class GraspController:
         self.policy.init_data()
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
         # model_sample = self.policy.update(state, q)
-        grasp_q, grasp_t, view_q, view_t = self.policy.update(state, q)
-        model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
+        # grasp_q, grasp_t, view_q, view_t = self.policy.update(state, q)
+        start = time.time()
+        grasp_vals, view_vals = self.policy.update(state,q)
+        print("inference took:", time.time() - start)
+        # print("network output", out)
+        # model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
+        model_sample = self.policy.sample_action(grasp_vals, view_vals)
+
         timer.shutdown()
         return model_sample
 
@@ -282,12 +290,12 @@ class GraspController:
         print("Grasp information gain:", grasp_ig)
         return grasp_ig
 
-    def compute_reward(self, grasp, view, occ_diff, est_time, action_time):
+    def compute_reward(self, grasp, view, occ_diff, action_time):
         if grasp:
-            reward = occ_diff - est_time + action_time
+            reward = occ_diff - action_time
             return reward
         elif view:
-            reward = occ_diff - est_time
+            reward = occ_diff - 3
             return reward
         
     def update_networks(self, grasp, view, action, reward, lprob):
