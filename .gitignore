@@ -12,5 +12,4 @@ src/active_search/models/*
 src/kdl_parser_py/kdl_parser_py/__pycache__/*
 __pycache__/
 .vscode/
-
-
+vhacd_log.txt
