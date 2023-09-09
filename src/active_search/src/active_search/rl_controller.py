@@ -163,7 +163,7 @@ class GraspController:
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
             elif view:
-                exec_time = 0
+                start_time = time.time()
                 t = 0
                 self.policy.x_d = action
                 timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
@@ -175,6 +175,7 @@ class GraspController:
                     r.sleep()
                 rospy.sleep(0.2)        
                 timer.shutdown()
+                exec_time = time.time() - start_time
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
             else:
                 res = "aborted"
@@ -206,8 +207,11 @@ class GraspController:
                 
             # cur_pred_batch = self.action_inference(state_batch, q_batch, self.bbox)
             # next_pred_batch = self.action_inference(next_state_batch, next_q_batch, self.bbox)
+            print(reward_batch)
+            print(terminal_batch)
+            print(next_pred_batch)
 
-            y_batch = tuple(reward if terminal else reward + gamma * prediction[3] for reward, terminal, prediction in
+            y_batch = tuple(reward if terminal else reward + gamma * prediction[3][0] for reward, terminal, prediction in
                   zip(reward_batch, terminal_batch, next_pred_batch))
             
             print(y_batch)
