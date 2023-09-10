@@ -183,7 +183,7 @@ class GraspController:
             else:
                 res = "aborted"
 
-            reward = self.compute_reward(grasp, view, occ_diff, exec_time)
+            reward = self.compute_reward(grasp, view, terminal, occ_diff, exec_time)
             print("Reward", reward)
 
             next_state = self.get_state()
@@ -196,7 +196,7 @@ class GraspController:
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
             state_batch, q_batch, action_batch, reward_batch, next_state_batch, next_q_batch, terminal_batch = zip(*batch)
 
-            print("state", state_batch)
+            # print("state", state_batch)
 
             cur_pred_batch = []
             for enum_state, enum_q in zip(state_batch, q_batch):
@@ -210,20 +210,20 @@ class GraspController:
                 
             # cur_pred_batch = self.action_inference(state_batch, q_batch, self.bbox)
             # next_pred_batch = self.action_inference(next_state_batch, next_q_batch, self.bbox)
-            print(reward_batch)
-            print(terminal_batch)
-            print(next_pred_batch)
+            # print(reward_batch)
+            # print(terminal_batch)
+            # print(next_pred_batch)
 
             y_batch = torch.tensor([reward if terminal else reward + gamma * prediction[3][0] for reward, terminal, prediction in
                   zip(reward_batch, terminal_batch, next_pred_batch)], requires_grad=True).to(self.policy.device)
             
-            print(y_batch)
+            # print(y_batch)
 
-            print("current:", cur_pred_batch)
+            # print("current:", cur_pred_batch)
 
             cur_val_batch = torch.tensor([value[3] for value in cur_pred_batch], requires_grad=True).to(self.policy.device)
-            print(cur_val_batch)
-            print(action_batch)
+            # print(cur_val_batch)
+            # print(action_batch)
 
             q_value = torch.sum(cur_val_batch, dim=1)
 
@@ -322,8 +322,10 @@ class GraspController:
         print("Grasp information gain:", grasp_ig)
         return grasp_ig
 
-    def compute_reward(self, grasp, view, occ_diff, action_time):
-        if grasp:
+    def compute_reward(self, grasp, view, terminal, occ_diff, action_time):
+        if terminal:
+            return 100
+        elif grasp:
             reward = occ_diff - action_time
             return reward
         elif view:

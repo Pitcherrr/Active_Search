@@ -151,9 +151,6 @@ class NextBestView(MultiViewPolicy):
         view_input = torch.cat((view_states, view_tensor), -1).float()
         view_vals = self.view_nn(view_input)
 
-        print("grasp_vals", grasp_vals.size())
-        print("view_vals", view_vals.size())
-
         # grasp_q = []
         # grasp_t = []
         # for grasp, quality in zip(self.grasps, self.qualities):
@@ -237,19 +234,17 @@ class NextBestView(MultiViewPolicy):
         selected_action_index = action_dist.sample()
         action_lprob = action_dist.log_prob(selected_action_index)
 
-        print("Selected index", selected_action_index)
+        # print("Selected index", selected_action_index)
 
-        print("Action prob", action_lprob)
+        # print("Action prob", action_lprob)
 
         grasp, view = False, False
         # Based on the selected index, determine whether it's a grasp or a view
         if selected_action_index < len(self.grasps):
-            print("Grasp")
             grasp = True
             selected_action = self.grasps[selected_action_index]
             value = grasp_vals.tolist()[selected_action_index]
         else:
-            print("View")
             view = True
             selected_action = self.views[selected_action_index - len(self.grasps)]
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]

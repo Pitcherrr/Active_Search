@@ -146,9 +146,6 @@ class Policy:
         target_max = self.target_bb.max
         target = AABBox(target_min, target_max)
 
-        print(target.min)
-        print(target.max)
-
         self.vis.bbox(self.base_frame, target)
         # print("grasps", grasps, qualities)
         for grasp, quality in zip(grasps, qualities):
@@ -162,9 +159,7 @@ class Policy:
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-                print(target.is_inside(tip))
             elif target.is_inside(tip) and quality > 0.9:
-                print("Checking grasp on target")
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
