@@ -223,7 +223,7 @@ class NextBestView(MultiViewPolicy):
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = 100
+            value = [100]
             return [grasp, view, selected_action, value, np.log(1), self.done]
         
         # Combine the grasp and view probabilities

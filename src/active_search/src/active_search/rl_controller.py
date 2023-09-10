@@ -128,10 +128,13 @@ class GraspController:
 
         replay_mem = []
         it = 0 
-        max_it = 10
+        max_it = 20
         replay_size = 100
         batch_size = 32
         gamma = 0.9
+
+        grasp_criterion = torch.nn.MSELoss()
+        view_criterion = torch.nn.MSELoss()
 
         while not self.complete and it < max_it:
             with Timer("inference_time"):
@@ -211,12 +214,37 @@ class GraspController:
             print(terminal_batch)
             print(next_pred_batch)
 
-            y_batch = tuple(reward if terminal else reward + gamma * prediction[3][0] for reward, terminal, prediction in
-                  zip(reward_batch, terminal_batch, next_pred_batch))
+            y_batch = torch.tensor([reward if terminal else reward + gamma * prediction[3][0] for reward, terminal, prediction in
+                  zip(reward_batch, terminal_batch, next_pred_batch)], requires_grad=True).to(self.policy.device)
             
             print(y_batch)
 
-            self.update_networks(grasp, view, action, reward, lprob)
+            print("current:", cur_pred_batch)
+
+            cur_val_batch = torch.tensor([value[3] for value in cur_pred_batch], requires_grad=True).to(self.policy.device)
+            print(cur_val_batch)
+            print(action_batch)
+
+            q_value = torch.sum(cur_val_batch, dim=1)
+
+            self.policy.grasp_nn.optimizer.zero_grad()
+            self.policy.view_nn.optimizer.zero_grad()
+
+            grasp_loss = grasp_criterion(q_value, y_batch)
+            view_loss = view_criterion(q_value, y_batch)
+
+            print(grasp_loss)
+            print(view_loss)
+
+            grasp_loss.backward()
+            view_loss.backward()
+
+            self.policy.grasp_nn.optimizer.step()
+            self.policy.view_nn.optimizer.step()
+
+            # state = next_state
+
+            # self.update_networks(grasp, view, action, reward, lprob)
 
             it += 1
 
