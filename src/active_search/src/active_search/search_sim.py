@@ -333,7 +333,7 @@ class RandomOccludedScene(Scene):
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
-        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
+        self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/cap")
         #print(self.object_urdfs)
 
     def generate(self, rng, object_count=3, attempts=10):

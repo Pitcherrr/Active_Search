@@ -242,7 +242,7 @@ class Environment:
         target_bb.color = [0, 1, 0] 
 
         frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.05)
-        origin_sphere = mesh = o3d.geometry.TriangleMesh.create_sphere(0.05)
+        origin_sphere = o3d.geometry.TriangleMesh.create_sphere(0.05)
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
 
         object_bb = self.get_object_bbox(self.sim.object_uids)

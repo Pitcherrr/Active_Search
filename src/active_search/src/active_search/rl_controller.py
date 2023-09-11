@@ -127,6 +127,8 @@ class GraspController:
         # init_occ = len(self.policy.coordinate_mat)
 
         replay_mem = []
+        grasp_mask = []
+        view_mask = []
         it = 0 
         max_it = 20
         replay_size = 100
@@ -165,6 +167,8 @@ class GraspController:
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
+                grasp_mask.append(1)
+                view_mask.append(0)
             elif view:
                 start_time = time.time()
                 t = 0
@@ -180,6 +184,8 @@ class GraspController:
                 timer.shutdown()
                 exec_time = time.time() - start_time
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                grasp_mask.append(0)
+                view_mask.append(1)
             else:
                 res = "aborted"
 
