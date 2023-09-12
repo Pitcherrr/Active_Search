@@ -138,12 +138,14 @@ class NextBestView(MultiViewPolicy):
 
         # We now have a vector of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
         # and each action from the 2 sets
-
-        grasp_states = state.repeat(len(self.grasps), 1)
-        g_pose_list = [grasp.pose.to_list() for grasp in self.grasps]
-        grasp_tensor = torch.tensor(g_pose_list).to(self.device)
-        grasp_input = torch.cat((grasp_states, grasp_tensor), -1).float()
-        grasp_vals = self.grasp_nn(grasp_input)
+        if len(self.grasps) > 0:
+            grasp_states = state.repeat(len(self.grasps), 1)
+            g_pose_list = [grasp.pose.to_list() for grasp in self.grasps]
+            grasp_tensor = torch.tensor(g_pose_list).to(self.device)
+            grasp_input = torch.cat((grasp_states, grasp_tensor), -1).float()
+            grasp_vals = self.grasp_nn(grasp_input)
+        else:
+            grasp_vals = torch.empty((0)).to(self.device)
 
         view_states = state.repeat(len(self.views), 1)
         v_pose_list = [view.to_list() for view in self.views]
@@ -220,7 +222,7 @@ class NextBestView(MultiViewPolicy):
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = [100]
+            value = [100.0]
             return [grasp, view, selected_action, value, np.log(1), self.done]
         
         # Combine the grasp and view probabilities

@@ -8,6 +8,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 from random import sample
+import geometry_msgs.msg
 import trimesh
 import threading
 import time
@@ -67,7 +68,7 @@ class GraspController:
     def init_moveit(self):
         self.moveit = MoveItClient("panda_arm")
         rospy.sleep(1.0)  # Wait for connections to be established.
-        self.moveit.move_group.set_planner_id("RRTstarkConfigDefault")
+        self.moveit.move_group.set_planner_id("RRTstar")
         self.moveit.move_group.set_planning_time(3.0)
 
     def switch_to_cartesian_velocity_control(self):
@@ -90,6 +91,7 @@ class GraspController:
 
     def init_tensorboard(self):
         self.writer = SummaryWriter()
+        self.frame = 0
 
     def sensor_cb(self, msg):
         self.latest_depth_msg = msg
@@ -117,8 +119,6 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
         r = rospy.Rate(self.policy_rate)
 
-        self.frame = 0
-
         # sample = self.sample_environment(self.bbox)
 
         state = self.get_state()
@@ -131,7 +131,7 @@ class GraspController:
         view_mask = []
         it = 0 
         max_it = 20
-        replay_size = 100
+        replay_size = 5
         batch_size = 32
         gamma = 0.9
 
@@ -143,7 +143,6 @@ class GraspController:
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
                 model_sample = self.action_inference(enc_state, state[2], self.bbox)
-                self.frame += 1
                 [grasp, view, action, value, lprob, terminal] = model_sample
 
 
@@ -157,14 +156,16 @@ class GraspController:
                 with Timer("grasp_time"):
                     grasp_thread.start()
                     while True:
-                        img, pose, q = self.get_state()
-                        self.policy.integrate(img, pose, q)
+                        if self.grasp_integrate:
+                            img, pose, q = self.get_state()
+                            self.policy.integrate(img, pose, q)
                         r.sleep()
                         if not grasp_thread.is_alive():
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
-                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                print("grasp_ig:", self.grasp_ig)
+                occ_diff = torch.tensor(float(10-10*(1 - self.grasp_ig/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
                 info = self.collect_info(res)
                 grasp_mask.append(1)
@@ -199,11 +200,11 @@ class GraspController:
 
             if len(replay_mem) > replay_size:
                 del replay_mem[0]
+
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
             state_batch, q_batch, action_batch, reward_batch, next_state_batch, next_q_batch, terminal_batch = zip(*batch)
 
             # print("state", state_batch)
-
             cur_pred_batch = []
             for enum_state, enum_q in zip(state_batch, q_batch):
                 val = self.action_inference(enum_state, enum_q, self.bbox)
@@ -239,8 +240,8 @@ class GraspController:
             grasp_loss = grasp_criterion(q_value, y_batch)
             view_loss = view_criterion(q_value, y_batch)
 
-            print(grasp_loss)
-            print(view_loss)
+            print("grasp loss:", grasp_loss)
+            print("view loss:", view_loss)
 
             grasp_loss.backward()
             view_loss.backward()
@@ -251,6 +252,12 @@ class GraspController:
             # state = next_state
 
             # self.update_networks(grasp, view, action, reward, lprob)
+
+            self.writer.add_scalar("Grasp Loss/train", grasp_loss, self.frame)
+            self.writer.add_scalar("View Loss/train", view_loss, self.frame)
+
+            print("Frame:", self.frame)
+            self.frame += 1
 
             it += 1
 
@@ -330,7 +337,7 @@ class GraspController:
 
     def compute_reward(self, grasp, view, terminal, occ_diff, action_time):
         if terminal:
-            return 100
+            return 100.0
         elif grasp:
             reward = occ_diff - action_time
             return reward
@@ -379,6 +386,7 @@ class GraspController:
         return np.r_[linear, angular]
 
     def execute_grasp(self, grasp):
+        self.grasp_integrate = True
         self.create_collision_scene()
         T_base_grasp = self.postprocess(grasp.pose)
         self.gripper.move(0.08)
@@ -391,6 +399,7 @@ class GraspController:
             self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)
             rospy.sleep(0.5)
             self.gripper.grasp()
+            self.grasp_integrate = False
             #remove the body from the scene
             T_base_retreat = Transform.t_[0, 0, 0.05] * T_base_grasp * self.T_grasp_ee
             self.moveit.gotoL(T_base_retreat)
@@ -401,11 +410,12 @@ class GraspController:
                 self.grasp_result = "succeeded"
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
                 response = from_bbox_msg(remove_body(ResetRequest()).bbox)
-                self.policy.tsdf_cut(response)
+                self.grasp_ig = self.policy.tsdf_cut(response)
                 self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 self.gripper.move(0.08)
             else:
                 self.grasp_result = "failed" 
+                self.grasp_ig = 0.0
  
         else:
             self.grasp_result = "no_motion_plan_found"
@@ -449,6 +459,12 @@ class GraspController:
         frame, pose = self.base_frame, Transform.identity()
         co = create_collision_object_from_mesh(name, frame, pose, mesh)
         self.moveit.scene.add_object(co)
+        # # Add a box to the planning scene to avoid collisions with the table.
+        msg = geometry_msgs.msg.PoseStamped()
+        msg.header.frame_id = self.base_frame
+        msg.pose.position.x = 0.4
+        msg.pose.position.z = 0.18
+        self.moveit.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
     def postprocess(self, T_base_grasp):
         rot = T_base_grasp.rotation

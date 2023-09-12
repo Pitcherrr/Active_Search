@@ -301,6 +301,13 @@ class MultiViewPolicy(Policy):
         min_bound = np.clip(min_bound,0,np.inf).astype(int)
         max_bound = np.ceil(np.asarray(bb.max) / self.tsdf.voxel_size) + self.tsdf.sdf_trunc/self.tsdf.voxel_size #- [0,0,6}
         max_bound = np.clip(max_bound,0,np.inf).astype(int)
+
+        x_mask = np.logical_and(self.coordinate_mat[:,0] >= min_bound[0], self.coordinate_mat[:,0] <= max_bound[0])
+        y_mask = np.logical_and(self.coordinate_mat[:,1] >= min_bound[1], self.coordinate_mat[:,1] <= max_bound[1])
+        z_mask = np.logical_and(self.coordinate_mat[:,2] >= min_bound[2], self.coordinate_mat[:,2] <= max_bound[2])
+
+        points_within_box = np.logical_and(np.logical_and(x_mask, y_mask), z_mask)
+
         bb_vis = bb
         bb_vis.min += [0.35,-0.15,0.2]
         bb_vis.max += [0.35,-0.15,0.2]
@@ -315,6 +322,9 @@ class MultiViewPolicy(Policy):
         #update rviz
         scene_cloud = self.tsdf.get_scene_cloud()
         self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
+
+        # return np.prod(max_bound - min_bound)
+        return np.sum(points_within_box)
 
 
 
