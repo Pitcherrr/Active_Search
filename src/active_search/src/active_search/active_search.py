@@ -144,6 +144,7 @@ class NextBestView(MultiViewPolicy):
             grasp_tensor = torch.tensor(g_pose_list).to(self.device)
             grasp_input = torch.cat((grasp_states, grasp_tensor), -1).float()
             grasp_vals = self.grasp_nn(grasp_input)
+            print("grasp vals:", grasp_vals)
         else:
             grasp_vals = torch.empty((0)).to(self.device)
 
@@ -152,6 +153,7 @@ class NextBestView(MultiViewPolicy):
         view_tensor = torch.tensor(v_pose_list).to(self.device)
         view_input = torch.cat((view_states, view_tensor), -1).float()
         view_vals = self.view_nn(view_input)
+        print("view vals:", view_vals)
 
         # grasp_q = []
         # grasp_t = []
@@ -222,9 +224,13 @@ class NextBestView(MultiViewPolicy):
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = [100.0]
+            value = 10.0
             return [grasp, view, selected_action, value, np.log(1), self.done]
         
+        grasp_vals = torch.softmax(torch.flatten(grasp_vals), dim=0)
+        print("softmax grasps", grasp_vals)
+        view_vals = torch.softmax(torch.flatten(view_vals), dim=0)
+        print("softmax views", view_vals)
         # Combine the grasp and view probabilities
         if grasp_vals.size(dim=0) > 0:
             combined_probabilities = F.softmax(torch.cat((grasp_vals, view_vals), dim=0), dim=0)
@@ -232,6 +238,7 @@ class NextBestView(MultiViewPolicy):
         else:
             combined_probabilities = F.softmax(view_vals, dim=0)
  
+        print("combined probs", combined_probabilities)
         action_dist = torch.distributions.Categorical(combined_probabilities.flatten())
         selected_action_index = action_dist.sample()
         action_lprob = action_dist.log_prob(selected_action_index)

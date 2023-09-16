@@ -74,7 +74,7 @@ class GraspEval(nn.Module):
         x = self.fc2(x) 
         x = torch.relu(x)    
         x = self.fc3(x)
-        # outputs = torch.relu(x)    
+        # output = torch.softmax(x)    
         return x
 
 

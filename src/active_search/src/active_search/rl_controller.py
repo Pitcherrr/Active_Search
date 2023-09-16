@@ -132,7 +132,7 @@ class GraspController:
         it = 0 
         max_it = 20
         replay_size = 5
-        batch_size = 32
+        batch_size = 5
         gamma = 0.9
 
         grasp_criterion = torch.nn.MSELoss()
@@ -164,10 +164,10 @@ class GraspController:
                             res = self.grasp_result
                             break
                 self.switch_to_cartesian_velocity_control()
-                print("grasp_ig:", self.grasp_ig)
-                occ_diff = torch.tensor(float(10-10*(1 - self.grasp_ig/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                print("grasp gain:", self.grasp_gain)
+                occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                print("occupancy diff:", occ_diff)
                 exec_time = time.time() - start_time
-                info = self.collect_info(res)
                 grasp_mask.append(1)
                 view_mask.append(0)
             elif view:
@@ -187,6 +187,7 @@ class GraspController:
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
                 grasp_mask.append(0)
                 view_mask.append(1)
+                res = "view"
             else:
                 res = "aborted"
 
@@ -195,25 +196,30 @@ class GraspController:
 
             next_state = self.get_state()
             next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
+            model_sample = self.action_inference(enc_state, state[2], self.bbox)
+            [_, _, _, next_value, _, next_terminal] = model_sample
 
-            replay_mem.append([enc_state, q, action, reward, next_enc_state, next_state[2], self.policy.done])
+            print("Next state is terminal:", next_terminal)
+
+            replay_mem.append([enc_state, q, action, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
 
             if len(replay_mem) > replay_size:
                 del replay_mem[0]
 
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
-            state_batch, q_batch, action_batch, reward_batch, next_state_batch, next_q_batch, terminal_batch = zip(*batch)
+            state_batch, q_batch, action_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
 
             # print("state", state_batch)
-            cur_pred_batch = []
-            for enum_state, enum_q in zip(state_batch, q_batch):
-                val = self.action_inference(enum_state, enum_q, self.bbox)
-                cur_pred_batch.append(val)
+            # cur_pred_batch = []
+            # for enum_state, enum_q in zip(state_batch, q_batch):
+            #     val = self.action_inference(enum_state, enum_q, self.bbox)
+            #     cur_pred_batch.append(val)
 
-            next_pred_batch = []
-            for enum_state, enum_q in zip(next_state_batch, next_q_batch):
-                val = self.action_inference(enum_state, enum_q, self.bbox)
-                next_pred_batch.append(val)
+
+            # next_pred_batch = []
+            # for enum_state, enum_q in zip(next_state_batch, next_q_batch):
+            #     val = self.action_inference(enum_state, enum_q, self.bbox)
+            #     next_pred_batch.append(val)
                 
             # cur_pred_batch = self.action_inference(state_batch, q_batch, self.bbox)
             # next_pred_batch = self.action_inference(next_state_batch, next_q_batch, self.bbox)
@@ -221,18 +227,21 @@ class GraspController:
             # print(terminal_batch)
             # print(next_pred_batch)
 
-            y_batch = torch.tensor([reward if terminal else reward + gamma * prediction[3][0] for reward, terminal, prediction in
-                  zip(reward_batch, terminal_batch, next_pred_batch)], requires_grad=True).to(self.policy.device)
+            print(next_value_batch)
+
+            y_batch = torch.tensor([reward if terminal else reward + gamma * prediction for reward, terminal, prediction in
+                  zip(reward_batch, terminal_batch, next_value_batch)], requires_grad=True).to(self.policy.device)
             
             # print(y_batch)
 
             # print("current:", cur_pred_batch)
 
-            cur_val_batch = torch.tensor([value[3] for value in cur_pred_batch], requires_grad=True).to(self.policy.device)
+            # cur_val_batch = torch.tensor([value[3] for value in cur_pred_batch], requires_grad=True).to(self.policy.device)
             # print(cur_val_batch)
             # print(action_batch)
+            print(value_batch)
 
-            q_value = torch.sum(cur_val_batch, dim=1)
+            q_value = torch.sum(torch.tensor(value_batch).to(self.policy.device), dim=0)
 
             self.policy.grasp_nn.optimizer.zero_grad()
             self.policy.view_nn.optimizer.zero_grad()
@@ -261,6 +270,7 @@ class GraspController:
 
             it += 1
 
+            info = self.collect_info(res)
 
         self.writer.flush()
         return info
@@ -337,13 +347,13 @@ class GraspController:
 
     def compute_reward(self, grasp, view, terminal, occ_diff, action_time):
         if terminal:
-            return 100.0
+            return 10.0
         elif grasp:
             reward = occ_diff - action_time
-            return reward
+            return torch.clamp(reward, -10, 10)
         elif view:
             reward = occ_diff - 3
-            return reward
+            return torch.clamp(reward, -10, 10)
         
     def update_networks(self, grasp, view, action, reward, lprob):
         if grasp:
@@ -387,6 +397,7 @@ class GraspController:
 
     def execute_grasp(self, grasp):
         self.grasp_integrate = True
+        self.grasp_gain = 0.0
         self.create_collision_scene()
         T_base_grasp = self.postprocess(grasp.pose)
         self.gripper.move(0.08)
@@ -410,12 +421,11 @@ class GraspController:
                 self.grasp_result = "succeeded"
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
                 response = from_bbox_msg(remove_body(ResetRequest()).bbox)
-                self.grasp_ig = self.policy.tsdf_cut(response)
+                self.grasp_gain = self.policy.tsdf_cut(response)
                 self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 self.gripper.move(0.08)
             else:
                 self.grasp_result = "failed" 
-                self.grasp_ig = 0.0
  
         else:
             self.grasp_result = "no_motion_plan_found"

@@ -159,7 +159,7 @@ class Policy:
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            elif target.is_inside(tip) and quality > 0.9:
+            if target.is_inside(tip) and quality > 0.9:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
