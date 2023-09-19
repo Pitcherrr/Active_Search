@@ -49,7 +49,7 @@ def main():
 
     # rospy.sleep(5.0) 
 
-    for _ in tqdm(range(args.runs), disable=args.wait_for_input):
+    for n in tqdm(range(400), disable=args.wait_for_input):
         if args.wait_for_input:
             controller.gripper.move(0.08)
             controller.switch_to_joint_trajectory_control()
@@ -60,6 +60,9 @@ def main():
             rospy.loginfo("Running policy ...")
         info = controller.run()
         logger.log_run(info)
+        if n % 20 == 0:
+            controller.policy.view_nn.save_model()
+            controller.policy.grasp_nn.save_model()
 
 
 def create_parser():

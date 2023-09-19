@@ -336,7 +336,7 @@ class RandomOccludedScene(Scene):
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=3, attempts=10):
+    def generate(self, rng, object_count=8, attempts=10):
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
@@ -374,7 +374,7 @@ class RandomOccludedScene(Scene):
         ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
         # ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
         
-        self.add_object(occluding, ori, np.asarray(mid_bb) + [0,0,0.2], 0.02)
+        # self.add_object(occluding, ori, np.asarray(mid_bb) + [0,0,0.2], 0.02)
         # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
         
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]

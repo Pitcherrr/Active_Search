@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import os
 
 
 class Autoencoder(nn.Module):
@@ -66,7 +67,10 @@ class GraspEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 1)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.005)  
+        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        self.model_path =  str(pkg_root)+"/models/graspnn_weights.pth"  
 
     def forward(self, x):
         x = self.fc1(x)
@@ -76,6 +80,9 @@ class GraspEval(nn.Module):
         x = self.fc3(x)
         # output = torch.softmax(x)    
         return x
+    
+    def save_model(self):
+        torch.save(self.state_dict(), self.model_path)
 
 
 class ViewEval(nn.Module):
@@ -87,9 +94,17 @@ class ViewEval(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.005)
 
+        rospack = rospkg.RosPack()
+        pkg_root = Path(rospack.get_path("active_search"))
+        self.model_path =  str(pkg_root)+"/models/viewnn_weights.pth"
+
     def forward(self, x):
         x = torch.relu(self.fc1(x))    
         x = torch.relu(self.fc2(x))    
         x = self.fc3(x)        
         return x
+    
+    def save_model(self):
+        torch.save(self.state_dict(), self.model_path)
+
 

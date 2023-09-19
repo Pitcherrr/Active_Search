@@ -27,8 +27,6 @@ from vgn.utils import look_at, cartesian_to_spherical, spherical_to_cartesian
 from vgn.detection import select_local_maxima
 import torch
 
-from .models import Autoencoder
-
 
 class GraspController:
     def __init__(self, policy):
@@ -201,13 +199,13 @@ class GraspController:
 
             print("Next state is terminal:", next_terminal)
 
-            replay_mem.append([enc_state, q, action, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
+            replay_mem.append([[int(grasp), int(view)], enc_state, q, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
 
             if len(replay_mem) > replay_size:
                 del replay_mem[0]
 
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
-            state_batch, q_batch, action_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
+            action_batch, state_batch, q_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
 
             # print("state", state_batch)
             # cur_pred_batch = []
@@ -232,32 +230,40 @@ class GraspController:
             y_batch = torch.tensor([reward if terminal else reward + gamma * prediction for reward, terminal, prediction in
                   zip(reward_batch, terminal_batch, next_value_batch)], requires_grad=True).to(self.policy.device)
             
-            # print(y_batch)
+            y_values = y_batch * torch.tensor(action_batch).to(self.policy.device).T
+            grasp_y_values = y_values[0] 
+            view_y_values = y_values[1]
 
-            # print("current:", cur_pred_batch)
+            values = np.asarray(value_batch) * np.asarray(action_batch).T
 
-            # cur_val_batch = torch.tensor([value[3] for value in cur_pred_batch], requires_grad=True).to(self.policy.device)
-            # print(cur_val_batch)
-            # print(action_batch)
-            print(value_batch)
+            grasp_q_values = torch.tensor(values[0]).to(self.policy.device).float() 
+            view_q_values = torch.tensor(values[1]).to(self.policy.device).float()
 
-            q_value = torch.sum(torch.tensor(value_batch).to(self.policy.device), dim=0)
+            
+            print(view_y_values)
+            print(view_q_values)
+            print(grasp_y_values)
+            print(grasp_q_values)
+            
+
+            # q_value = torch.sum(torch.tensor(value_batch).to(self.policy.device), dim=0)
+
+            # print("q_value", q_value)
 
             self.policy.grasp_nn.optimizer.zero_grad()
+            grasp_loss = grasp_criterion(grasp_q_values, grasp_y_values)
+            grasp_loss.backward(retain_graph = True)
+            self.policy.grasp_nn.optimizer.step()
+            
             self.policy.view_nn.optimizer.zero_grad()
-
-            grasp_loss = grasp_criterion(q_value, y_batch)
-            view_loss = view_criterion(q_value, y_batch)
+            view_loss = view_criterion(view_q_values, view_y_values)
+            view_loss.backward(retain_graph = True)
+            self.policy.view_nn.optimizer.step()
 
             print("grasp loss:", grasp_loss)
             print("view loss:", view_loss)
 
-            grasp_loss.backward()
-            view_loss.backward()
-
-            self.policy.grasp_nn.optimizer.step()
-            self.policy.view_nn.optimizer.step()
-
+            
             # state = next_state
 
             # self.update_networks(grasp, view, action, reward, lprob)
