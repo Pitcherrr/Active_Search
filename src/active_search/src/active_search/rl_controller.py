@@ -133,6 +133,8 @@ class GraspController:
         batch_size = 5
         gamma = 0.9
 
+        fail_count = 0
+
         grasp_criterion = torch.nn.MSELoss()
         view_criterion = torch.nn.MSELoss()
 
@@ -140,7 +142,7 @@ class GraspController:
             with Timer("inference_time"):
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
-                model_sample = self.action_inference(enc_state, state[2], self.bbox)
+                grasp_input, view_input, model_sample = self.action_inference(enc_state, state[2], self.bbox)
                 [grasp, view, action, value, lprob, terminal] = model_sample
 
 
@@ -161,6 +163,8 @@ class GraspController:
                         if not grasp_thread.is_alive():
                             res = self.grasp_result
                             break
+                if self.grasp_result == "failed":
+                    fail_count += 1
                 self.switch_to_cartesian_velocity_control()
                 print("grasp gain:", self.grasp_gain)
                 occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
@@ -194,18 +198,18 @@ class GraspController:
 
             next_state = self.get_state()
             next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
-            model_sample = self.action_inference(enc_state, state[2], self.bbox)
+            grasp_input, view_input, model_sample = self.action_inference(enc_state, state[2], self.bbox)
             [_, _, _, next_value, _, next_terminal] = model_sample
 
             print("Next state is terminal:", next_terminal)
 
-            replay_mem.append([[int(grasp), int(view)], enc_state, q, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
+            replay_mem.append([grasp_input, view_input, [int(grasp), int(view)], enc_state, q, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
 
             if len(replay_mem) > replay_size:
                 del replay_mem[0]
 
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
-            action_batch, state_batch, q_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
+            grasp_batch, view_batch, action_batch, state_batch, q_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
 
             # print("state", state_batch)
             # cur_pred_batch = []
@@ -250,6 +254,7 @@ class GraspController:
 
             # print("q_value", q_value)
 
+            #network updates
             self.policy.grasp_nn.optimizer.zero_grad()
             grasp_loss = grasp_criterion(grasp_q_values, grasp_y_values)
             grasp_loss.backward(retain_graph = True)
@@ -277,9 +282,14 @@ class GraspController:
             it += 1
 
             info = self.collect_info(res)
+            if fail_count >= 3:
+                self.complete = True
 
         self.writer.flush()
         return info
+    
+    def run_policy(self):
+        return
 
     def reset(self):
         Timer.reset()
@@ -299,14 +309,15 @@ class GraspController:
         # model_sample = self.policy.update(state, q)
         # grasp_q, grasp_t, view_q, view_t = self.policy.update(state, q)
         start = time.time()
-        grasp_vals, view_vals = self.policy.update(state,q)
+        grasp_input, view_input = self.policy.get_actions(state,q)
+        grasp_vals, view_vals = self.policy.update(grasp_input, view_input)
         print("inference took:", time.time() - start)
         # print("network output", out)
         # model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
         model_sample = self.policy.sample_action(grasp_vals, view_vals)
 
         timer.shutdown()
-        return model_sample
+        return grasp_input, view_input, model_sample
 
 
     def search_grasp(self, bbox):
@@ -316,6 +327,7 @@ class GraspController:
         r = rospy.Rate(self.policy_rate)
         while not self.policy.done:
             img, pose, q = self.get_state()
+
             self.policy.update(img, pose, q)
             r.sleep()
         rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
@@ -360,20 +372,6 @@ class GraspController:
         elif view:
             reward = occ_diff - 3
             return torch.clamp(reward, -10, 10)
-        
-    def update_networks(self, grasp, view, action, reward, lprob):
-        if grasp:
-            self.policy.grasp_nn.optimizer.zero_grad()
-            loss = lprob * reward
-            loss.backward()
-            self.policy.grasp_nn.optimizer.step()
-        elif view:
-            self.policy.view_nn.optimizer.zero_grad()
-            loss = lprob * reward
-            reward.backward()
-            self.policy.view_nn.optimizer.step()
-
-        self.writer.add_scalar("Loss/train", loss, self.frame)
 
     def get_state(self):
         q, _ = self.arm.get_state()

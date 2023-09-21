@@ -76,9 +76,11 @@ class NextBestView(MultiViewPolicy):
         self.autoencoder.to(self.device).float()
 
         self.grasp_nn = GraspEval()
+        self.grasp_nn.load_model()
         self.grasp_nn.to(self.device).float()
         
         self.view_nn = ViewEval()
+        self.view_nn.load_model()
         self.view_nn.to(self.device).float()
 
     def load_ppo(self):
@@ -122,100 +124,35 @@ class NextBestView(MultiViewPolicy):
         # print("Encode Time:", time.time()- start)
         state = torch.cat((encoded_voxel, torch.tensor([q]).to(self.device)), 1)
         return state
-
-    def update(self, state, q):
-        # First we integrate to gain data from the current scene
-        # This includes the TSDF, occluded lovcations, and grasps  
- 
-        # self.integrate(img, x, q)
+    
+    def get_actions(self, state, q):
         self.get_grasps(q)
 
-        # Then generate the view candidates and their corresponding information gains
         self.views = self.generate_views(q)
-        # self.gains = [self.ig_fn(v, self.downsample) for v in self.views]
 
-        # We now have 2 sets of actions that can be evaluated
-
-        # We now have a vector of length 512 that represents our scene and we can evaluate this scene along with our robots pose 
-        # and each action from the 2 sets
         if len(self.grasps) > 0:
             grasp_states = state.repeat(len(self.grasps), 1)
             g_pose_list = [grasp.pose.to_list() for grasp in self.grasps]
             grasp_tensor = torch.tensor(g_pose_list).to(self.device)
             grasp_input = torch.cat((grasp_states, grasp_tensor), -1).float()
-            grasp_vals = self.grasp_nn(grasp_input)
-            print("grasp vals:", grasp_vals)
         else:
-            grasp_vals = torch.empty((0)).to(self.device)
+            grasp_input = torch.empty((0)).to(self.device)
 
         view_states = state.repeat(len(self.views), 1)
         v_pose_list = [view.to_list() for view in self.views]
         view_tensor = torch.tensor(v_pose_list).to(self.device)
         view_input = torch.cat((view_states, view_tensor), -1).float()
+
+        return grasp_input, view_input
+
+
+    def update(self, grasp_input, view_input):
+
+        grasp_vals = self.grasp_nn(grasp_input)
+
         view_vals = self.view_nn(view_input)
-        print("view vals:", view_vals)
 
-        # grasp_q = []
-        # grasp_t = []
-        # for grasp, quality in zip(self.grasps, self.qualities):
-        #     grasp_nn_input = torch.cat((state, torch.tensor([np.concatenate((grasp.pose.to_list(), [quality]), dtype=np.float32)]).to(self.device)), 1).float()
-        #     # print(grasp_nn_input.shape)
-        #     # From here evaluate the actions through the network
-        #     grasp_val = self.grasp_nn(grasp_nn_input.squeeze())
-        #     # print("grasp val", grasp_val)
-        #     grasp_q.append(grasp_val[0])
-        #     grasp_t.append(grasp_val[1]) 
-
-        # view_q = []
-        # view_t = []
-        # for view, info_gain in zip(self.views, self.gains):
-        #     view_nn_input = torch.cat((state, torch.tensor([np.concatenate((view.to_list(), [info_gain]), dtype=np.float32)]).to(self.device)), 1).float()
-        #     # print(view_nn_input.shape)
-        #     # From here evaluate the actions through the network 
-        #     view_val = self.view_nn(view_nn_input.squeeze())
-        #     # print("view val", view_val)
-        #     view_q.append(view_val[0])
-        #     view_t.append(view_val[1])
-
-        # output is a set of actions with values and estimated completion time
-
-        # # Combine the grasp and view probabilities
-        # if len(grasp_q) > 0:
-        #     combined_probabilities = F.softmax(torch.cat((torch.stack(grasp_q), torch.stack(view_q)), dim=0), dim=0)
-
-        # else:
-        #     combined_probabilities = F.softmax(torch.stack(view_q), dim=0)
-        # # print(combined_probabilities)
- 
-        # action_dist = torch.distributions.Categorical(combined_probabilities)
-
-        # selected_action_index = action_dist.sample()
-
-        # action_lprob = action_dist.log_prob(selected_action_index)
-
-        # print("Selected index", selected_action_index)
-
-        # print("Action prob", action_lprob)
-
-        # grasp, view = False, False
-        # # Based on the selected index, determine whether it's a grasp or a view
-        # if selected_action_index < len(self.grasps):
-        #     print("Grasp")
-        #     grasp = True
-        #     selected_action = self.grasps[selected_action_index]
-        #     time_est = grasp_t[selected_action_index]
-        #     value = grasp_q[selected_action_index]
-        # else:
-        #     print("View")
-        #     view = True
-        #     selected_action = views[selected_action_index - len(self.grasps)]
-        #     time_est = view_t[selected_action_index - len(self.grasps)]
-        #     value = view_q[selected_action_index - len(self.grasps)]
-
-        # print(selected_action)
-        # return grasp_q, grasp_t, view_q, view_t
         return grasp_vals, view_vals
-        return [grasp, view, selected_action, value, time_est, action_lprob, self.done]
     
     
     def sample_action(self, grasp_vals, view_vals):

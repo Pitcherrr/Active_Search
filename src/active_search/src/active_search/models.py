@@ -83,7 +83,9 @@ class GraspEval(nn.Module):
     
     def save_model(self):
         torch.save(self.state_dict(), self.model_path)
-
+    
+    def load_model(self):
+        self.load_state_dict(torch.load(self.model_path))
 
 class ViewEval(nn.Module):
     def __init__(self):
@@ -107,4 +109,6 @@ class ViewEval(nn.Module):
     def save_model(self):
         torch.save(self.state_dict(), self.model_path)
 
-
+    def load_model(self):
+        self.load_state_dict(torch.load(self.model_path))
+    
