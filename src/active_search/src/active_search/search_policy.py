@@ -98,6 +98,7 @@ class Policy:
 
     def init_data(self):
         self.views = []
+        self.grasps = []
         self.best_grasp = None
         self.x_d = None
         self.done = False

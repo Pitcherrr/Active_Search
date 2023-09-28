@@ -67,7 +67,7 @@ class GraspController:
         self.moveit = MoveItClient("panda_arm")
         rospy.sleep(1.0)  # Wait for connections to be established.
         self.moveit.move_group.set_planner_id("RRTstar")
-        self.moveit.move_group.set_planning_time(3.0)
+        self.moveit.move_group.set_planning_time(1.0)
 
     def switch_to_cartesian_velocity_control(self):
         req = SwitchControllerRequest()
@@ -128,7 +128,7 @@ class GraspController:
         grasp_mask = []
         view_mask = []
         it = 0 
-        max_it = 20
+        max_it = 30
         replay_size = 5
         batch_size = 5
         gamma = 0.9
@@ -142,8 +142,8 @@ class GraspController:
             with Timer("inference_time"):
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
-                grasp_input, view_input, model_sample = self.action_inference(enc_state, state[2], self.bbox)
-                [grasp, view, action, value, lprob, terminal] = model_sample
+                model_sample = self.action_inference(enc_state, state[2], self.bbox)
+                [grasp, view, action, value, action_input, terminal] = model_sample
 
 
             init_occ = len(self.policy.coordinate_mat) if len(self.policy.coordinate_mat) > 0 else 1
@@ -198,61 +198,75 @@ class GraspController:
 
             next_state = self.get_state()
             next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
-            grasp_input, view_input, model_sample = self.action_inference(enc_state, state[2], self.bbox)
-            [_, _, _, next_value, _, next_terminal] = model_sample
+            model_sample = self.action_inference(enc_state, state[2], self.bbox)
+            [_, _, _, next_value, next_action_input, next_terminal] = model_sample
 
             print("Next state is terminal:", next_terminal)
 
-            replay_mem.append([grasp_input, view_input, [int(grasp), int(view)], enc_state, q, value, reward, next_enc_state, next_state[2], next_value, next_terminal])
+            replay_mem.append([[int(grasp), int(view)], action_input, value, reward, next_action_input, next_value, next_terminal])
 
             if len(replay_mem) > replay_size:
                 del replay_mem[0]
 
+            sample_start = time.time()
+
             batch = sample(replay_mem, min(len(replay_mem), batch_size))
-            grasp_batch, view_batch, action_batch, state_batch, q_batch, value_batch, reward_batch, next_state_batch, next_q_batch, next_value_batch, terminal_batch = zip(*batch)
+            action_batch, action_input_batch, value_batch, reward_batch, next_action_input_batch, next_value_batch, terminal_batch = zip(*batch)
 
-            # print("state", state_batch)
-            # cur_pred_batch = []
-            # for enum_state, enum_q in zip(state_batch, q_batch):
-            #     val = self.action_inference(enum_state, enum_q, self.bbox)
-            #     cur_pred_batch.append(val)
+            # re evaluate the q values for each back prop
+            #
+            #
+            action_input_tensor = torch.cat(list(action_input_batch), 0).to(self.policy.device)
+            action_batch_tensor = torch.tensor(action_batch).to(self.policy.device)
 
+            # Initialize re_q_values
+            re_q_values = torch.zeros_like(torch.tensor(value_batch)).to(self.policy.device)
 
-            # next_pred_batch = []
-            # for enum_state, enum_q in zip(next_state_batch, next_q_batch):
-            #     val = self.action_inference(enum_state, enum_q, self.bbox)
-            #     next_pred_batch.append(val)
-                
-            # cur_pred_batch = self.action_inference(state_batch, q_batch, self.bbox)
-            # next_pred_batch = self.action_inference(next_state_batch, next_q_batch, self.bbox)
-            # print(reward_batch)
-            # print(terminal_batch)
-            # print(next_pred_batch)
+            # Calculate indices for masked_grasps and masked_views
+            grasp_indices = torch.tensor(np.argwhere(np.asarray(action_batch).T[0] > 0)).flatten().to(self.policy.device)
+            view_indices = torch.tensor(np.argwhere(np.asarray(action_batch).T[1] > 0)).flatten().to(self.policy.device)
 
-            print(next_value_batch)
+            print("grasp idx", grasp_indices ,grasp_indices.shape)
+            print("view idx", view_indices, view_indices.shape)
 
-            y_batch = torch.tensor([reward if terminal else reward + gamma * prediction for reward, terminal, prediction in
-                  zip(reward_batch, terminal_batch, next_value_batch)], requires_grad=True).to(self.policy.device)
+            # Select masked_grasps and masked_views
+            masked_grasps = torch.index_select(action_input_tensor, 0, grasp_indices)
+            masked_views = torch.index_select(action_input_tensor, 0, view_indices)
+
+            # Calculate re_grasp_q_values and re_view_q_values
+            re_grasp_q_values = self.policy.grasp_nn(masked_grasps) if masked_grasps.shape[0] > 0 else torch.empty((0)).to(self.policy.device)
             
-            y_values = y_batch * torch.tensor(action_batch).to(self.policy.device).T
-            grasp_y_values = y_values[0] 
-            view_y_values = y_values[1]
+            re_view_q_values = self.policy.view_nn(masked_views) if masked_views.shape[0] > 0 else torch.empty((0)).to(self.policy.device)
 
-            values = np.asarray(value_batch) * np.asarray(action_batch).T
+            # Repack re_grasp_q_values and re_view_q_values into re_q_values
+            re_q_values.scatter_(0, grasp_indices, re_grasp_q_values.flatten())
+            re_q_values.scatter_(0, view_indices, re_view_q_values.flatten())
+
+            values = re_q_values * action_batch_tensor.T
 
             grasp_q_values = torch.tensor(values[0]).to(self.policy.device).float() 
             view_q_values = torch.tensor(values[1]).to(self.policy.device).float()
+
+
+            #compute the y values of the current prediction
+            y_batch = torch.tensor([reward if terminal else reward + gamma * prediction for reward, terminal, prediction in
+                  zip(reward_batch, terminal_batch, next_value_batch)], requires_grad=True).to(self.policy.device)
+            print("Reward", reward_batch)
+            print("Terminal", terminal_batch)
+            print("Next value", next_value_batch)
+
+            print("Y batch", y_batch)
+            
+            y_values = y_batch * action_batch_tensor.T
+            print("y values", y_values)
+            grasp_y_values = y_values[0] 
+            view_y_values = y_values[1]
 
             
             print(view_y_values)
             print(view_q_values)
             print(grasp_y_values)
             print(grasp_q_values)
-            
-
-            # q_value = torch.sum(torch.tensor(value_batch).to(self.policy.device), dim=0)
-
-            # print("q_value", q_value)
 
             #network updates
             self.policy.grasp_nn.optimizer.zero_grad()
@@ -267,9 +281,10 @@ class GraspController:
 
             print("grasp loss:", grasp_loss)
             print("view loss:", view_loss)
-
             
             # state = next_state
+
+            print("Resample time", time.time() - sample_start)
 
             # self.update_networks(grasp, view, action, reward, lprob)
 
@@ -314,10 +329,10 @@ class GraspController:
         print("inference took:", time.time() - start)
         # print("network output", out)
         # model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
-        model_sample = self.policy.sample_action(grasp_vals, view_vals)
+        model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
 
         timer.shutdown()
-        return grasp_input, view_input, model_sample
+        return model_sample
 
 
     def search_grasp(self, bbox):

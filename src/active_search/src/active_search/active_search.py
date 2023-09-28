@@ -83,11 +83,6 @@ class NextBestView(MultiViewPolicy):
         self.view_nn.load_model()
         self.view_nn.to(self.device).float()
 
-    def load_ppo(self):
-        self.ppo = True
-        self.ppo_agent = Agent(input_dims=518)
-
-
     def compile(self):
         # Trigger the JIT compilation
         raycast(
@@ -148,26 +143,26 @@ class NextBestView(MultiViewPolicy):
 
     def update(self, grasp_input, view_input):
 
-        grasp_vals = self.grasp_nn(grasp_input)
+        print("grasp shape", grasp_input.shape)
+        print("viwe shape", view_input.shape)
 
-        view_vals = self.view_nn(view_input)
+        grasp_vals = self.grasp_nn(grasp_input) if grasp_input.shape[0] > 0 else torch.empty((0)).to(self.device)
+        view_vals = self.view_nn(view_input) if view_input.shape[0] > 0 else torch.empty((0)).to(self.device)
 
         return grasp_vals, view_vals
     
     
-    def sample_action(self, grasp_vals, view_vals):
+    def sample_action(self, grasp_input, view_input, grasp_vals, view_vals):
 
         if self.done:
             grasp = True
             view = False
             selected_action = self.grasps[0]
             value = 10.0
-            return [grasp, view, selected_action, value, np.log(1), self.done]
+            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
         
         grasp_vals = torch.softmax(torch.flatten(grasp_vals), dim=0)
-        print("softmax grasps", grasp_vals)
         view_vals = torch.softmax(torch.flatten(view_vals), dim=0)
-        print("softmax views", view_vals)
         # Combine the grasp and view probabilities
         if grasp_vals.size(dim=0) > 0:
             combined_probabilities = F.softmax(torch.cat((grasp_vals, view_vals), dim=0), dim=0)
@@ -189,13 +184,16 @@ class NextBestView(MultiViewPolicy):
         if selected_action_index < len(self.grasps):
             grasp = True
             selected_action = self.grasps[selected_action_index]
+            # indexing to the correct input to the network
+            action_input = grasp_input[selected_action_index]
             value = grasp_vals.tolist()[selected_action_index]
         else:
             view = True
             selected_action = self.views[selected_action_index - len(self.grasps)]
+            action_input = view_input[selected_action_index - len(self.grasps)]
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]
         
-        return [grasp, view, selected_action, value, action_lprob, self.done]
+        return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
 
 
 

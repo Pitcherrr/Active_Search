@@ -67,7 +67,7 @@ class GraspEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 1)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.05)
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
         self.model_path =  str(pkg_root)+"/models/graspnn_weights.pth"  
@@ -94,7 +94,7 @@ class ViewEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 1)   
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.05)
 
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
