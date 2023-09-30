@@ -341,7 +341,6 @@ class RandomOccludedScene(Scene):
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
-        occluding = rng.choice(self.occluding_objs)
 
         target = rng.choice(urdfs)
         self.target = self.add_object(target, Rotation.identity(), np.zeros(3), rng.uniform(0.4, 0.6))
@@ -351,16 +350,28 @@ class RandomOccludedScene(Scene):
         pos = np.r_[rng.uniform(0.4, 0.6, 2) * self.length, z_offset] #random position for object 
         p.resetBasePositionAndOrientation(self.target, self.origin + pos, ori.as_quat()) #move object to this location
         p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
-
         self.target_bb = p.getAABB(self.target)
         mid_bb = tuple(np.asarray(self.target_bb[0])+(np.asarray(self.target_bb[1])-np.asarray(self.target_bb[0]))/2)
-        ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
-        self.add_object(occluding, ori, np.asarray(mid_bb) + [0,0,0.2], 0.02)
 
-        print(p.getContactPoints(self.target))
+        scene_type = rng.choice(["fully", "infront"])
 
-        for _ in range(10):
-            p.stepSimulation() #step sim to run phyisics engine 
+        if scene_type == "fully":
+            occluding = rng.choice(self.occluding_objs)
+
+            ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
+            self.add_object(occluding, ori, np.asarray(mid_bb) + [0,0,0.2], 0.02)
+
+            print(p.getContactPoints(self.target))
+
+            for _ in range(10):
+                p.stepSimulation() #step sim to run phyisics engine
+
+        elif scene_type == "infront":
+            occluding = rng.choice(self.object_urdfs)
+
+            ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
+            self.add_object(occluding, ori, np.asarray(mid_bb) + [0.1, 0, 0], 0.8)
+
 
         for urdf in urdfs:
             scale = rng.uniform(0.4, 0.8)
@@ -386,17 +397,12 @@ class RandomOccludedScene(Scene):
         for _ in range(10):
             p.stepSimulation() #step sim to run phyisics engine 
 
-        #add the occluding object to the scene 
-        # self.target = rng.choice(self.object_uids)
-
-        # ori = Rotation.from_euler("xyz", [0, 0, 0], degrees=True)
-        
-        # self.add_object(urdfs_dir/"occluding_objs/cap/6f93656d083e985465bae2cb33eb4baa.urdf",ori, np.asarray(mid_bb)+ [0,0,0.2], 0.03)
-        
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
         q += rng.uniform(-0.08, 0.08, 7)
         self.target_bb = p.getAABB(self.target)
         return q
+    
+
 
 
 def get_scene(scene_id):

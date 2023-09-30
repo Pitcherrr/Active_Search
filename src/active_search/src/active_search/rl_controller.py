@@ -134,11 +134,12 @@ class GraspController:
         gamma = 0.9
 
         fail_count = 0
+        max_fails = 4
 
         grasp_criterion = torch.nn.MSELoss()
         view_criterion = torch.nn.MSELoss()
 
-        while not self.complete and it < max_it:
+        while not self.complete and it < max_it and fail_count <= max_fails:
             with Timer("inference_time"):
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
@@ -163,8 +164,11 @@ class GraspController:
                         if not grasp_thread.is_alive():
                             res = self.grasp_result
                             break
-                if self.grasp_result == "failed":
+                
+                if self.grasp_result != "succeeded":
                     fail_count += 1
+                    continue
+
                 self.switch_to_cartesian_velocity_control()
                 print("grasp gain:", self.grasp_gain)
                 occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
@@ -297,8 +301,6 @@ class GraspController:
             it += 1
 
             info = self.collect_info(res)
-            if fail_count >= 3:
-                self.complete = True
 
         self.writer.flush()
         return info
@@ -441,8 +443,15 @@ class GraspController:
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
                 response = from_bbox_msg(remove_body(ResetRequest()).bbox)
                 self.grasp_gain = self.policy.tsdf_cut(response)
-                self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
-                self.gripper.move(0.08)
+                success, plan = self.moveit.plan([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79], 0.2, 0.2)
+                # self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
+                if success:
+                    print("planning success")
+                    self.moveit.scene.clear()
+                    self.moveit.execute(plan) 
+                    self.gripper.move(0.08)
+                else:
+                    self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
             else:
                 self.grasp_result = "failed" 
  
