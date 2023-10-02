@@ -1,0 +1,53 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -7.7813149288803265
+  scale: 0.41435668931755876
+  xyz:
+  - 0.4978461417366892
+  - -0.008796856788911178
+  - 0.23147014117766768
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/92d6394732e6058d4bcbafcc905a9b98.urdf
+  rpy:
+  - -90.00000000000003
+  - 1.2722218725854067e-14
+  - -77.93552142791675
+  scale: 0.02
+  xyz:
+  - 0.4977240718780671
+  - -0.008911283887277258
+  - 0.4314637198060156
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -100.40435263573023
+  scale: 0.6930556343348896
+  xyz:
+  - 0.570102411142142
+  - 0.056448026039069205
+  - 0.2440637349218525
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 29.199906298767758
+  scale: 0.4379154265803216
+  xyz:
+  - 0.5885788289361922
+  - -0.07816766399082482
+  - 0.2329751322092834
+q:
+- -0.03204916573266425
+- -1.3747937030666666
+- 0.05051235771419153
+- -2.2982386129644716
+- 0.019319539317695714
+- 1.603455113307524
+- 0.8012958746566012

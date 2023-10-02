@@ -167,6 +167,8 @@ class GraspController:
                 
                 if self.grasp_result != "succeeded":
                     fail_count += 1
+                    info = self.collect_info(res)
+                    self.switch_to_cartesian_velocity_control()
                     continue
 
                 self.switch_to_cartesian_velocity_control()

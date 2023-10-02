@@ -4,6 +4,7 @@ import pybullet as p
 import pybullet_data
 import rospkg
 import time
+import yaml
 
 from active_grasp.bbox import AABBox
 from robot_helpers.bullet import *
@@ -167,6 +168,7 @@ class Scene:
         self.support_uid = -1
         self.object_uids = []
         self.complete = False
+        self.yaml_dir = pkg_root / "cfg/sim"
 
     def clear(self):
         self.remove_support()
@@ -216,6 +218,14 @@ class Scene:
         print("############ Sim Complete ############")
         self.complete = True
 
+    
+    def save_scene_to_yaml(self, scene_data, output_file):
+        output_path = self.yaml_dir / output_file
+
+        with open(output_path, 'w') as yaml_file:
+            yaml.dump(scene_data, yaml_file)
+
+
 
 class YamlScene(Scene):
     def __init__(self, config_name):
@@ -230,28 +240,31 @@ class YamlScene(Scene):
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]
         print(pybullet_data.getDataPath())
 
+        print("Center", self.center)
+
     def generate(self, rng):
         self.complete = False
         self.load_config()
         self.add_support(self.center)
         i = 0
         for object in self.scene["objects"]:
-            urdf = urdfs_dir / object["object_id"] / "model.urdf"
+            # urdf = urdfs_dir / object["object_id"] / "model.urdf"
+            urdf = object["object_id"]
             ori = Rotation.from_euler("xyz", object["rpy"], degrees=True)
-            pos = self.center + np.asarray(object["xyz"])
+            pos = np.asarray(object["xyz"])
             scale = object.get("scale", 1)
-            if randomize := object.get("randomize", False):
-                angle = rng.uniform(-randomize["rot"], randomize["rot"])
-                ori = Rotation.from_euler("z", angle, degrees=True) * ori
-                b = np.asarray(randomize["pos"])
-                pos += rng.uniform(-b, b)
+            # if randomize := object.get("randomize", False):
+            #     angle = rng.uniform(-randomize["rot"], randomize["rot"])
+            #     ori = Rotation.from_euler("z", angle, degrees=True) * ori
+            #     b = np.asarray(randomize["pos"])
+            #     pos += rng.uniform(-b, b)
             uid = self.add_object(urdf, ori, pos, scale)
 
-            self.target = rng.choice(self.object_uids)
+            # self.target = rng.choice(self.object_uids)
 
-            p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
+            # p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
 
-            self.target_bb = p.getAABB(self.target)
+            # self.target_bb = p.getAABB(self.target)
             # Simulate the mustard bottle going into the mug
             # dont need anymore as urdf was just broken 
             # if i == 1:
@@ -267,16 +280,23 @@ class YamlScene(Scene):
             #             break
             # i+=1
             self.object_uids.append(uid)
+
+        self.target = self.object_uids[0]
+
+        p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
+
+        self.target_bb = p.getAABB(self.target)
+
         #this is the initial position of the robots camera link
-        cam = (0.167987435473768, -0.00028228516747251644, 0.7347501344586954)
+        # cam = (0.167987435473768, -0.00028228516747251644, 0.7347501344586954)
 
-        bottle = self.object_uids[0]
+        # bottle = self.object_uids[0]
 
-        bb = p.getAABB(bottle)
+        # bb = p.getAABB(bottle)
 
-        mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
+        # mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
  
-        print("Ray result", p.rayTest(cam, mid_bb))
+        # print("Ray result", p.rayTest(cam, mid_bb))
 
 
         for _ in range(60):
@@ -336,32 +356,69 @@ class RandomOccludedScene(Scene):
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=8, attempts=10):
+    def generate(self, rng, object_count=2, attempts=10):
         print("generating scene")
+
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
 
+        q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
+        q += rng.uniform(-0.08, 0.08, 7)
+
+        scene_data = {
+            "center": self.center.tolist(),
+            "q": q.tolist(),  # Generate random robot configuration
+            "objects": []
+        }
+
         target = rng.choice(urdfs)
-        self.target = self.add_object(target, Rotation.identity(), np.zeros(3), rng.uniform(0.4, 0.6))
+        scale = rng.uniform(0.4, 0.6)
+        self.target = self.add_object(target, Rotation.identity(), np.zeros(3), scale)
         lower, upper = p.getAABB(self.target) #get the bounding box 
         z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest
         ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi)) #random rotation of object 
-        pos = np.r_[rng.uniform(0.4, 0.6, 2) * self.length, z_offset] #random position for object 
-        p.resetBasePositionAndOrientation(self.target, self.origin + pos, ori.as_quat()) #move object to this location
+        pos = self.origin + np.r_[rng.uniform(0.4, 0.6, 2) * self.length, z_offset] #random position for object 
+        p.resetBasePositionAndOrientation(self.target, pos, ori.as_quat()) #move object to this location
         p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
         self.target_bb = p.getAABB(self.target)
         mid_bb = tuple(np.asarray(self.target_bb[0])+(np.asarray(self.target_bb[1])-np.asarray(self.target_bb[0]))/2)
 
-        scene_type = rng.choice(["fully", "infront"])
+
+        object_data = {
+            "object_id": str(target),
+            "rpy": ori.as_euler('xyz', degrees=True).tolist(),  # You may need to adjust the orientation as needed
+            "xyz": pos.tolist(),  # You may need to adjust the position as needed
+            "scale": scale,
+        }
+        # objects.append(object_data)
+        scene_data["objects"].append(object_data)
+
+
+        # scene_type = rng.choice(["fully", "infront"])
+        scene_type = "fully"
 
         if scene_type == "fully":
             occluding = rng.choice(self.occluding_objs)
 
-            ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
-            self.add_object(occluding, ori, np.asarray(mid_bb) + [0,0,0.2], 0.02)
+            print("occluding obj", occluding)
 
-            print(p.getContactPoints(self.target))
+            rot = np.random.uniform(0, 180)
+            ori = Rotation.from_euler("xyz", [90, 180, rot], degrees=True)
+            pos = np.asarray(mid_bb) + [0,0,0.2]
+            scale = 0.02 
+
+            self.add_object(occluding, ori, pos, scale)
+
+            object_data = {
+                "object_id": str(occluding),
+                "rpy": ori.as_euler('xyz', degrees=True).tolist(),  # You may need to adjust the orientation as needed
+                "xyz": pos.tolist(),  # You may need to adjust the position as needed
+                "scale": scale,
+            }
+            scene_data["objects"].append(object_data) 
+
+            # print(p.getContactPoints(self.target))
 
             for _ in range(10):
                 p.stepSimulation() #step sim to run phyisics engine
@@ -369,9 +426,8 @@ class RandomOccludedScene(Scene):
         elif scene_type == "infront":
             occluding = rng.choice(self.object_urdfs)
 
-            ori = Rotation.from_euler("xyz", [90, 180, 0], degrees=True)
+            ori = Rotation.from_euler("xyz", [90, 270, 0], degrees=True)
             self.add_object(occluding, ori, np.asarray(mid_bb) + [0.1, 0, 0], 0.8)
-
 
         for urdf in urdfs:
             scale = rng.uniform(0.4, 0.8)
@@ -379,11 +435,12 @@ class RandomOccludedScene(Scene):
             lower, upper = p.getAABB(uid) #get the bounding box 
             z_offset = 0.5 * (upper[2] - lower[2]) + 0.002 #some bounding box offest
             state_id = p.saveState()
+            object_placed = True
             for _ in range(attempts):
                 # Try to place and check for collisions
                 ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi)) #random rotation of object 
-                pos = np.r_[rng.uniform(0.2, 0.8, 2) * self.length, z_offset] #random position for object 
-                p.resetBasePositionAndOrientation(uid, self.origin + pos, ori.as_quat()) #move object to this location
+                pos = self.origin + np.r_[rng.uniform(0.2, 0.8, 2) * self.length, z_offset] #random position for object 
+                p.resetBasePositionAndOrientation(uid, pos, ori.as_quat()) #move object to this location
                 p.stepSimulation() #step sim to run phyisics engine 
                 if not p.getContactPoints(uid): #check collisions 
                     break
@@ -393,13 +450,25 @@ class RandomOccludedScene(Scene):
             else:
                 # No placement found, remove the object
                 self.remove_object(uid)
+                object_placed = False
+
+            if object_placed:
+                object_data = {
+                    "object_id": str(urdf),
+                    "rpy": ori.as_euler('xyz', degrees=True).tolist(),  # You may need to adjust the orientation as needed
+                    "xyz": pos.tolist(),  # You may need to adjust the position as needed
+                    "scale": scale,
+                }
+                # objects.append(object_data)
+                scene_data["objects"].append(object_data)
 
         for _ in range(10):
             p.stepSimulation() #step sim to run phyisics engine 
 
-        q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
-        q += rng.uniform(-0.08, 0.08, 7)
+
         self.target_bb = p.getAABB(self.target)
+
+        self.save_scene_to_yaml(scene_data, "test.yaml")
         return q
     
 
@@ -409,7 +478,8 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        return RandomOccludedScene()
+        # return RandomOccludedScene()
+        return YamlScene("test.yaml")
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))

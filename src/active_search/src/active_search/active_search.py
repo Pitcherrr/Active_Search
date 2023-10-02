@@ -195,6 +195,38 @@ class NextBestView(MultiViewPolicy):
         
         return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
 
+    def get_best_action(self, grasp_input, view_input, grasp_vals, view_vals):
+        if self.done:
+            grasp = True
+            view = False
+            selected_action = self.grasps[0]
+            value = 10.0
+            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
+        
+        grasp_vals = torch.flatten(grasp_vals)
+        view_vals = torch.flatten(view_vals)
+        
+        combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
+
+        print("Combined vals: ", combined_vals)
+
+        selected_action_index = torch.argmax(combined_vals)
+
+        grasp, view = False, False
+        # Based on the selected index, determine whether it's a grasp or a view
+        if selected_action_index < len(self.grasps):
+            grasp = True
+            selected_action = self.grasps[selected_action_index]
+            # indexing to the correct input to the network
+            action_input = grasp_input[selected_action_index]
+            value = grasp_vals.tolist()[selected_action_index]
+        else:
+            view = True
+            selected_action = self.views[selected_action_index - len(self.grasps)]
+            action_input = view_input[selected_action_index - len(self.grasps)]
+            value = view_vals.tolist()[selected_action_index - len(self.grasps)]
+        
+        return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
 
 
     def join_clouds(self, map_cloud, occu):
