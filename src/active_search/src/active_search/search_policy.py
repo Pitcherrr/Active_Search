@@ -242,8 +242,11 @@ class MultiViewPolicy(Policy):
 
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
-        #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [5,5,5]
+        bb_size = ((self.target_bb.max - self.target_bb.min)/voxel_size).astype(int)
+
+        bb_voxel = np.floor(bb_size).astype(int)
+
+        # bb_voxel = [5,5,5]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -259,6 +262,10 @@ class MultiViewPolicy(Policy):
         tsdf_check[0:resolution-bb_voxel[0]+1,0:resolution-bb_voxel[1]+1,0:resolution-bb_voxel[2]+1] = max_tsdf_slices <= 0.5
 
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
+
+        pooling = torch.nn.MaxPool3d(kernel_size=tuple(bb_size//2), stride=(1,1,1))
+
+        occ_mat = pooling(occ_mat.unsqueeze(0).unsqueeze(0)).squeeze()
 
         occ_mat_result = occ_mat.cpu().numpy()
 

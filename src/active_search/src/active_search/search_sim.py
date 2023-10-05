@@ -362,11 +362,13 @@ class ActiveSearchScene(Scene):
             return self.generate_random_occluded(rng)
             # return YamlScene("test.yaml")
     
-    def generate_random_occluded(self, rng, object_count=8, attempts=10):
+    def generate_random_occluded(self, rng, attempts=10):
         print("generating scene")
 
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
+
+        object_count = np.random.randint(1,8)
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
 
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
@@ -401,33 +403,49 @@ class ActiveSearchScene(Scene):
         scene_data["objects"].append(object_data)
 
 
-        scene_type = rng.choice(["fully", "infront"])
-        # scene_type = "fully"
+        # scene_type = rng.choice(["fully", "infront"])
+        scene_type = "fully"
 
         if scene_type == "fully":
-            occluding = rng.choice(self.occluding_objs)
+            done = False
+            while not done:
+                occluding = rng.choice(self.occluding_objs)
+                
+                print("occluding obj", occluding)
 
-            print("occluding obj", occluding)
+                rot_occ = np.random.uniform(0, 180)
+                ori_occ = Rotation.from_euler("xyz", [90, 180, rot_occ], degrees=True)
+                pos_occ = np.asarray(mid_bb) + [0,0,0.2]
+                scale = 0.02 
 
-            rot = np.random.uniform(0, 180)
-            ori = Rotation.from_euler("xyz", [90, 180, rot], degrees=True)
-            pos = np.asarray(mid_bb) + [0,0,0.2]
-            scale = 0.02 
 
-            self.add_object(occluding, ori, pos, scale)
+                p.resetBasePositionAndOrientation(self.target, pos, ori.as_quat()) #move object to this location
 
-            object_data = {
-                "object_id": str(occluding),
-                "rpy": ori.as_euler('xyz', degrees=True).tolist(),  # You may need to adjust the orientation as needed
-                "xyz": pos.tolist(),  # You may need to adjust the position as needed
-                "scale": scale,
-            }
-            scene_data["objects"].append(object_data) 
+                occluding_uid = self.add_object(occluding, ori_occ, pos_occ, scale)
 
-            # print(p.getContactPoints(self.target))
+                # print(p.getContactPoints(self.target))
 
-            for _ in range(10):
-                p.stepSimulation() #step sim to run phyisics engine
+                for _ in range(400):
+                    p.stepSimulation() #step sim to run phyisics engine
+                    # time.sleep(0.1)
+
+                occ_low, occ_upp = p.getAABB(occluding_uid)
+                target_low, target_upp = p.getAABB(self.target)
+
+                if not target_upp[2] > occ_low[2]:
+                    print("target was not in occluding object")
+                    self.remove_object(occluding_uid)
+                else:
+                    done = True
+                    object_data = {
+                        "object_id": str(occluding),
+                        "rpy": ori_occ.as_euler('xyz', degrees=True).tolist(),  # You may need to adjust the orientation as needed
+                        "xyz": pos_occ.tolist(),  # You may need to adjust the position as needed
+                        "scale": scale,
+                    }
+                    scene_data["objects"].append(object_data) 
+
+
 
         elif scene_type == "infront":
             occluding = rng.choice(self.object_urdfs)

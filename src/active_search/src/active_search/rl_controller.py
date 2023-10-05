@@ -493,7 +493,7 @@ class GraspController:
             reward = occ_diff - action_time
             return torch.clamp(reward, -10, 10)
         elif view:
-            reward = occ_diff - 3
+            reward = occ_diff - 3.0
             return torch.clamp(reward, -10, 10)
 
     def get_state(self):
@@ -539,7 +539,7 @@ class GraspController:
             self.gripper.grasp()
             self.grasp_integrate = False
             #remove the body from the scene
-            T_base_retreat = Transform.t_[0, 0, 0.05] * T_base_grasp * self.T_grasp_ee
+            T_base_retreat = Transform.t_[0, 0, 0.10] * T_base_grasp * self.T_grasp_ee
             self.moveit.gotoL(T_base_retreat)
             rospy.sleep(1.0)  # Wait to see whether the object slides out of the hand
             success = self.gripper.read() > 0.002

@@ -71,9 +71,9 @@ def main():
         info = controller.run()
         logger.log_run(info)
         # print("n % 15:", n % 15)
-        if (n) % 15 == 0:
-            # controller.policy.view_nn.save_model()
-            # controller.policy.grasp_nn.save_model()
+        if (n+1) % 15 == 0:
+            controller.policy.view_nn.save_model()
+            controller.policy.grasp_nn.save_model()
             enumerate_test_scenes()
 
 def enumerate_test_scenes():
