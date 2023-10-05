@@ -11,13 +11,14 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState, Image, CameraInfo
 from scipy import interpolate
-from std_msgs.msg import Header, Bool
+from std_msgs.msg import Header, Bool, String
 from threading import Thread
-from std_srvs.srv import Empty, EmptyResponse
+from std_srvs.srv import Empty, EmptyResponse, Trigger, TriggerResponse
 
 from active_search.dynamic_perception import SceneTSDFVolume 
 from active_grasp.bbox import to_bbox_msg
 from active_grasp.srv import *
+from active_search.srv import ServiceStr, ServiceStrResponse
 from active_search.search_sim import Simulation
 # from active_grasp.simulation import Simulation
 from robot_helpers.ros.conversions import *
@@ -30,8 +31,7 @@ class BtSimNode:
         gui = rospy.get_param("~gui")
         print("gui: ", gui)
         scene_id = rospy.get_param("~scene")
-        vgn_path = rospy.get_param("vgn/model")
-        self.sim = Simulation(gui, scene_id, vgn_path)
+        self.sim = Simulation(gui, scene_id)
         self.init_plugins()
         self.advertise_services()
 
@@ -73,6 +73,7 @@ class BtSimNode:
     def advertise_services(self):
         rospy.Service("seed", Seed, self.seed)
         rospy.Service("reset", Reset, self.reset)
+        rospy.Service("change_sim", ServiceStr, self.change_sim)
         rospy.Service(
             "/controller_manager/switch_controller",
             SwitchController,
@@ -107,6 +108,20 @@ class BtSimNode:
 
         return ResetResponse(bbox)
     
+    def change_sim(self, req):
+        scene = req.input_str
+        print("Changing sim to:", scene)
+        self.sim.scene.scene_id = scene
+        # gui = rospy.get_param("~gui")
+        # self.sim = Simulation(gui, scene)
+        # self.init_plugins()
+        # self.advertise_services()
+        # self.start_plugins()
+        # self.activate_plugins()
+        res = ServiceStrResponse()
+        res.output_str = "success"
+        return res
+
     def remove_body(self, req):
         print("Removing Grasped OBJ")
         uid = self.sim.get_grasp_uid()

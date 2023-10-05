@@ -13,7 +13,7 @@ objects:
   - 0.4978461417366892
   - -0.008796856788911178
   - 0.23147014117766768
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/92d6394732e6058d4bcbafcc905a9b98.urdf
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/57f73714cbc425e44ae022a8f6e258a7.urdf
   rpy:
   - -90.00000000000003
   - 1.2722218725854067e-14

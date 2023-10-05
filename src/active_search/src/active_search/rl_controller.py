@@ -143,7 +143,7 @@ class GraspController:
             with Timer("inference_time"):
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
-                model_sample = self.action_inference(enc_state, state[2], self.bbox)
+                model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=True)
                 [grasp, view, action, value, action_input, terminal] = model_sample
 
 
@@ -204,7 +204,7 @@ class GraspController:
 
             next_state = self.get_state()
             next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
-            model_sample = self.action_inference(enc_state, state[2], self.bbox)
+            model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=True)
             [_, _, _, next_value, next_action_input, next_terminal] = model_sample
 
             print("Next state is terminal:", next_terminal)
@@ -307,8 +307,109 @@ class GraspController:
         self.writer.flush()
         return info
     
-    def run_policy(self):
-        return
+    def run_policy(self, scene):
+        self.policy.init_tsdf()
+        self.policy.target_bb = self.reset()
+        self.complete = False
+        voxel_size = 0.0075
+        x_off = 0.35
+        y_off = -0.15
+        z_off = 0.2
+
+        bb_min = [x_off,y_off,z_off]
+        bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
+        self.bbox = AABBox(bb_min, bb_max)
+
+        self.view_sphere = ViewHalfSphere(self.bbox, self.min_z_dist)
+        self.policy.activate(self.bbox, self.view_sphere)
+
+        self.switch_to_cartesian_velocity_control()
+        r = rospy.Rate(self.policy_rate)
+
+        state = self.get_state()
+        enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+
+        it = 0 
+        max_it = 30
+
+        fail_count = 0
+        max_fails = 4
+
+        scene_start = time.time()
+
+        while not self.complete and it < max_it and fail_count <= max_fails:
+            with Timer("inference_time"):
+                state = self.get_state()
+                enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+                model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=False)
+                [grasp, view, action, value, action_input, terminal] = model_sample
+
+
+            init_occ = len(self.policy.coordinate_mat) if len(self.policy.coordinate_mat) > 0 else 1
+            
+            if grasp:
+                print("grasping")
+                start_time = time.time()
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_grasp, args= (action,))
+                with Timer("grasp_time"):
+                    grasp_thread.start()
+                    while True:
+                        if self.grasp_integrate:
+                            img, pose, q = self.get_state()
+                            self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = self.grasp_result
+                            break
+                
+                if self.grasp_result != "succeeded":
+                    fail_count += 1
+                    info = self.collect_info(res)
+                    self.switch_to_cartesian_velocity_control()
+                    continue
+
+                self.switch_to_cartesian_velocity_control()
+                print("grasp gain:", self.grasp_gain)
+                occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                print("occupancy diff:", occ_diff)
+                exec_time = time.time() - start_time
+            elif view:
+                start_time = time.time()
+                t = 0
+                self.policy.x_d = action
+                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                print("Executing for: 3 seconds")
+                while t < (3.0):
+                    img, pose, q = self.get_state()
+                    self.policy.integrate(img, pose, q)
+                    t += 1/self.policy_rate
+                    r.sleep()
+                rospy.sleep(0.2)        
+                timer.shutdown()
+                exec_time = time.time() - start_time
+                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                res = "view"
+            else:
+                res = "aborted"
+
+            reward = self.compute_reward(grasp, view, terminal, occ_diff, exec_time)
+            print("Reward", reward)
+
+            self.writer.add_scalar("Rewards", reward, self.frame)
+
+            print("Frame:", self.frame)
+            self.frame += 1
+
+            it += 1
+
+            info = self.collect_info(res)
+
+
+        scene_end = time.time() - scene_start
+        self.writer.add_scalar(scene + "time to complete", scene_end, self.frame)
+        self.writer.flush()
+        return info
 
     def reset(self):
         Timer.reset()
@@ -321,7 +422,7 @@ class GraspController:
         return bb
     
     
-    def action_inference(self, state, q, bbox):
+    def action_inference(self, state, q, bbox, exploration:bool):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
         self.policy.init_data()
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
@@ -333,10 +434,13 @@ class GraspController:
         print("inference took:", time.time() - start)
         # print("network output", out)
         # model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
-        model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
-
+        if exploration:
+            model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
+        else:
+            model_sample = self.policy.get_best_action(grasp_input, view_input, grasp_vals, view_vals) 
         timer.shutdown()
         return model_sample
+    
 
 
     def search_grasp(self, bbox):
@@ -427,7 +531,7 @@ class GraspController:
         T_base_approach = T_base_grasp * Transform.t_[0, 0, -0.06] * self.T_grasp_ee
         success, plan = self.moveit.plan(T_base_approach, 0.2, 0.2)
         if success:
-            self.moveit.scene.clear()
+            # self.moveit.scene.clear()
             self.moveit.execute(plan)
             rospy.sleep(0.5)  # Wait for the planning scene to be updated
             self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)

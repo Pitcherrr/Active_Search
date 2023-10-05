@@ -27,12 +27,11 @@ urdfs_dir = pkg_root / "assets"
 class Simulation:
     """Robot is placed s.t. world and base frames are the same"""
 
-    def __init__(self, gui, scene_id, vgn_path):
+    def __init__(self, gui, scene_id):
         self.configure_physics_engine(gui, 60, 4)
         self.configure_visualizer()
         self.seed()
         self.load_robot()
-        self.load_vgn(Path(vgn_path))
         self.scene = get_scene(scene_id)
         self.object_uids = self.scene.object_uids
         print("urdfs:", urdfs_dir)
@@ -68,12 +67,10 @@ class Simulation:
         #self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
         self.camera = BtCamera(320, 240, 0.96, 0.01, 1.0, self.arm.uid, 11) #depth is meant to be 1
 
-    def load_vgn(self, model_path):
-        self.vgn = VGN(model_path)
-
     def reset(self):
         self.set_arm_configuration([0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79])
         self.scene.clear()
+
         q = self.scene.generate(self.rng)
         self.set_arm_configuration(q)
         # self.scene.generate(self.rng)
@@ -344,7 +341,7 @@ class RandomScene(Scene):
         return q
     
 
-class RandomOccludedScene(Scene):
+class ActiveSearchScene(Scene):
     def __init__(self):
         super().__init__()
         self.center = np.r_[0.5, 0.0, 0.2]
@@ -354,9 +351,18 @@ class RandomOccludedScene(Scene):
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
+        self.scene_id = "random"
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=2, attempts=10):
+    
+    def generate(self, rng):
+        if self.scene_id.endswith(".yaml"):
+            return self.generate_yaml_scene(self.scene_id)
+        elif self.scene_id == "random":
+            return self.generate_random_occluded(rng)
+            # return YamlScene("test.yaml")
+    
+    def generate_random_occluded(self, rng, object_count=8, attempts=10):
         print("generating scene")
 
         self.complete = False
@@ -395,8 +401,8 @@ class RandomOccludedScene(Scene):
         scene_data["objects"].append(object_data)
 
 
-        # scene_type = rng.choice(["fully", "infront"])
-        scene_type = "fully"
+        scene_type = rng.choice(["fully", "infront"])
+        # scene_type = "fully"
 
         if scene_type == "fully":
             occluding = rng.choice(self.occluding_objs)
@@ -468,8 +474,43 @@ class RandomOccludedScene(Scene):
 
         self.target_bb = p.getAABB(self.target)
 
-        self.save_scene_to_yaml(scene_data, "test.yaml")
+        # self.save_scene_to_yaml(scene_data, "test_3.yaml")
         return q
+    
+
+    def generate_yaml_scene(self, scene_id):
+        
+        self.config_path = pkg_root / "cfg/sim" / scene_id
+        self.scene = load_yaml(self.config_path)
+
+        self.center = np.asarray(self.scene["center"])
+        self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]
+
+        self.complete = False
+        # self.load_config()
+        self.add_support(self.center)
+        i = 0
+        for object in self.scene["objects"]:
+            # urdf = urdfs_dir / object["object_id"] / "model.urdf"
+            urdf = object["object_id"]
+            ori = Rotation.from_euler("xyz", object["rpy"], degrees=True)
+            pos = np.asarray(object["xyz"])
+            scale = object.get("scale", 1)
+            uid = self.add_object(urdf, ori, pos, scale)
+
+            self.object_uids.append(uid)
+
+        self.target = self.object_uids[0]
+
+        p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
+
+        self.target_bb = p.getAABB(self.target)
+
+        for _ in range(60):
+            p.stepSimulation()
+        return self.scene["q"]
+
     
 
 
@@ -478,8 +519,8 @@ def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
-        # return RandomOccludedScene()
-        return YamlScene("test.yaml")
+        return ActiveSearchScene()
+        # return YamlScene("test.yaml")
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))

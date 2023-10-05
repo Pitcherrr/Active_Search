@@ -6,18 +6,28 @@ import pandas as pd
 from pathlib import Path
 import rospy
 from tqdm import tqdm
-from std_srvs.srv import SetBool, Empty
+from std_srvs.srv import SetBool, Empty, Trigger, TriggerRequest, TriggerResponse
+from std_msgs.msg import String
 
 from active_grasp.bbox import AABBox
 from active_search.rl_controller import *
 from active_search.open3d_viz import *
 from active_search.search_policy import make, registry
 from active_grasp.srv import Seed
+from active_search.srv import ServiceStr, ServiceStrRequest
 from robot_helpers.ros import tf
 
 
 def main():
     rospy.init_node("grasp_controller")
+
+    change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
+
+    msg = ServiceStrRequest()
+    msg.input_str = "random"
+    res = change_sim(msg)
+    print("Change sim response", res.output_str)
+
     tf.init()
 
     parser = create_parser()
@@ -60,9 +70,54 @@ def main():
             rospy.loginfo("Running policy ...")
         info = controller.run()
         logger.log_run(info)
-        if n % 20 == 0:
-            controller.policy.view_nn.save_model()
-            controller.policy.grasp_nn.save_model()
+        # print("n % 15:", n % 15)
+        if (n) % 15 == 0:
+            # controller.policy.view_nn.save_model()
+            # controller.policy.grasp_nn.save_model()
+            enumerate_test_scenes()
+
+def enumerate_test_scenes():
+    print("############### Testing Policy ######################")
+    change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
+    test_cases = ["test.yaml", "test_2.yaml"]
+
+    parser = create_parser()
+    args = parser.parse_args()
+
+    policy = make(args.policy)
+    print("Policy", policy)
+    controller = GraspController(policy)
+    logger = Logger(args)
+
+    for case in test_cases:
+        msg = ServiceStrRequest()
+        msg.input_str = case
+        res = change_sim(msg)
+        print("Change sim response", res.output_str)
+
+        seed_simulation(args.seed)
+        rospy.sleep(1.0)  # Prevents a rare race condiion
+
+        controller.reset()
+        controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
+
+        reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
+        tsdf_response = reset_tsdf() # Call the service with argument True
+        print(tsdf_response)
+
+
+        controller.gripper.move(0.08)
+        controller.switch_to_joint_trajectory_control()
+        controller.moveit.goto("ready", velocity_scaling=0.4)
+     
+        rospy.loginfo("Running policy ...")
+        info = controller.run_policy(case)
+        logger.log_run(info)
+
+    msg = ServiceStrRequest()
+    msg.input_str = "random"
+    res = change_sim(msg)
+    print("Change sim response", res.output_str)
 
 
 def create_parser():

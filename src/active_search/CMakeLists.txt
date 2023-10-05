@@ -19,6 +19,7 @@ add_service_files(
   FILES
   Reset.srv
   Seed.srv
+  ServiceStr.srv 
 )
 
 generate_messages(
