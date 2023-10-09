@@ -403,8 +403,8 @@ class ActiveSearchScene(Scene):
         scene_data["objects"].append(object_data)
 
 
-        # scene_type = rng.choice(["fully", "infront"])
-        scene_type = "fully"
+        scene_type = rng.choice(["fully", "infront"])
+        # scene_type = "fully"
 
         if scene_type == "fully":
             done = False
@@ -425,14 +425,16 @@ class ActiveSearchScene(Scene):
 
                 # print(p.getContactPoints(self.target))
 
-                for _ in range(400):
+                for _ in range(60):
                     p.stepSimulation() #step sim to run phyisics engine
                     # time.sleep(0.1)
+                time.sleep(1)
 
                 occ_low, occ_upp = p.getAABB(occluding_uid)
                 target_low, target_upp = p.getAABB(self.target)
 
-                if not target_upp[2] > occ_low[2]:
+                print(occ_low, target_upp)
+                if not bb_inside(occ_low, occ_upp, target_low, target_upp):
                     print("target was not in occluding object")
                     self.remove_object(occluding_uid)
                 else:
@@ -542,3 +544,14 @@ def get_scene(scene_id):
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))
+    
+def bb_inside(bb1_low, bb1_high, bb2_low, bb2_high):
+    if (bb1_low[0] <= bb2_low[0] and
+        bb1_low[1] <= bb2_low[1] and
+        bb1_high[0] >= bb2_high[0] and
+        bb1_high[1] >= bb2_high[1] and
+        bb1_low[2] <= bb2_high[2]):
+        return True
+    else:
+        return False
+

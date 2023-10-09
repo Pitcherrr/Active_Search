@@ -91,6 +91,10 @@ class BtSimNode:
         self.deactivate_controllers()
         rospy.sleep(1.0)  # TODO replace with a read-write lock
         bbox = self.sim.reset()
+        
+        while not len(self.sim.object_uids) > 0:
+            bbox = self.sim.reset()
+
         bbox = to_bbox_msg(bbox)
         # while bbox == None:
         #     bbox = self.sim.reset()

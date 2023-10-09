@@ -74,20 +74,12 @@ def main():
         if (n+1) % 15 == 0:
             controller.policy.view_nn.save_model()
             controller.policy.grasp_nn.save_model()
-            enumerate_test_scenes()
+            enumerate_test_scenes(controller)
 
-def enumerate_test_scenes():
+def enumerate_test_scenes(controller):
     print("############### Testing Policy ######################")
     change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
     test_cases = ["test.yaml", "test_2.yaml"]
-
-    parser = create_parser()
-    args = parser.parse_args()
-
-    policy = make(args.policy)
-    print("Policy", policy)
-    controller = GraspController(policy)
-    logger = Logger(args)
 
     for case in test_cases:
         msg = ServiceStrRequest()
@@ -95,7 +87,7 @@ def enumerate_test_scenes():
         res = change_sim(msg)
         print("Change sim response", res.output_str)
 
-        seed_simulation(args.seed)
+        # seed_simulation(args.seed)
         rospy.sleep(1.0)  # Prevents a rare race condiion
 
         controller.reset()
@@ -112,7 +104,6 @@ def enumerate_test_scenes():
      
         rospy.loginfo("Running policy ...")
         info = controller.run_policy(case)
-        logger.log_run(info)
 
     msg = ServiceStrRequest()
     msg.input_str = "random"

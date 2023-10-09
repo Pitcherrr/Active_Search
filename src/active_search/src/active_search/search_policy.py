@@ -132,7 +132,7 @@ class Policy:
         grasps, qualities = select_local_maxima(
             self.tsdf.voxel_size,
             out,
-            self.qual_thresh,
+            0.8,
         )
         filtered_grasps, filtered_qualities = [], []
 
@@ -154,13 +154,13 @@ class Policy:
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
             # print(bbox.min)
-            if bbox.is_inside(tip) and quality > 0.9:
+            if bbox.is_inside(tip) and quality > 0.8:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > 0.9:
+            if target.is_inside(tip) and quality > 0.8:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:

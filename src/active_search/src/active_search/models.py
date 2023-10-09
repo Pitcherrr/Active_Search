@@ -70,7 +70,7 @@ class GraspEval(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=0.05)
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/graspnn_weights_2.pth"  
+        self.model_path =  str(pkg_root)+"/models/graspnn_weights_3.pth"  
 
     def forward(self, x):
         x = self.fc1(x)
@@ -98,7 +98,7 @@ class ViewEval(nn.Module):
 
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/viewnn_weights_2.pth"
+        self.model_path =  str(pkg_root)+"/models/viewnn_weights_3.pth"
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))    

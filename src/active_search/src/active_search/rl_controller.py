@@ -66,8 +66,8 @@ class GraspController:
     def init_moveit(self):
         self.moveit = MoveItClient("panda_arm")
         rospy.sleep(1.0)  # Wait for connections to be established.
-        self.moveit.move_group.set_planner_id("RRTstar")
-        self.moveit.move_group.set_planning_time(1.0)
+        self.moveit.move_group.set_planner_id("RRTConnect")
+        self.moveit.move_group.set_planning_time(2.0)
 
     def switch_to_cartesian_velocity_control(self):
         req = SwitchControllerRequest()
@@ -405,9 +405,14 @@ class GraspController:
 
             info = self.collect_info(res)
 
-
-        scene_end = time.time() - scene_start
-        self.writer.add_scalar(scene + "time to complete", scene_end, self.frame)
+        print("fail:", fail_count)
+        print("it", it)
+        if not (fail_count >= max_fails or it >= max_it):
+            print("writing perf")
+            #only write a time if the game was successful
+            scene_end = time.time() - scene_start
+            self.writer.add_scalar(scene + " time to complete", scene_end, self.frame)
+        
         self.writer.flush()
         return info
 
@@ -531,7 +536,7 @@ class GraspController:
         T_base_approach = T_base_grasp * Transform.t_[0, 0, -0.06] * self.T_grasp_ee
         success, plan = self.moveit.plan(T_base_approach, 0.2, 0.2)
         if success:
-            # self.moveit.scene.clear()
+            self.moveit.scene.clear()
             self.moveit.execute(plan)
             rospy.sleep(0.5)  # Wait for the planning scene to be updated
             self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)
@@ -549,6 +554,7 @@ class GraspController:
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
                 response = from_bbox_msg(remove_body(ResetRequest()).bbox)
                 self.grasp_gain = self.policy.tsdf_cut(response)
+                self.create_collision_scene()
                 success, plan = self.moveit.plan([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79], 0.2, 0.2)
                 # self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 if success:
