@@ -416,7 +416,7 @@ class ActiveSearchScene(Scene):
                 rot_occ = np.random.uniform(0, 180)
                 ori_occ = Rotation.from_euler("xyz", [90, 180, rot_occ], degrees=True)
                 pos_occ = np.asarray(mid_bb) + [0,0,0.2]
-                scale = 0.02 
+                scale = rng.uniform(0.01, 0.02) 
 
 
                 p.resetBasePositionAndOrientation(self.target, pos, ori.as_quat()) #move object to this location

@@ -68,12 +68,12 @@ def main():
             if i != "y":
                 exit()
             rospy.loginfo("Running policy ...")
-        info = controller.run()
-        logger.log_run(info)
+        # info = controller.run()
+        # logger.log_run(info)
         # print("n % 15:", n % 15)
-        if (n+1) % 15 == 0:
-            controller.policy.view_nn.save_model()
-            controller.policy.grasp_nn.save_model()
+        if (n) % 15 == 0:
+            # controller.policy.view_nn.save_model()
+            # controller.policy.grasp_nn.save_model()
             enumerate_test_scenes(controller)
 
 def enumerate_test_scenes(controller):
@@ -103,7 +103,8 @@ def enumerate_test_scenes(controller):
         controller.moveit.goto("ready", velocity_scaling=0.4)
      
         rospy.loginfo("Running policy ...")
-        info = controller.run_policy(case)
+        # info = controller.run_policy(case)
+        info = controller.run_baseline() 
 
     msg = ServiceStrRequest()
     msg.input_str = "random"

@@ -91,9 +91,12 @@ class BtSimNode:
         self.deactivate_controllers()
         rospy.sleep(1.0)  # TODO replace with a read-write lock
         bbox = self.sim.reset()
+
+        print("There are this many objects:", self.sim.object_uids)
         
-        while not len(self.sim.object_uids) > 0:
+        while not len(self.sim.object_uids) > 0 or min(self.sim.object_uids) < 0:
             bbox = self.sim.reset()
+
 
         bbox = to_bbox_msg(bbox)
         # while bbox == None:
@@ -111,17 +114,17 @@ class BtSimNode:
         self.sim_complete_pub.publish(msg)
 
         return ResetResponse(bbox)
-    
+
+    # def get_sim_status(self, req):
+    #     msg = Bool()
+    #     if not self.sim.object_uids > 0:
+    #         msg.data = False
+                 
+
     def change_sim(self, req):
         scene = req.input_str
         print("Changing sim to:", scene)
         self.sim.scene.scene_id = scene
-        # gui = rospy.get_param("~gui")
-        # self.sim = Simulation(gui, scene)
-        # self.init_plugins()
-        # self.advertise_services()
-        # self.start_plugins()
-        # self.activate_plugins()
         res = ServiceStrResponse()
         res.output_str = "success"
         return res

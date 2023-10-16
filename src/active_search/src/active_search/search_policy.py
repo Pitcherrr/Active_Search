@@ -43,6 +43,7 @@ class Policy:
         self.intrinsic = from_camera_info_msg(msg)
         self.qual_thresh = rospy.get_param("vgn/qual_threshold")
         self.target_bb = AABBox([0,0,0],[0,0,0])
+        self.policy_log_dir = Path(rospkg.RosPack().get_path("active_search")) / "logs/policy_log.csv"
 
     def init_ik_solver(self):
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
@@ -263,7 +264,7 @@ class MultiViewPolicy(Policy):
 
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
 
-        pooling = torch.nn.MaxPool3d(kernel_size=tuple(bb_size//2), stride=(1,1,1))
+        pooling = torch.nn.MaxPool3d(kernel_size=tuple(np.clip(bb_size//2, 1, np.inf).astype(int)), stride=(1,1,1))
 
         occ_mat = pooling(occ_mat.unsqueeze(0).unsqueeze(0)).squeeze()
 

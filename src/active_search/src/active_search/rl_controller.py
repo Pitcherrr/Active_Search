@@ -12,6 +12,7 @@ import geometry_msgs.msg
 import trimesh
 import threading
 import time
+import csv
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -67,7 +68,7 @@ class GraspController:
         self.moveit = MoveItClient("panda_arm")
         rospy.sleep(1.0)  # Wait for connections to be established.
         self.moveit.move_group.set_planner_id("RRTConnect")
-        self.moveit.move_group.set_planning_time(2.0)
+        self.moveit.move_group.set_planning_time(5.0)
 
     def switch_to_cartesian_velocity_control(self):
         req = SwitchControllerRequest()
@@ -316,6 +317,8 @@ class GraspController:
         y_off = -0.15
         z_off = 0.2
 
+        self.log_policy_perf(scene)
+
         bb_min = [x_off,y_off,z_off]
         bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
         self.bbox = AABBox(bb_min, bb_max)
@@ -326,8 +329,8 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
         r = rospy.Rate(self.policy_rate)
 
-        state = self.get_state()
-        enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+        # state = self.get_state()
+        # enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
 
         it = 0 
         max_it = 30
@@ -366,6 +369,7 @@ class GraspController:
                 if self.grasp_result != "succeeded":
                     fail_count += 1
                     info = self.collect_info(res)
+                    self.log_policy_perf(res)
                     self.switch_to_cartesian_velocity_control()
                     continue
 
@@ -405,16 +409,125 @@ class GraspController:
 
             info = self.collect_info(res)
 
+            self.log_policy_perf(res)
+
+
+
         print("fail:", fail_count)
         print("it", it)
+
         if not (fail_count >= max_fails or it >= max_it):
             print("writing perf")
             #only write a time if the game was successful
             scene_end = time.time() - scene_start
             self.writer.add_scalar(scene + " time to complete", scene_end, self.frame)
+            self.log_policy_perf("grasped target")
         
         self.writer.flush()
         return info
+    
+    def run_baseline(self):
+        self.policy.init_tsdf()
+        self.policy.target_bb = self.reset()
+        self.complete = False
+        voxel_size = 0.0075
+        x_off = 0.35
+        y_off = -0.15
+        z_off = 0.2
+
+        bb_min = [x_off,y_off,z_off]
+        bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
+        self.bbox = AABBox(bb_min, bb_max)
+
+        self.view_sphere = ViewHalfSphere(self.bbox, self.min_z_dist)
+        self.policy.activate(self.bbox, self.view_sphere)
+
+        self.switch_to_cartesian_velocity_control()
+        r = rospy.Rate(self.policy_rate)
+
+        # state = self.get_state()
+        # enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+
+        it = 0 
+        max_it = 30
+
+        fail_count = 0
+        max_fails = 4
+
+        scene_start = time.time()
+
+        while not self.complete and it < max_it and fail_count <= max_fails:
+            
+            self.policy.init_data()
+
+            state = self.get_state()
+            self.policy.integrate(state[0], state[1], state[2])
+            self.policy.get_grasps(state[2])
+
+            print("Graps", self.policy.grasps)
+
+            grasp_igs = [self.grasp_ig(grasp) for grasp in self.policy.grasps]
+
+            views = self.policy.generate_views(state[2])
+
+            print("Views", views)
+
+            gains = [self.policy.ig_fn(v, self.policy.downsample) for v in views]
+
+            best_grasp = np.argmax(grasp_igs)
+
+            best_view = np.argmax(gains)
+
+            action = np.random.choice(["grasp", "view"])
+
+            if action == "grasp":
+                print("grasping")
+                start_time = time.time()
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_grasp, args= (self.policy.grasps[best_grasp],))
+                with Timer("grasp_time"):
+                    grasp_thread.start()
+                    while True:
+                        if self.grasp_integrate:
+                            img, pose, q = self.get_state()
+                            self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = self.grasp_result
+                            break
+                
+                if self.grasp_result != "succeeded":
+                    fail_count += 1
+                    info = self.collect_info(res)
+                    # self.log_policy_perf(res)
+                    self.switch_to_cartesian_velocity_control()
+                    continue
+
+                self.switch_to_cartesian_velocity_control()
+            elif action == "view":
+                start_time = time.time()
+                t = 0
+                self.policy.x_d = views[best_view]
+                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                print("Executing for: 3 seconds")
+                while t < (3.0):
+                    img, pose, q = self.get_state()
+                    self.policy.integrate(img, pose, q)
+                    t += 1/self.policy_rate
+                    r.sleep()
+                rospy.sleep(0.2)        
+                timer.shutdown()
+                res = "view"
+            else:
+                res = "aborted"
+
+            info = self.collect_info(res)
+
+        print("Time to complete", time.time() - scene_start)
+
+        return info
+
+
 
     def reset(self):
         Timer.reset()
@@ -426,6 +539,12 @@ class GraspController:
             # bbs[i] = from_bbox_msg(bbs[i])
         return bb
     
+    def log_policy_perf(self, log):
+        print("writing to csv", log)
+        with open(self.policy.policy_log_dir, mode='a', newline='') as file:
+            # Create a CSV writer
+            writer = csv.writer(file)
+            writer.writerow([log])    
     
     def action_inference(self, state, q, bbox, exploration:bool):
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)

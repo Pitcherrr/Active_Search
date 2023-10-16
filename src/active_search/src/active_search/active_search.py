@@ -76,11 +76,11 @@ class NextBestView(MultiViewPolicy):
         self.autoencoder.to(self.device).float()
 
         self.grasp_nn = GraspEval()
-        # self.grasp_nn.load_model()
+        self.grasp_nn.load_model()
         self.grasp_nn.to(self.device).float()
         
         self.view_nn = ViewEval()
-        # self.view_nn.load_model()
+        self.view_nn.load_model()
         self.view_nn.to(self.device).float()
 
     def compile(self):
