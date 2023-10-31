@@ -27,7 +27,11 @@ class HwNode:
 
     def load_parameters(self):
         self.cfg = rospy.get_param("hw")
-        self.T_base_roi = Transform.from_matrix(np.loadtxt(self.cfg["roi_calib_file"]))
+        self.table_height = 0.2
+        self.T_base_roi = Transform.translation(
+            [0.3, -0.15, self.table_height - 0.05]
+        )
+        # self.T_base_roi = Transform.from_matrix(np.loadtxt(self.cfg["roi_calib_file"]))
 
     def init_robot_connection(self):
         self.gripper = PandaGripperClient()
