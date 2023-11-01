@@ -5,24 +5,12 @@ bt_sim:
   topic: /sim_complete
   # scene: as_test_scene.yaml
 
-tsdf_server:
-  base_frame_id: panda_link0
-  frame_id: task
-  length: 0.3
-  resolution: 40
-  depth_scaling: 0.001  # Set to 1.0 for Gazebo, 0.001 for a RealSense
-  camera:
-    frame_id: camera_depth_optical_frame
-    info_topic: /camera/depth/camera_info
-    depth_topic: /camera/depth/image_rect_raw
-
-
 hw:
-  roi_calib_file: $(find active_grasp)/cfg/hw/T_base_tag.txt
-  scene_file: $(find active_grasp)/cfg/hw/scene01.yaml
+  scene_file: $(find active_search)/cfg/hw/scene01.yaml
 
 grasp_controller:
-  base_frame_id: panda_link0
+  arm_id: fr3
+  base_frame_id: fr3_link0
   ee_grasp_offset: [0.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065]  # offset to panda_link8
   # grasp_drop_config: [2.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065] 
   grasp_drop_config: [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
