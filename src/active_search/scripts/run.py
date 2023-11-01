@@ -44,21 +44,6 @@ def main():
     controller.reset()
     controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
-    reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
-    tsdf_response = reset_tsdf() # Call the service with argument True
-    print(tsdf_response)
-
-    # toggle_integration = rospy.ServiceProxy('toggle_integration', SetBool)
-    # response = toggle_integration(True) # Call the service with argument True
-    # print(response) # Print the response from the service
-
-    # rospy.sleep(1.0)
-
-    # tsdf_view = Open3d_viz()
-    # tsdf_view.run()
-
-    # rospy.sleep(5.0) 
-
     for n in tqdm(range(400), disable=args.wait_for_input):
         if args.wait_for_input:
             controller.gripper.move(0.08)
@@ -71,13 +56,13 @@ def main():
         # info = controller.run()
         # logger.log_run(info)
         # print("n % 15:", n % 15)
-        if (n) % 15 == 0:
+        if (n+1) % 15 == 0:
             # controller.policy.view_nn.save_model()
             # controller.policy.grasp_nn.save_model()
-            enumerate_test_scenes(controller)
+            enumerate_test_scenes(controller, logger)
 
-def enumerate_test_scenes(controller):
-    print("############### Testing Policy ######################")
+def enumerate_test_scenes(controller, logger):
+    rospy.loginfo("############### Testing Policy ######################")
     change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
     test_cases = ["test.yaml", "test_2.yaml"]
 
@@ -93,18 +78,17 @@ def enumerate_test_scenes(controller):
         controller.reset()
         controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
-        reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
-        tsdf_response = reset_tsdf() # Call the service with argument True
-        print(tsdf_response)
-
-
         controller.gripper.move(0.08)
         controller.switch_to_joint_trajectory_control()
         controller.moveit.goto("ready", velocity_scaling=0.4)
      
         rospy.loginfo("Running policy ...")
         # info = controller.run_policy(case)
-        info = controller.run_baseline() 
+
+        info = controller.run_policy()
+
+        logger.log_run(info)
+        # info = controller.run() 
 
     msg = ServiceStrRequest()
     msg.input_str = "random"
@@ -132,6 +116,7 @@ class Logger:
             args.seed,
         )
         self.path = args.logdir / name
+        print("log path is:", self.path)
 
     def log_run(self, info):
         df = pd.DataFrame.from_records([info])
