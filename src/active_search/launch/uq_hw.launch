@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<launch>
+  <include file="$(find uq_bringup)/launch/franka_moveit_arm_only.launch" />
+
+  <!-- Extra controllers -->
+  <rosparam command="load" file="$(find panda_controllers)/config/panda_controllers.yaml" />
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="--stopped position_joint_trajectory_controller cartesian_velocity_controller"/>
+
+  <!-- Active search specific hardware node -->
+  <rosparam command="load" file="$(find active_search)/cfg/active_search.yaml" subst_value="true" />
+  <node pkg="active_search" type="hw_node.py" name="hw" output="screen" />
+</launch>

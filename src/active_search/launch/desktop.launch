@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+  <include file="$(find uq_bringup)/launch/realsense.launch" />
+  <!-- Active search specific hardware node -->
+  <rosparam command="load" file="$(find active_search)/cfg/desktop.yaml" subst_value="true" />
+  <node pkg="active_search" type="run.py" name="run" args="nbv" output="screen" />
+</launch>

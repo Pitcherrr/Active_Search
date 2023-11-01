@@ -1,0 +1,14 @@
+
+vgn:
+  model: $(find vgn)/assets/models/vgn_conv.pth
+  finger_depth: 0.05
+  qual_threshold: 0.9
+  
+policy:
+  rate: 4
+  window_size: 12
+
+nbv_grasp:
+  max_views: 80
+  min_gain: 3 #1
+  downsample: 10  # 10/20 for sim/hw respectively
