@@ -26,6 +26,7 @@ class HwNode:
         rospy.spin()
 
     def load_parameters(self):
+        self.arm_id = "fr3"
         self.cfg = rospy.get_param("hw")
         self.table_height = 0.2
         self.T_base_roi = Transform.translation(
@@ -38,7 +39,7 @@ class HwNode:
         self.switch_controller = rospy.ServiceProxy(
             "controller_manager/switch_controller", SwitchController
         )
-        self.moveit = MoveItClient("panda_arm")
+        self.moveit = MoveItClient(f"{self.arm_id}_manipulator")
         rospy.Timer(rospy.Duration(1), self.publish_table_co)
 
     def init_visualizer(self):
@@ -84,11 +85,11 @@ class HwNode:
 
     def draw_bbox(self, event):
         _, bbox = self.load_config()
-        self.vis.bbox("panda_link0", bbox)
+        self.vis.bbox(f"{self.arm_id}_link0", bbox)
 
     def publish_table_co(self, event):
         msg = geometry_msgs.msg.PoseStamped()
-        msg.header.frame_id = "panda_link0"
+        msg.header.frame_id = f"{self.arm_id}_link0"
         msg.pose = to_pose_msg(self.T_base_roi * Transform.t_[0.15, 0.15, 0.005])
         self.moveit.scene.add_box("table", msg, size=(0.8, 0.8, 0.01))
 
