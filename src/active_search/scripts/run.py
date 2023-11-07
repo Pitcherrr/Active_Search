@@ -41,10 +41,9 @@ def main():
     seed_simulation(args.seed)
     rospy.sleep(1.0)  # Prevents a rare race condiion
 
-    controller.reset()
-    controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
-
     for n in tqdm(range(400), disable=args.wait_for_input):
+        controller.reset()
+        controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
         if args.wait_for_input:
             controller.gripper.move(0.08)
             controller.switch_to_joint_trajectory_control()

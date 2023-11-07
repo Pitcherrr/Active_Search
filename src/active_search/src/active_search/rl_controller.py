@@ -348,42 +348,6 @@ class GraspController:
 
         scene_start = time.time()
 
-        #debug!!!!!!!!!!!!!!!
-
-        # state = self.get_state()
-
-
-
-        # views = self.policy.generate_views(state[2])
-        
-        # self.policy.x_d = views[1]
-
-        # # self.switch_to_cartesian_velocity_control()
-
-        # rospy.loginfo("going to view")
-
-        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-
-        # t = 0
-
-        # while t < (3.0):
-        #     img, pose, q = self.get_state()
-        #     self.policy.integrate(img, pose, q)
-        #     t += 1/self.policy_rate
-        #     r.sleep()
-
-        # self.policy.x_d = None
-
-        # rospy.sleep(0.5)
-
-        # timer.shutdown()
-
-        # rospy.sleep(0.5)
-
-        # rospy.loginfo("stopped going")
-
-        #debug!!!!!!!!!!!!!!!
-
         while not self.complete and it < max_it and fail_count <= max_fails and not self.policy.done:
             with Timer("Total_Inference_Time"):
                 state = self.get_state()
@@ -398,7 +362,7 @@ class GraspController:
             if grasp:
                 if terminal:
                     rospy.loginfo("Executing final grasp on target")
-                    self.complete = True
+                    # self.complete = True
                 
                 self.last_action = "grasp"
                 print("grasping")
@@ -447,6 +411,7 @@ class GraspController:
                 exec_time = time.time() - start_time
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
                 res = "view"
+                self.policy.done = False
             else:
                 res = "aborted"
 
