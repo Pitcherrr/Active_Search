@@ -1,9 +1,7 @@
 [submodule "src/active_grasp"]
 	path = src/active_grasp
-	url = https://github.com/Pitcherrr/active_grasp.git
-[submodule "robot_helpers"]
-	path = robot_helpers
-	url = https://github.com/Pitcherrr/robot_helpers.git
+	url = https://github.com/uq-rppl/active_grasp.git
+	branch = fridgeback
 [submodule "src/robot_helpers"]
 	path = src/robot_helpers
 	url = https://github.com/Pitcherrr/robot_helpers.git
@@ -12,5 +10,5 @@
 	url = https://github.com/ros-planning/panda_moveit_config.git
 [submodule "src/vgn"]
 	path = src/vgn
-	url = https://github.com/Pitcherrr/vgn.git
+	url = https://github.com/uq-rppl/vgn.git
 	branch = devel	
