@@ -12,7 +12,11 @@ import geometry_msgs.msg
 import trimesh
 import threading
 import time
+from datetime import datetime
+import pandas as pd
 import csv
+import os
+from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -41,6 +45,7 @@ class GraspController:
         self.init_tensorboard()
 
     def load_parameters(self):
+        self.arm_id = rospy.get_param("~arm_id")
         self.base_frame = rospy.get_param("~base_frame_id")
         self.T_grasp_ee = Transform.from_list(rospy.get_param("~ee_grasp_offset")).inv()
         self.T_grasp_drop = Transform.from_list(rospy.get_param("~grasp_drop_config"))
@@ -65,7 +70,7 @@ class GraspController:
         rospy.Subscriber('sim_complete', Bool, self.sim_complete, queue_size=1)
 
     def init_moveit(self):
-        self.moveit = MoveItClient("panda_arm")
+        self.moveit = MoveItClient(f"{self.arm_id}_arm")
         rospy.sleep(1.0)  # Wait for connections to be established.
         self.moveit.move_group.set_planner_id("RRTConnect")
         self.moveit.move_group.set_planning_time(5.0)
@@ -73,13 +78,13 @@ class GraspController:
     def switch_to_cartesian_velocity_control(self):
         req = SwitchControllerRequest()
         req.start_controllers = ["cartesian_velocity_controller"]
-        req.stop_controllers = ["position_joint_trajectory_controller"]
+        req.stop_controllers = ["position_joint_trajectory_controller", "effort_joint_trajectory_controller"]
         req.strictness = 1
         self.switch_controller(req)
 
     def switch_to_joint_trajectory_control(self):
         req = SwitchControllerRequest()
-        req.start_controllers = ["position_joint_trajectory_controller"]
+        req.start_controllers = ["position_joint_trajectory_controller", "effort_joint_trajectory_controller"]
         req.stop_controllers = ["cartesian_velocity_controller"]
         req.strictness = 1
         self.switch_controller(req)
@@ -309,9 +314,12 @@ class GraspController:
         return info
     
     def run_policy(self, scene):
+        logger = PerfLogger("logs")
         self.policy.init_tsdf()
         self.policy.target_bb = self.reset()
         self.complete = False
+        self.policy.done = False
+        self.last_action = None
         voxel_size = 0.0075
         x_off = 0.35
         y_off = -0.15
@@ -340,10 +348,47 @@ class GraspController:
 
         scene_start = time.time()
 
-        while not self.complete and it < max_it and fail_count <= max_fails:
-            with Timer("inference_time"):
+        #debug!!!!!!!!!!!!!!!
+
+        # state = self.get_state()
+
+
+
+        # views = self.policy.generate_views(state[2])
+        
+        # self.policy.x_d = views[1]
+
+        # # self.switch_to_cartesian_velocity_control()
+
+        # rospy.loginfo("going to view")
+
+        # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+
+        # t = 0
+
+        # while t < (3.0):
+        #     img, pose, q = self.get_state()
+        #     self.policy.integrate(img, pose, q)
+        #     t += 1/self.policy_rate
+        #     r.sleep()
+
+        # self.policy.x_d = None
+
+        # rospy.sleep(0.5)
+
+        # timer.shutdown()
+
+        # rospy.sleep(0.5)
+
+        # rospy.loginfo("stopped going")
+
+        #debug!!!!!!!!!!!!!!!
+
+        while not self.complete and it < max_it and fail_count <= max_fails and not self.policy.done:
+            with Timer("Total_Inference_Time"):
                 state = self.get_state()
-                enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
+                with Timer("State_Encoding"):
+                    enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
                 model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=False)
                 [grasp, view, action, value, action_input, terminal] = model_sample
 
@@ -351,6 +396,11 @@ class GraspController:
             init_occ = len(self.policy.coordinate_mat) if len(self.policy.coordinate_mat) > 0 else 1
             
             if grasp:
+                if terminal:
+                    rospy.loginfo("Executing final grasp on target")
+                    self.complete = True
+                
+                self.last_action = "grasp"
                 print("grasping")
                 start_time = time.time()
                 self.switch_to_joint_trajectory_control()
@@ -374,23 +424,26 @@ class GraspController:
                     continue
 
                 self.switch_to_cartesian_velocity_control()
-                print("grasp gain:", self.grasp_gain)
+                # print("grasp gain:", self.grasp_gain)
                 occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 print("occupancy diff:", occ_diff)
                 exec_time = time.time() - start_time
             elif view:
+                self.last_action = "view"
                 start_time = time.time()
                 t = 0
                 self.policy.x_d = action
                 timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for: 3 seconds")
-                while t < (3.0):
+                print("view")
+                while t < (5.0):
                     img, pose, q = self.get_state()
                     self.policy.integrate(img, pose, q)
                     t += 1/self.policy_rate
                     r.sleep()
-                rospy.sleep(0.2)        
+                self.policy.x_d = None
+                rospy.sleep(1.0) #wait for franka to stop moving      
                 timer.shutdown()
+                rospy.sleep(0.5)
                 exec_time = time.time() - start_time
                 occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
                 res = "view"
@@ -411,6 +464,8 @@ class GraspController:
 
             self.log_policy_perf(res)
 
+            logger.log_run(info)
+
 
 
         print("fail:", fail_count)
@@ -427,6 +482,7 @@ class GraspController:
         return info
     
     def run_baseline(self):
+        logger = PerfLogger("logs")
         self.policy.init_tsdf()
         self.policy.target_bb = self.reset()
         self.complete = False
@@ -455,30 +511,33 @@ class GraspController:
         max_fails = 4
 
         scene_start = time.time()
+        
 
         while not self.complete and it < max_it and fail_count <= max_fails:
             
             self.policy.init_data()
 
             state = self.get_state()
-            self.policy.integrate(state[0], state[1], state[2])
-            self.policy.get_grasps(state[2])
 
-            print("Graps", self.policy.grasps)
+            with Timer("baseline_total"):
+                self.policy.integrate(state[0], state[1], state[2])
+                self.policy.get_grasps(state[2])
 
-            grasp_igs = [self.grasp_ig(grasp) for grasp in self.policy.grasps]
+                print("Graps", self.policy.grasps)
 
-            views = self.policy.generate_views(state[2])
+                grasp_igs = [self.grasp_ig(grasp) for grasp in self.policy.grasps]
 
-            print("Views", views)
+                views = self.policy.generate_views(state[2])
 
-            gains = [self.policy.ig_fn(v, self.policy.downsample) for v in views]
+                print("Views", views)
 
-            best_grasp = np.argmax(grasp_igs)
+                gains = [self.policy.ig_fn(v, self.policy.downsample) for v in views]
 
-            best_view = np.argmax(gains)
+                best_grasp = np.argmax(grasp_igs)
 
-            action = np.random.choice(["grasp", "view"])
+                best_view = np.argmax(gains)
+
+                action = np.random.choice(["grasp", "view"])
 
             if action == "grasp":
                 print("grasping")
@@ -523,6 +582,8 @@ class GraspController:
 
             info = self.collect_info(res)
 
+            logger.log_run(info)
+
         print("Time to complete", time.time() - scene_start)
 
         return info
@@ -561,7 +622,10 @@ class GraspController:
         if exploration:
             model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
         else:
-            model_sample = self.policy.get_best_action(grasp_input, view_input, grasp_vals, view_vals) 
+            if self.last_action == "grasp":
+                model_sample = self.policy.get_best_view(grasp_input, view_input, grasp_vals, view_vals) 
+            else:
+                model_sample = self.policy.get_best_action(grasp_input, view_input, grasp_vals, view_vals) 
         timer.shutdown()
         return model_sample
     
@@ -590,7 +654,7 @@ class GraspController:
         voxel_size, tsdf_grid = self.policy.tsdf.voxel_size, self.policy.tsdf.get_grid()
         # Then check whether VGN can find any grasps on the target
         out = self.policy.vgn.predict(tsdf_grid)
-        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
 
         for grasp in grasps:
             pose = origin * grasp.pose
@@ -628,6 +692,7 @@ class GraspController:
         return img, pose, q
 
     def send_vel_cmd(self, event):
+        # print("view policy", self.policy.x_d)
         if self.policy.x_d is None or self.policy.done:
             cmd = np.zeros(6)
         else:
@@ -649,7 +714,11 @@ class GraspController:
     def execute_grasp(self, grasp):
         self.grasp_integrate = True
         self.grasp_gain = 0.0
-        self.create_collision_scene()
+        try:
+            self.create_collision_scene()
+        except:
+            rospy.logwarn("Failed to create a collision scene")
+        
         T_base_grasp = self.postprocess(grasp.pose)
         self.gripper.move(0.08)
         T_base_approach = T_base_grasp * Transform.t_[0, 0, -0.06] * self.T_grasp_ee
@@ -660,7 +729,7 @@ class GraspController:
             rospy.sleep(0.5)  # Wait for the planning scene to be updated
             self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)
             rospy.sleep(0.5)
-            self.gripper.grasp()
+            self.gripper.grasp(e_outer = 0.15)
             self.grasp_integrate = False
             #remove the body from the scene
             T_base_retreat = Transform.t_[0, 0, 0.10] * T_base_grasp * self.T_grasp_ee
@@ -672,9 +741,17 @@ class GraspController:
                 self.grasp_result = "succeeded"
                 remove_body = rospy.ServiceProxy('remove_body', Reset)
                 response = from_bbox_msg(remove_body(ResetRequest()).bbox)
+                response = self.hw_grasp_bb(grasp.pose)
                 self.grasp_gain = self.policy.tsdf_cut(response)
-                self.create_collision_scene()
-                success, plan = self.moveit.plan([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79], 0.2, 0.2)
+
+                try:
+                    self.create_collision_scene()
+                except:
+                    rospy.logwarn("Failed to create a collision scene")
+
+                # drop_location = [0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79] # for sim
+                drop_location = [1.2985, -0.1500, 0.0497, -1.6956, -0.0164, 1.5760, 0.6015] # for hardware 
+                success, plan = self.moveit.plan(drop_location, 0.2, 0.2)
                 # self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 if success:
                     print("planning success")
@@ -682,24 +759,49 @@ class GraspController:
                     self.moveit.execute(plan) 
                     self.gripper.move(0.08)
                 else:
-                    self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
+                    self.moveit.goto(drop_location)
             else:
                 self.grasp_result = "failed" 
  
         else:
             self.grasp_result = "no_motion_plan_found"
 
+        self.grasp_gain = 1
+        # self.policy.init_tsdf()
+
+
+
+    def hw_grasp_bb(self, grasp_pose):
+        #naive estimation of information gain from the grasping of an opject
+        i,j,k = (self.policy.T_task_base * grasp_pose).translation
+        tsdf_cut_inflation = np.asarray([10,10,10]) * self.policy.tsdf.voxel_size #place holder for the actual target object size 
+        bounding_box_min = np.clip([i - tsdf_cut_inflation[0], j - tsdf_cut_inflation[1], 0], 0, self.policy.tsdf.length)
+        bounding_box_max = np.clip([i + tsdf_cut_inflation[0], j + tsdf_cut_inflation[1], k + tsdf_cut_inflation[2]], 0 ,self.policy.tsdf.length)
+
+        print(bounding_box_min)
+        print(bounding_box_max)
+
+        bounding_box = AABBox(bounding_box_min, bounding_box_max)
+
+        return bounding_box 
+
     def create_collision_scene(self):
         # Segment support surface
         cloud = self.policy.tsdf.get_scene_cloud()
         cloud = cloud.transform(self.policy.T_base_task.as_matrix())
-        _, inliers = cloud.segment_plane(0.01, 3, 1000)
-        support_cloud = cloud.select_by_index(inliers)
-        cloud = cloud.select_by_index(inliers, invert=True)
+        try:
+            _, inliers = cloud.segment_plane(0.01, 3, 1000)
+            support_cloud = cloud.select_by_index(inliers)
+            cloud = cloud.select_by_index(inliers, invert=True)
+            self.add_collision_mesh("support", compute_convex_hull(support_cloud))
+
+        except:
+            rospy.logwarn("Failed to create a collision scene")
+            pass
+
         # o3d.io.write_point_cloud(f"{time.time():.0f}.pcd", cloud)
 
         # Add collision object for the support
-        self.add_collision_mesh("support", compute_convex_hull(support_cloud))
 
         # Cluster cloud
         labels = np.array(cloud.cluster_dbscan(eps=0.01, min_points=8))
@@ -707,8 +809,8 @@ class GraspController:
         # Generate convex collision objects for each segment
         self.hulls = []
 
-        if len(labels) == 0: #with active seach sometimes this is empty
-            self.search_grasp(self.bbox)
+        # if len(labels) == 0: #with active seach sometimes this is empty
+        #     self.search_grasp(self.bbox)
 
         if len(labels) > 0:
             for label in range(labels.max() + 1):
@@ -721,8 +823,8 @@ class GraspController:
                 except:
                     # Qhull fails in some edge cases
                     pass
-        else:
-            self.search_grasp(self.bbox)
+        # else:
+            # self.search_grasp(self.bbox)
 
     def add_collision_mesh(self, name, mesh):
         frame, pose = self.base_frame, Transform.identity()
@@ -732,8 +834,9 @@ class GraspController:
         msg = geometry_msgs.msg.PoseStamped()
         msg.header.frame_id = self.base_frame
         msg.pose.position.x = 0.4
-        msg.pose.position.z = 0.18
-        self.moveit.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
+        # msg.pose.position.z = 0.18
+        # msg.pose.position.z = 0.20
+        # self.moveit.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
     def postprocess(self, T_base_grasp):
         rot = T_base_grasp.rotation
@@ -773,3 +876,17 @@ class ViewHalfSphere:
 
     def sample_view(self):
         raise NotImplementedError
+    
+
+
+class PerfLogger:
+    def __init__(self, logdir):
+        # args.logdir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%y%m%d-%H%M%S")
+        name = "{}.csv".format(stamp)
+        self.path = Path(os.path.join(logdir, name))
+        print("log path is:", self.path)
+
+    def log_run(self, info):
+        df = pd.DataFrame.from_records([info])
+        df.to_csv(self.path, mode="a", header=not self.path.exists(), index=False)

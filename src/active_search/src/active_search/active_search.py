@@ -121,7 +121,8 @@ class NextBestView(MultiViewPolicy):
         return state
     
     def get_actions(self, state, q):
-        self.get_grasps(q)
+        with Timer("grasp_inference_time"):
+            self.get_grasps(q)
 
         self.views = self.generate_views(q)
 
@@ -146,8 +147,9 @@ class NextBestView(MultiViewPolicy):
         print("grasp shape", grasp_input.shape)
         print("viwe shape", view_input.shape)
 
-        grasp_vals = self.grasp_nn(grasp_input) if grasp_input.shape[0] > 0 else torch.empty((0)).to(self.device)
-        view_vals = self.view_nn(view_input) if view_input.shape[0] > 0 else torch.empty((0)).to(self.device)
+        with Timer("dual_head_inference_time"):
+            grasp_vals = self.grasp_nn(grasp_input) if grasp_input.shape[0] > 0 else torch.empty((0)).to(self.device)
+            view_vals = self.view_nn(view_input) if view_input.shape[0] > 0 else torch.empty((0)).to(self.device)
 
         return grasp_vals, view_vals
     
@@ -225,6 +227,26 @@ class NextBestView(MultiViewPolicy):
             selected_action = self.views[selected_action_index - len(self.grasps)]
             action_input = view_input[selected_action_index - len(self.grasps)]
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]
+        
+        return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
+    
+
+    def get_best_view(self, grasp_input, view_input, grasp_vals, view_vals):
+        
+        grasp_vals = torch.flatten(grasp_vals)
+        view_vals = torch.flatten(view_vals)
+        
+        combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
+
+        print("Combined vals: ", combined_vals)
+
+        selected_action_index = torch.argmax(view_vals)
+
+        grasp = False
+        view = True
+        selected_action = self.views[selected_action_index]
+        action_input = view_input[selected_action_index]
+        value = view_vals.tolist()[selected_action_index]
         
         return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
 

@@ -56,10 +56,10 @@ def main():
         # info = controller.run()
         # logger.log_run(info)
         # print("n % 15:", n % 15)
-        if (n+1) % 15 == 0:
-            # controller.policy.view_nn.save_model()
-            # controller.policy.grasp_nn.save_model()
-            enumerate_test_scenes(controller, logger)
+        # if (n+1) % 15 == 0:
+        user = input("Press a key to start")
+        run_hw(controller, logger)
+            # enumerate_test_scenes(controller, logger)
 
 def enumerate_test_scenes(controller, logger):
     rospy.loginfo("############### Testing Policy ######################")
@@ -83,9 +83,9 @@ def enumerate_test_scenes(controller, logger):
         controller.moveit.goto("ready", velocity_scaling=0.4)
      
         rospy.loginfo("Running policy ...")
-        # info = controller.run_policy(case)
+        info = controller.run_policy(case)
 
-        info = controller.run_policy()
+        # info = controller.run_policy()
 
         logger.log_run(info)
         # info = controller.run() 
@@ -94,6 +94,22 @@ def enumerate_test_scenes(controller, logger):
     msg.input_str = "random"
     res = change_sim(msg)
     print("Change sim response", res.output_str)
+
+def run_hw(controller, logger):
+
+    controller.reset()
+    controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
+
+    controller.gripper.move(0.08)
+    controller.switch_to_joint_trajectory_control()
+    controller.moveit.goto("ready", velocity_scaling=0.4)
+    
+    rospy.loginfo("Running policy ...")
+    info = controller.run_policy("test1.yaml")
+
+    # info = controller.run_policy()
+    logger.log_run(info)
+    # info = controller.run() 
 
 
 def create_parser():

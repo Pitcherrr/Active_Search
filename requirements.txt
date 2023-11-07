@@ -1,0 +1,5 @@
+torch
+open3d==0.16.0
+numpy==1.23.5 
+numba
+

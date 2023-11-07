@@ -28,6 +28,7 @@ from vgn.utils import grid_to_map_cloud, to_cloud_msg
 
 class BtSimNode:
     def __init__(self):
+        self.resets = 0
         gui = rospy.get_param("~gui")
         print("gui: ", gui)
         scene_id = rospy.get_param("~scene")
@@ -87,6 +88,9 @@ class BtSimNode:
         return SeedResponse()
 
     def reset(self, req):
+        # if self.resets > 0:
+            # self.__init__()
+        self.resets += 1
         self.deactivate_plugins()
         self.deactivate_controllers()
         rospy.sleep(1.0)  # TODO replace with a read-write lock

@@ -41,6 +41,7 @@ class Simulation:
         self.rate = rate
         self.dt = 1.0 / self.rate
         p.connect(p.GUI if gui else p.DIRECT)
+        # p.connect(p.DIRECT)
         # p.connect(p.GUI if gui else p.DIRECT, options= "--opengl2 --gpu")
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
@@ -114,7 +115,7 @@ class Simulation:
         # return target_points
         target_bb = AABBox(self.scene.target_bb[0], self.scene.target_bb[1])
         return target_bb
-        #self.set_arm_configuration(q)
+    
 
     def set_arm_configuration(self, q):
         for i, q_i in enumerate(q):
@@ -305,7 +306,6 @@ class RandomScene(Scene):
     def __init__(self):
         super().__init__()
         self.center = np.r_[0.5, 0.0, 0.2]
-        print(self.center)
         self.length = 0.3#not sure why this is 0.3, turns out this was the issue the whole time, scene length is a protion of the scene you want
         self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.1]

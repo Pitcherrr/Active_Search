@@ -34,6 +34,7 @@ class Policy:
         self.init_tsdf()
 
     def load_parameters(self):
+        self.arm_id = rospy.get_param("~arm_id")
         self.base_frame = rospy.get_param("~base_frame_id")
         self.T_grasp_ee = Transform.from_list(rospy.get_param("~ee_grasp_offset")).inv()
         self.cam_frame = rospy.get_param("~camera/frame_id")
@@ -48,7 +49,7 @@ class Policy:
     def init_ik_solver(self):
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
         self.cam_ik_solver = IK(self.base_frame, self.cam_frame)
-        self.ee_ik_solver = IK(self.base_frame, "panda_link8")
+        self.ee_ik_solver = IK(self.base_frame, f"{self.arm_id}_link8")
 
     def init_tsdf(self):
         self.tsdf = UniformTSDFVolume(0.3, 40)
@@ -130,10 +131,11 @@ class Policy:
         raise NotImplementedError
 
     def filter_grasps(self, out, q):
+        qual_thresh =0.9
         grasps, qualities = select_local_maxima(
             self.tsdf.voxel_size,
             out,
-            0.8,
+            qual_thresh,
         )
         filtered_grasps, filtered_qualities = [], []
 
@@ -155,13 +157,13 @@ class Policy:
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
             # print(bbox.min)
-            if bbox.is_inside(tip) and quality > 0.8:
+            if bbox.is_inside(tip) and quality > qual_thresh:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > 0.8:
+            if target.is_inside(tip) and quality > qual_thresh:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
@@ -199,7 +201,8 @@ class MultiViewPolicy(Policy):
             for _ in range(5):
                 self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
 
-        self.get_poi_torch()
+        with Timer("occluded"):
+            self.get_poi_torch()
 
         scene_cloud = self.tsdf.get_scene_cloud()
         self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))

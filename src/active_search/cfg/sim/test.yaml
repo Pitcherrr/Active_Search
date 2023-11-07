@@ -3,7 +3,7 @@ center:
 - 0.0
 - 0.2
 objects:
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+- object_id: /home/tom/dev_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
   rpy:
   - 0.0
   - 0.0
@@ -13,7 +13,7 @@ objects:
   - 0.4978461417366892
   - -0.008796856788911178
   - 0.23147014117766768
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/57f73714cbc425e44ae022a8f6e258a7.urdf
+- object_id: /home/tom/dev_ws/active_search/src/active_search/assets/occluding_objs/mug/57f73714cbc425e44ae022a8f6e258a7.urdf
   rpy:
   - -90.00000000000003
   - 1.2722218725854067e-14
@@ -23,7 +23,7 @@ objects:
   - 0.4977240718780671
   - -0.008911283887277258
   - 0.4314637198060156
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+- object_id: /home/tom/dev_ws/active_search/src/active_search/assets/test/pudding_box.urdf
   rpy:
   - 0.0
   - 0.0
@@ -33,7 +33,7 @@ objects:
   - 0.570102411142142
   - 0.056448026039069205
   - 0.2440637349218525
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+- object_id: /home/tom/dev_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
   rpy:
   - 0.0
   - 0.0
