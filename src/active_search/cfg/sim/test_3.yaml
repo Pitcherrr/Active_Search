@@ -1,0 +1,73 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 53.84905716990439
+  scale: 0.45833176371462764
+  xyz:
+  - 0.5008259441649467
+  - 0.012632507355162026
+  - 0.2308597663223388
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -157.2677058217719
+  scale: 0.5317624077400304
+  xyz:
+  - 0.5561111088609438
+  - 0.029630993354402335
+  - 0.270489465599832
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 94.34924309271962
+  scale: 0.6997409014741651
+  xyz:
+  - 0.5066631796793266
+  - -0.04427260238939908
+  - 0.2385847639261115
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/CoffeeCookies_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -52.160001146229845
+  scale: 0.6512451101968317
+  xyz:
+  - 0.4603564405200809
+  - 0.060041720877711785
+  - 0.27761969035462797
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 154.13808522979215
+  scale: 0.6479547004527382
+  xyz:
+  - 0.5465590399579637
+  - -0.0729646504258026
+  - 0.241558577143699
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/3m_high_tack_spray_adhesive.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 106.21002859731827
+  scale: 0.7557112750705682
+  xyz:
+  - 0.5897471835086668
+  - -0.023397685492225928
+  - 0.29285294818857643
+q:
+- 0.015214246063555398
+- -1.3984237806303084
+- -2.0764009584686716e-05
+- -2.372678895860737
+- 0.006442400709119445
+- 1.5269527418788778
+- 0.7268927047271874

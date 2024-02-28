@@ -1,0 +1,33 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/wooden_block.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 20.24963251615637
+  scale: 0.4988870202568001
+  xyz:
+  - 0.5241720999739788
+  - -0.015743667935742833
+  - 0.2567719996975155
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/wooden_block.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 140.7492394614509
+  scale: 0.7309372339070674
+  xyz:
+  - 0.5122602072270261
+  - 0.07507580202696193
+  - 0.28085301023317955
+q:
+- -0.07554254109791168
+- -1.3242351750089656
+- -0.05659616309897974
+- -2.340420694129394
+- 0.04070018589783994
+- 1.6448595571613396
+- 0.8637984680735569

@@ -26,7 +26,7 @@ class Environment:
         self.vgn_path = vgn_path
 
     def load_engine(self):
-        self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
+        self.sim = Simulation(self.gui, self.scene_id)
         self.load_environment()
 
     def load_environment(self):

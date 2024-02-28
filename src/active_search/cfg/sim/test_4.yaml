@@ -1,0 +1,53 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 29.30857667327477
+  scale: 0.4456752150338373
+  xyz:
+  - 0.5036509330743092
+  - 0.00923491328161688
+  - 0.2334708468946471
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -22.4236999091388
+  scale: 0.7410877107321001
+  xyz:
+  - 0.4890657189620917
+  - -0.08218911001515262
+  - 0.2421336822148689
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/cracker_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 40.71188735970795
+  scale: 0.7862856157283242
+  xyz:
+  - 0.5278131414801126
+  - 0.08468872655683782
+  - 0.2992870450363331
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 104.20255611509
+  scale: 0.48606149598467674
+  xyz:
+  - 0.4473100921253038
+  - -0.05911791916609388
+  - 0.236050823484793
+q:
+- -0.06910202771455655
+- -1.3712354979208232
+- -0.012105927843538089
+- -2.3570400885644185
+- 0.009865611162545404
+- 1.522065321521143
+- 0.8181732357239019

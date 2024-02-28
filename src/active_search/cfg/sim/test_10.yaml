@@ -1,0 +1,53 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 168.93603216913286
+  scale: 0.45978584580156706
+  xyz:
+  - 0.5095130350291907
+  - 0.01989289473857661
+  - 0.23733926733084773
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/2852b888abae54b0e3523e99fd841f4.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -41.5153724881316
+  scale: 0.014799864925246983
+  xyz:
+  - 0.509499140192683
+  - 0.02002069901721752
+  - 0.43732340304612444
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -29.32464720037301
+  scale: 0.749206611396807
+  xyz:
+  - 0.4121139434493542
+  - 0.07583604455302961
+  - 0.25769582157267296
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/Paprika_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -48.35706964162805
+  scale: 0.5298081445785308
+  xyz:
+  - 0.5882067667608141
+  - 0.08989542544150667
+  - 0.2532302895641419
+q:
+- -0.04883742623645649
+- -1.3111107868143086
+- -0.05975224889740881
+- -2.3529266182024924
+- 0.009938098531796363
+- 1.568402618466938
+- 0.7880066059878165

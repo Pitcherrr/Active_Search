@@ -6,8 +6,10 @@ import pandas as pd
 from pathlib import Path
 import rospy
 from tqdm import tqdm
-from std_srvs.srv import SetBool, Empty, Trigger, TriggerRequest, TriggerResponse
-from std_msgs.msg import String
+# from std_srvs.srv import SetBool, Empty, Trigger, TriggerRequest, TriggerResponse
+# from std_msgs.msg import String
+import glob
+import os
 
 from active_grasp.bbox import AABBox
 from active_search.rl_controller import *
@@ -41,23 +43,10 @@ def main():
     seed_simulation(args.seed)
     rospy.sleep(1.0)  # Prevents a rare race condiion
 
+    print("Resetting controller")
     controller.reset()
+    print("Activating policy")
     controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
-
-    reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
-    tsdf_response = reset_tsdf() # Call the service with argument True
-    print(tsdf_response)
-
-    # toggle_integration = rospy.ServiceProxy('toggle_integration', SetBool)
-    # response = toggle_integration(True) # Call the service with argument True
-    # print(response) # Print the response from the service
-
-    # rospy.sleep(1.0)
-
-    # tsdf_view = Open3d_viz()
-    # tsdf_view.run()
-
-    # rospy.sleep(5.0) 
 
     for n in tqdm(range(400), disable=args.wait_for_input):
         if args.wait_for_input:
@@ -68,18 +57,20 @@ def main():
             if i != "y":
                 exit()
             rospy.loginfo("Running policy ...")
-        # info = controller.run()
-        # logger.log_run(info)
-        # print("n % 15:", n % 15)
-        if (n) % 15 == 0:
-            # controller.policy.view_nn.save_model()
-            # controller.policy.grasp_nn.save_model()
+        info = controller.run()
+        logger.log_run(info)
+        # test the policy every 15 games
+        if (n+1) % 15 == 0:
+            controller.policy.view_nn.save_model()
+            controller.policy.grasp_nn.save_model()
             enumerate_test_scenes(controller)
 
 def enumerate_test_scenes(controller):
     print("############### Testing Policy ######################")
     change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
-    test_cases = ["test.yaml", "test_2.yaml"]
+    # test_cases = ["test_1.yaml", "test_2.yaml", "test_3.yaml", "test_4.yaml"]
+    test_cases = get_all_test_files()
+    print("Running test cases", test_cases)
 
     for case in test_cases:
         msg = ServiceStrRequest()
@@ -93,18 +84,17 @@ def enumerate_test_scenes(controller):
         controller.reset()
         controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
-        reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
-        tsdf_response = reset_tsdf() # Call the service with argument True
-        print(tsdf_response)
-
+        # reset_tsdf = rospy.ServiceProxy('reset_map', Empty)
+        # tsdf_response = reset_tsdf() # Call the service with argument True
+        # print(tsdf_response)
 
         controller.gripper.move(0.08)
         controller.switch_to_joint_trajectory_control()
         controller.moveit.goto("ready", velocity_scaling=0.4)
      
         rospy.loginfo("Running policy ...")
-        # info = controller.run_policy(case)
-        info = controller.run_baseline() 
+        info = controller.run_policy(case)
+        # info = controller.run_baseline()
 
     msg = ServiceStrRequest()
     msg.input_str = "random"
@@ -139,9 +129,33 @@ class Logger:
 
 
 def seed_simulation(seed):
+    print("Seeding sim")
     rospy.ServiceProxy("seed", Seed)(seed)
     rospy.sleep(1.0)
+    
 
+def get_all_test_files() -> list:
+    directory_path = "/home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/cfg/sim"
+    pattern = "test_*.yaml"
+
+    # Get a list of matching files in the directory
+    matching_files = glob.glob(os.path.join(directory_path, pattern))
+
+    if matching_files:
+        # Sort the files by the numeric part of their names
+        sorted_files = sorted(matching_files, key=lambda x: int(os.path.splitext(os.path.basename(x))[0].split('_')[-1]))
+        
+        # Extract the numeric part from each file name
+        file_numbers = [int(os.path.splitext(os.path.basename(file))[0].split('_')[-1]) for file in sorted_files]
+
+        # Generate the list of test file names
+        test_files = ["test_" + str(number) + ".yaml" for number in file_numbers]
+
+        return test_files
+    else:
+        print("No matching files found.")
+        return []
+    
 
 if __name__ == "__main__":
     main()

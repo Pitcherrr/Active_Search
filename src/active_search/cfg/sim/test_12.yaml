@@ -1,0 +1,93 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 44.16952074573901
+  scale: 0.42535219104533395
+  xyz:
+  - 0.4937334634902768
+  - -0.003692241227585852
+  - 0.22899900931146416
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/9d8c711750a73b06ad1d789f3b2120d0.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -123.69135342053836
+  scale: 0.013055815792986458
+  xyz:
+  - 0.4937407424210653
+  - -0.0034494495056999405
+  - 0.4289779544652723
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 143.85936204422634
+  scale: 0.46281775223844
+  xyz:
+  - 0.4449631930548972
+  - -0.08114285595084678
+  - 0.23456595502647573
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -22.457765462177274
+  scale: 0.40481730604725114
+  xyz:
+  - 0.5887107224338859
+  - -0.08033260077343246
+  - 0.2244296112006014
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/CoffeeCookies_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 85.47225097966735
+  scale: 0.40425493690017317
+  xyz:
+  - 0.5819279087335412
+  - -0.04982170901703806
+  - 0.2500780633625755
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pop_secret_butter.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -73.10936759004964
+  scale: 0.5145788474814742
+  xyz:
+  - 0.5321575558347202
+  - 0.05672202767959994
+  - 0.24828997545560622
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -57.02355905468369
+  scale: 0.40336041637489245
+  xyz:
+  - 0.5522041957368602
+  - -0.0800945953639808
+  - 0.2277582003625447
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 1.486348764507257
+  scale: 0.48590837181459845
+  xyz:
+  - 0.4271751998260899
+  - -0.04593032349235354
+  - 0.23241567995932594
+q:
+- 0.00042564540794583217
+- -1.4683957844831907
+- -0.04451680983097187
+- -2.432937117188855
+- -0.06993359444535178
+- 1.5895936848212056
+- 0.8083243407470273

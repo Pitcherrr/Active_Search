@@ -71,9 +71,15 @@ class NextBestView(MultiViewPolicy):
 
     def load_models(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.autoencoder = Autoencoder()
-        self.autoencoder.load_state_dict(torch.load(self.autoencoder.model_path))
-        self.autoencoder.to(self.device).float()
+        autoencoder = Autoencoder() #compile the network to make it faster
+        autoencoder.load_state_dict(torch.load(autoencoder.model_path))
+        autoencoder.to(self.device).float()
+        self.autoencoder = torch.compile(autoencoder)
+
+        for name, param in autoencoder.named_parameters():
+            if param.requires_grad:
+                print(f"Layer: {name} | Size: {param.size()} | Values: {param.data}")
+
 
         self.grasp_nn = GraspEval()
         self.grasp_nn.load_model()
@@ -107,18 +113,19 @@ class NextBestView(MultiViewPolicy):
         super().activate(bbox, view_sphere)
 
     def get_encoded_state(self, img, x, q):
-        self.integrate(img, x, q)
-        #Encode the scene using our trained autoencoder
-        # start = time.time()
-        map_cloud = self.tsdf.get_map_cloud()
-        occu_vec = o3d.utility.Vector3dVector(self.coordinate_mat)
-        occu = o3d.geometry.PointCloud(points = occu_vec)
-        cloud = self.join_clouds(map_cloud, occu)
-        cloud_tensor = torch.tensor(np.asarray(cloud), dtype=torch.float32).to(self.device)
-        encoded_voxel = self.autoencoder.encoder(cloud_tensor.view(1,2,40,40,40)) #need to view as a simgle sample
-        # print("Encode Time:", time.time()- start)
-        state = torch.cat((encoded_voxel, torch.tensor([q]).to(self.device)), 1)
-        return state
+        with Timer("state_encode"):
+            self.integrate(img, x, q)
+            #Encode the scene using our trained autoencoder
+            # start = time.time()
+            map_cloud = self.tsdf.get_map_cloud()
+            occu_vec = o3d.utility.Vector3dVector(self.coordinate_mat)
+            occu = o3d.geometry.PointCloud(points = occu_vec)
+            cloud = self.join_clouds(map_cloud, occu)
+            cloud_tensor = torch.tensor(np.asarray(cloud), dtype=torch.float32).to(self.device)
+            encoded_voxel = self.autoencoder.encoder(cloud_tensor.view(1,2,40,40,40)) #need to view as a simgle sample
+            # print("Encode Time:", time.time()- start)
+            state = torch.cat((encoded_voxel, torch.tensor([q]).to(self.device)), 1)
+            return state
     
     def get_actions(self, state, q):
         self.get_grasps(q)
@@ -194,6 +201,43 @@ class NextBestView(MultiViewPolicy):
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]
         
         return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
+    
+
+    def sample_action_2(self, grasp_input , view_input, grasp_vals, view_vals):
+
+        if self.done:
+            grasp = True
+            view = False
+            selected_action = self.grasps[0]
+            value = 10.0
+            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
+        
+        #this is the uniform sample as opposed to a softmax over the other actions
+        combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
+
+        # action_dist = torch.distributions.Uniform(combined_vals.flatten())
+
+        print("Combined values shape: ", combined_vals.shape[0])
+
+        selected_action_index = np.random.randint(low = 0, high = combined_vals.shape[0])
+        
+        grasp, view = False, False
+        # Based on the selected index, determine whether it's a grasp or a view
+        if selected_action_index < len(self.grasps):
+            grasp = True
+            selected_action = self.grasps[selected_action_index]
+            # indexing to the correct input to the network
+            action_input = grasp_input[selected_action_index]
+            value = grasp_vals.tolist()[selected_action_index]
+        else:
+            view = True
+            selected_action = self.views[selected_action_index - len(self.grasps)]
+            action_input = view_input[selected_action_index - len(self.grasps)]
+            value = view_vals.tolist()[selected_action_index - len(self.grasps)]
+        
+        return [grasp, view, selected_action, value[0], action_input.view(1, -1), self.done]
+
+
 
     def get_best_action(self, grasp_input, view_input, grasp_vals, view_vals):
         if self.done:

@@ -1,0 +1,93 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -13.603848860522053
+  scale: 0.4242773433488521
+  xyz:
+  - 0.4925823193509089
+  - 0.02011161891475513
+  - 0.2289141806989751
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/dfa8a3a0c8a552b62bc8a44b22fcb3b9.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -54.31299760895224
+  scale: 0.010205465900015715
+  xyz:
+  - 0.4923321931817687
+  - 0.02037949690259123
+  - 0.4288299615483512
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -114.81305974020938
+  scale: 0.47029884994237536
+  xyz:
+  - 0.5153411173440011
+  - -0.03888393356591756
+  - 0.23150815994856155
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -173.10255994779675
+  scale: 0.47171077231410735
+  xyz:
+  - 0.45267330710404197
+  - 0.07793215705612086
+  - 0.23161463007693234
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 44.901938610669305
+  scale: 0.4021047723316676
+  xyz:
+  - 0.4404235049897379
+  - 0.007762423920309958
+  - 0.22429942043386536
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 59.39266253086932
+  scale: 0.7929595516684967
+  xyz:
+  - 0.4803888140119389
+  - -0.05094506532251761
+  - 0.25565623850652697
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/cracker_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 159.35788454148738
+  scale: 0.5272486127111801
+  xyz:
+  - 0.5846089879042426
+  - -0.04321711768689551
+  - 0.2682247528094419
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/south_beach_good_to_go_dark_chocolate.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -7.773480176972026
+  scale: 0.7381295303118252
+  xyz:
+  - 0.5194079117885775
+  - 0.08271209644703431
+  - 0.2583553220561193
+q:
+- 0.06437616542407772
+- -1.3142977059876095
+- -0.003841113650732239
+- -2.426649305983384
+- 0.025551318188358985
+- 1.5492592521221427
+- 0.8168640109107593

@@ -1,0 +1,73 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 98.09252981760824
+  scale: 0.4898948819606156
+  xyz:
+  - 0.5144689544465624
+  - 0.026564404316698376
+  - 0.2653332494977311
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/6aec84952a5ffcf33f60d03e1cb068dc.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -163.07545320369292
+  scale: 0.019886046060532687
+  xyz:
+  - 0.5142668884708725
+  - 0.026290735996730208
+  - 0.46567348254410273
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -89.51540017552145
+  scale: 0.4525596993647965
+  xyz:
+  - 0.4307654756009727
+  - -0.034349601559164986
+  - 0.2607352163899307
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 31.295481572672006
+  scale: 0.4489521137158428
+  xyz:
+  - 0.455693976271504
+  - -0.07742412678821338
+  - 0.23657727136835735
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pop_secret_butter.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -44.38039991930125
+  scale: 0.42777758241203856
+  xyz:
+  - 0.5336697534574257
+  - -0.07662828844113444
+  - 0.24098764530200092
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 47.54814443901426
+  scale: 0.6349557886049887
+  xyz:
+  - 0.5883241675905293
+  - 0.025071514042105864
+  - 0.2408251590185769
+q:
+- 0.05590158324912588
+- -1.4126505993604206
+- 0.026015682265473197
+- -2.4369572499069467
+- -0.06731787314666933
+- 1.5432222555195687
+- 0.8223835952425802

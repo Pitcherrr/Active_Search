@@ -1,0 +1,63 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 68.37364656831485
+  scale: 0.5164779192132108
+  xyz:
+  - 0.5274179573651828
+  - -0.018994642452875438
+  - 0.24132673265702143
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/28f1e7bc572a633cb9946438ed40eeb9.urdf
+  rpy:
+  - -90.0
+  - 1.2722218725854067e-14
+  - -105.92333072005512
+  scale: 0.01967426340207746
+  xyz:
+  - 0.5275619485598936
+  - -0.01900561473667079
+  - 0.44130891228947744
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 153.07227813680436
+  scale: 0.7934206081240562
+  xyz:
+  - 0.42543689836973325
+  - -0.0453803629432611
+  - 0.2556856919455185
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 93.73346033269462
+  scale: 0.5139289323959579
+  xyz:
+  - 0.5188961993583314
+  - 0.07092202708437953
+  - 0.2411474483948836
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/PotatoeDumplings_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -129.25470635337493
+  scale: 0.7048362833822657
+  xyz:
+  - 0.41044159108505185
+  - 0.0835651052712342
+  - 0.23637367260003483
+q:
+- -0.03917348964389587
+- -1.3342099223337742
+- 0.0565882187164365
+- -2.381946497910392
+- -0.06769490368894118
+- 1.5103508073176697
+- 0.7857977547632324

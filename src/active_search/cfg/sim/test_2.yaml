@@ -3,91 +3,41 @@ center:
 - 0.0
 - 0.2
 objects:
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
   rpy:
   - 0.0
   - 0.0
-  - 4.4977916487958005
-  scale: 0.4116755134053839
+  - -138.10781531055474
+  scale: 0.4096163078093461
   xyz:
-  - 0.4954712315592389
-  - -0.017892506419911358
-  - 0.22562782511308532
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/1a97f3c83016abca21d0de04f408950f.urdf
+  - 0.47653037846681345
+  - 0.024995379759407105
+  - 0.22465994408656165
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
   rpy:
-  - -90.00000000000001
-  - 1.2722218725854067e-14
-  - -87.12573077469774
-  scale: 0.02
+  - 0.0
+  - 0.0
+  - -142.52411615542118
+  scale: 0.438170537561142
   xyz:
-  - 0.4955028451310126
-  - -0.01775106290405232
-  - 0.42528819243296356
+  - 0.4626444405282069
+  - 0.06673337969318283
+  - 0.22603043288217967
 - object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pop_secret_butter.urdf
   rpy:
   - 0.0
   - 0.0
-  - 101.03551750458462
-  scale: 0.6134335190686607
+  - 93.23027056464537
+  scale: 0.7773257719012482
   xyz:
-  - 0.5662212723290183
-  - -0.08455888053840131
-  - 0.256606322556981
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - -155.16218431632635
-  scale: 0.5885559342302675
-  xyz:
-  - 0.582931859525027
-  - 0.07717114530633198
-  - 0.2381736614817634
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - -100.4344804387575
-  scale: 0.5693927647637876
-  xyz:
-  - 0.44033989179438554
-  - 0.07723036969365904
-  - 0.23353056348930257
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/PotatoeDumplings_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - -75.83021609582188
-  scale: 0.5016423830191981
-  xyz:
-  - 0.5137223783988165
-  - 0.060738671922252185
-  - 0.22732910572029952
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - -131.6281228516181
-  scale: 0.6406093874274476
-  xyz:
-  - 0.4235413450924895
-  - 0.04599316160928424
-  - 0.23709901482928786
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/Paprika_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - 173.83830543617896
-  scale: 0.7888233339016457
-  xyz:
-  - 0.422524354330585
-  - -0.06950319270133135
-  - 0.2768093487205517
+  - 0.5593941902456582
+  - 0.01697825457959723
+  - 0.27039408635102646
 q:
-- -0.0026028860264723924
-- -1.3797861888760863
-- 0.04101992895614347
-- -2.3559335395098415
-- 0.07677757425025418
-- 1.5783475310001713
-- 0.819289306636947
+- 0.012980685181004842
+- -1.3420307190543272
+- 0.07802775277461353
+- -2.4161560195235423
+- -0.0594052530765139
+- 1.530187198327091
+- 0.8607599370382848

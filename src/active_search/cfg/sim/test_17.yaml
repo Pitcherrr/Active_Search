@@ -1,0 +1,73 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -14.445740608992539
+  scale: 0.5650424701203791
+  xyz:
+  - 0.5229575236497959
+  - -0.02508087940983432
+  - 0.24474254462455053
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/CoffeeCookies_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -128.43984607432415
+  scale: 0.7143631021855955
+  xyz:
+  - 0.5855828630152051
+  - 0.06080822644721953
+  - 0.2846579144614386
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 116.55182236793283
+  scale: 0.7821849616719704
+  xyz:
+  - 0.5049408836782571
+  - 0.04766288577836425
+  - 0.2588131529025905
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -69.52601369390442
+  scale: 0.48489873562459757
+  xyz:
+  - 0.4162178936300913
+  - 0.050435957082038296
+  - 0.23910559499154654
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -73.89824157626491
+  scale: 0.4262968100026203
+  xyz:
+  - 0.48770922190131605
+  - 0.0895551280792036
+  - 0.22546054146074668
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 21.191196757828408
+  scale: 0.5199897875758006
+  xyz:
+  - 0.42411025815847714
+  - -0.08838107677712356
+  - 0.23430896484728123
+q:
+- -0.0726444985103226
+- -1.4465299355409387
+- -0.07375717866746007
+- -2.4318443831789054
+- -0.07478112183260241
+- 1.625412052679554
+- 0.7647879637789698

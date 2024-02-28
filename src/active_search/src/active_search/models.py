@@ -57,7 +57,7 @@ class Autoencoder(nn.Module):
     def get_path(self):
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/autoencoder_weights.pth"
+        self.model_path =  str(pkg_root)+"/models/autoencoder_weights_3.pth"
 
 
 class GraspEval(nn.Module):
@@ -67,10 +67,10 @@ class GraspEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 1)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.05)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.5)
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/graspnn_weights_3.pth"  
+        self.model_path =  str(pkg_root)+"/models/graspnn_weights_8.pth"  
 
     def forward(self, x):
         x = self.fc1(x)
@@ -94,11 +94,11 @@ class ViewEval(nn.Module):
         self.fc2 = nn.Linear(256, 128)  
         self.fc3 = nn.Linear(128, 1)   
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.05)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.5)
 
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/viewnn_weights_3.pth"
+        self.model_path =  str(pkg_root)+"/models/viewnn_weights_8.pth"
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))    

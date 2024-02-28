@@ -15,17 +15,17 @@ from robot_helpers.model import *
 from robot_helpers.spatial import Transform
 from active_search.search_sim import Simulation
 from active_search.dynamic_perception import SceneTSDFVolume
+# from vgn.perception import UniformTSDFVolume
 from vgn.detection import VGN, select_local_maxima, to_voxel_coordinates
 
 class Environment:
-    def __init__(self, gui, scene_id, vgn_path):
+    def __init__(self, gui, scene_id):
         self.gui = gui
         self.scene_id = scene_id
-        self.vgn_path = vgn_path
 
     def load_engine(self):
-        self.sim = Simulation(self.gui, self.scene_id, self.vgn_path)
-        self.sim.reset()
+        self.sim = Simulation(self.gui, self.scene_id)
+        self.target_box = self.sim.reset()
         self.scene_origin = Transform.from_translation(self.sim.scene.alt_origin)
         self.sim_state = Queue(maxsize=1)
         self.tsdf = SceneTSDFVolume(self.sim.scene.length, 40)
@@ -63,7 +63,8 @@ class Environment:
 
     def get_target(self):
         print(self.sim.object_uids)
-        self.target_uid = np.random.choice(self.sim.object_uids)
+        # self.target_uid = np.random.choice(self.sim.object_uids)
+        self.target_uid = self.sim.scene.target
         
   
 
@@ -99,8 +100,14 @@ class Environment:
 
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
+        bb_size = ((self.target_box.max - self.target_box.min)/voxel_size).astype(int) - 1 # -1 as bounding boxes are usually quite large fot the object contained
+
+        bb_voxel = np.floor(bb_size).astype(int)
+
+        # print("bb_size", bb_voxel)
+
         #bb_voxel = np.floor(self.target_bb.get_extent()/voxel_size)
-        bb_voxel = [5,5,5]
+        # bb_voxel = [5,5,5]
 
         vol_mat = torch.from_numpy(vol_mat).to(torch.device("cuda"))
 
@@ -118,7 +125,18 @@ class Environment:
  
         occ_mat[0:resolution, 0:resolution, 0:resolution] = tsdf_check.squeeze().to(dtype=torch.uint8)
 
+        # print("before pooling: ", torch.argwhere(occ_mat > 0).shape)
 
+        # pooling = torch.nn.MaxPool3d(kernel_size=tuple(np.clip(bb_size//2, 1, np.inf).astype(int)), stride=(1,1,1))
+        pooling = torch.nn.MaxPool3d(kernel_size=tuple(bb_size.astype(int)), stride=(1,1,1))
+
+        occ_mat = pooling(occ_mat.unsqueeze(0).unsqueeze(0)).squeeze()
+
+        # print("after pooling: ", torch.argwhere(occ_mat > 0).shape)
+
+        occ_mat_result = occ_mat.cpu().numpy()
+
+        self.coordinate_mat = np.argwhere(occ_mat_result > 0)
 
         occ_mat_result = occ_mat.cpu().numpy()
 
@@ -132,7 +150,6 @@ class Environment:
 
         # # Use array slicing and broadcasting to set all elements in each box to 1
         # occ_mat_result[tuple(box_indices.T)] = ones.ravel()
-
 
         coordinate_mat = np.argwhere(occ_mat_result > 0)
         # coordinate_mat_set = set(coordinate_mat)
@@ -220,6 +237,9 @@ class Environment:
 
         vis.create_window(window_name = "Depth Camera")
 
+        render_options = vis.get_render_option()
+        render_options.mesh_show_back_face = True
+
         #some key call backs for controlling the sim 
         vis.register_key_callback(ord("C"), self.center_view)
         vis.register_key_callback(ord("X"), self.kill_o3d)
@@ -239,25 +259,34 @@ class Environment:
         # tsdf_mesh_init.compute_vertex_normals()
 
         target_bb = o3d.geometry.OrientedBoundingBox.create_from_axis_aligned_bounding_box(self.target_bb) 
-        target_bb.color = [0, 1, 0] 
+        target_bb.color = [1, 0, 0] 
 
         frame = o3d.geometry.TriangleMesh.create_coordinate_frame(0.05)
         origin_sphere = o3d.geometry.TriangleMesh.create_sphere(0.05)
         origin_sphere.transform(Transform.from_translation(self.sim.scene.origin).as_matrix())
 
-        object_bb = self.get_object_bbox(self.sim.object_uids)
-        for objects in object_bb:
-            objects.color = [0, 0, 1] 
-            vis.add_geometry(objects)
-        
+        # object_bb = self.get_object_bbox(self.sim.object_uids)
+        # for objects in object_bb:
+        #     objects.color = [0, 0, 1] 
+        #     vis.add_geometry(objects)
         total_space = o3d.geometry.AxisAlignedBoundingBox()
-        total_space.min_bound = [0,0,0]
-        total_space.max_bound = [0.3,0.3,0.3]
-        total_space.color = [0,0,0]
 
-        vis.add_geometry(total_space)
+        # for i in range(36):
+        #     for j in range(35):
+        #         total_space = o3d.geometry.AxisAlignedBoundingBox()
+        #         total_space.min_bound = [j*0.0075 ,i*0.0075, 0.1]
+        #         total_space.max_bound = np.asarray(total_space.min_bound) + np.asarray([5,4,8])*0.0075
+        #         total_space.color = [0,0,1]
+        #         vis.add_geometry(total_space)
+        #         vis.update_renderer()
+        #         print(i,j)
+
+        total_space = o3d.geometry.AxisAlignedBoundingBox()
+        total_space.min_bound = [0, 0, 0]
+        total_space.max_bound = [0.3, 0.3 ,0.3]
+        
         vis.add_geometry(tsdf_mesh_init, reset_bounding_box = True)
-        # vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
+        vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
         vis.add_geometry(frame, reset_bounding_box = reset_bb)
         vis.update_renderer()
         vis.remove_geometry(tsdf_mesh_init, reset_bounding_box = reset_bb)
@@ -298,7 +327,9 @@ class Environment:
                 state = self.sim_state.get()
                 tsdf, image = state
                 # tsdf_mesh = tsdf.o3dvol.extract_point_cloud()
+                # tsdf_mesh = tsdf.o3dvol.extract_voxel_point_cloud()
                 tsdf_mesh = self.pcd
+                tsdf_mesh = tsdf_mesh.crop(total_space)
                 # tsdf_mesh = tsdf.o3dvol.extract_triangle_mesh()
                 # tsdf_mesh.compute_triangle_normals()
                 # tsdf_mesh.compute_vertex_normals()
@@ -313,7 +344,7 @@ class Environment:
                 #vis.add_geometry(target_bb, reset_bounding_box = reset_bb)
                 
                 vis.add_geometry(tsdf_mesh, reset_bounding_box = reset_bb)
-                vis.add_geometry(bb, reset_bounding_box = reset_bb)
+                # vis.add_geometry(bb, reset_bounding_box = reset_bb)
                 
                 if np.amax(bb.get_extent()) > 0:
                     points = o3d.utility.Vector3dVector(self.poi_mat)
@@ -322,7 +353,7 @@ class Environment:
                     target_pc = target_pc.crop(bb)
                     target_pc.paint_uniform_color([0,1,0])
 
-                vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
+                # vis.add_geometry(target_pc, reset_bounding_box = reset_bb)
                 #vis.add_geometry(self.targets, reset_bounding_box = reset_bb)
 
                 vis.poll_events()
@@ -431,11 +462,11 @@ def solve_ik(q0, pose, solver):
 
 def main():
     gui = True
-    # scene_id = "random"
-    scene_id = "as_test_scene.yaml"
+    scene_id = "random"
+    # scene_id = "as_test_scene.yaml"
     vgn_path = "src/vgn/assets/models/vgn_conv.pth" #was changed 
 
-    env = Environment(gui, scene_id, vgn_path)
+    env = Environment(gui, scene_id)
     env.load_engine()
     # env.init_ik_solver()
     env.get_target()

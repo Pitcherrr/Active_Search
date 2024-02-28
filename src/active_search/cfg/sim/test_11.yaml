@@ -1,0 +1,93 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/PotatoeDumplings_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 156.4687979886593
+  scale: 0.49765355452167664
+  xyz:
+  - 0.49603124421866257
+  - -0.007024578689589139
+  - 0.2271515549864775
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/bea77759a3e5f9037ae0031c221d81a4.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -12.212982573601556
+  scale: 0.011974348494856618
+  xyz:
+  - 0.49605811075609063
+  - -0.006938575465496786
+  - 0.42725208107473156
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/PotatoeDumplings_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 71.30092256494108
+  scale: 0.4120867296150871
+  xyz:
+  - 0.5417727768188048
+  - 0.0846278758035087
+  - 0.22334280448180477
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 167.1982648333801
+  scale: 0.4198403398686043
+  xyz:
+  - 0.5713726319541161
+  - -0.07226449630114369
+  - 0.22603694007590835
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/cracker_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 178.75070413800222
+  scale: 0.5456681284703097
+  xyz:
+  - 0.4346835027797941
+  - 0.0873432179093189
+  - 0.27043351979841934
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 140.80854788950666
+  scale: 0.7047246427424615
+  xyz:
+  - 0.43643670793673206
+  - -0.03843555296096196
+  - 0.2388239635693108
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -151.78081890783852
+  scale: 0.4941955013478429
+  xyz:
+  - 0.4979809088937994
+  - -0.0705812581459173
+  - 0.23657044408186248
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/3m_high_tack_spray_adhesive.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -92.52665127402283
+  scale: 0.40800954438247206
+  xyz:
+  - 0.5788934150705962
+  - 0.016068735779832755
+  - 0.25243192611454796
+q:
+- 0.05116947837294343
+- -1.3706414336258739
+- -0.0712445324904977
+- -2.3076561821845973
+- 0.004107507695752341
+- 1.5080721485723616
+- 0.7576911809795001

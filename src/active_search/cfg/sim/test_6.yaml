@@ -1,0 +1,43 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -139.29407736667932
+  scale: 0.5597766841769779
+  xyz:
+  - 0.4720245679771308
+  - 0.02398819952333034
+  - 0.24437217293763225
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/57f73714cbc425e44ae022a8f6e258a7.urdf
+  rpy:
+  - -90.0
+  - 1.2722218725854067e-14
+  - -99.81433551765713
+  scale: 0.016757887395045568
+  xyz:
+  - 0.47189187229143426
+  - 0.024071198494614452
+  - 0.4443528586051439
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/master_chef_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -91.82716516464838
+  scale: 0.6371521097003613
+  xyz:
+  - 0.5779283653830063
+  - -0.027890776569326953
+  - 0.24981441217506783
+q:
+- 0.013620367824710544
+- -1.390072360143989
+- -0.0733326602316492
+- -2.3011428848439515
+- -0.051242372805165234
+- 1.6496589132228372
+- 0.8052448643415495

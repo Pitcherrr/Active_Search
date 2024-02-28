@@ -1,0 +1,63 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 14.195792219217536
+  scale: 0.4785859440878614
+  xyz:
+  - 0.4710862046144452
+  - -0.007003792504608253
+  - 0.2379259955742174
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/3m_high_tack_spray_adhesive.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -59.8199085376573
+  scale: 0.43984341183392167
+  xyz:
+  - 0.44251064670538276
+  - -0.04000018881675256
+  - 0.25613267691728414
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -138.24722168455693
+  scale: 0.6799250670338308
+  xyz:
+  - 0.5055617359578435
+  - -0.04412683724741351
+  - 0.2887365120961023
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/wooden_block.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 51.05542688191735
+  scale: 0.7448136130144112
+  xyz:
+  - 0.5408900615335014
+  - 0.07493531829435265
+  - 0.28229303145196816
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 113.51940706807812
+  scale: 0.7603029823173525
+  xyz:
+  - 0.448748295372335
+  - 0.05678850167027005
+  - 0.25730770552310583
+q:
+- -0.07961762324506344
+- -1.3968849793378515
+- -0.06823863166310094
+- -2.290788434147527
+- 0.0727305287459701
+- 1.5417570279037476
+- 0.7345878404248636

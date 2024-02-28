@@ -7,6 +7,7 @@ import torch
 import open3d as o3d
 import rospkg
 import os
+import glob
 
 from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
@@ -43,7 +44,9 @@ class Policy:
         self.intrinsic = from_camera_info_msg(msg)
         self.qual_thresh = rospy.get_param("vgn/qual_threshold")
         self.target_bb = AABBox([0,0,0],[0,0,0])
-        self.policy_log_dir = Path(rospkg.RosPack().get_path("active_search")) / "logs/policy_log.csv"
+        # self.policy_log_dir = Path(rospkg.RosPack().get_path("active_search")) / "logs/policy_log_3.csv"
+        self.policy_log_dir  = get_latest_policy_log()
+        self.grasp_blacklist = []
 
     def init_ik_solver(self):
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
@@ -155,13 +158,13 @@ class Policy:
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
             # print(bbox.min)
-            if bbox.is_inside(tip) and quality > 0.8:
+            if bbox.is_inside(tip) and quality > 0.8 and grasp not in self.grasp_blacklist:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > 0.8:
+            if target.is_inside(tip) and quality > 0.8 and grasp not in self.grasp_blacklist:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
@@ -243,7 +246,7 @@ class MultiViewPolicy(Policy):
 
         vol_mat = vol_array[:,0].reshape(resolution, resolution, resolution)
 
-        bb_size = ((self.target_bb.max - self.target_bb.min)/voxel_size).astype(int)
+        bb_size = ((self.target_bb.max - self.target_bb.min)/voxel_size).astype(int) - 1 # -1 as bounding boxes are usually quite large fot the object contained
 
         bb_voxel = np.floor(bb_size).astype(int)
 
@@ -357,3 +360,28 @@ def make(id, *args, **kwargs):
         return registry[id](*args, **kwargs)
     else:
         raise ValueError("{} policy does not exist.".format(id))
+    
+def get_latest_policy_log() -> str:
+    directory_path = Path(rospkg.RosPack().get_path("active_search")) / "logs/" 
+    pattern = "policy_log_*.csv"
+
+    # Get a list of matching files in the directory
+    matching_files = glob.glob(os.path.join(directory_path, pattern))
+
+    print("Policy log matching files:", matching_files)
+
+    # Sort the files by modification time (latest first)
+    sorted_files = sorted(matching_files, key=lambda x: int(os.path.splitext(os.path.basename(x))[0].split('_')[-1]))
+
+    if sorted_files:
+        latest_file = sorted_files[-1]
+        # Extract the number from the latest file
+        file_number = int(latest_file.split('_')[-1].split('.')[0])
+        # Increment the number for the new file name
+        new_file_name = "policy_log_" + str(file_number + 1) + ".csv"
+        print("Latest policy file:", latest_file)
+    else:
+        print("No matching files found.")
+        new_file_name = None
+
+    return new_file_name

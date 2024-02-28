@@ -1,0 +1,103 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -99.54031853000969
+  scale: 0.44417118960171964
+  xyz:
+  - 0.47182065051081784
+  - 0.007458726156026274
+  - 0.2263184401742516
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/15bd6225c209a8e3654b0ce7754570c8.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -110.78068361312481
+  scale: 0.014780443175027153
+  xyz:
+  - 0.4724991845088392
+  - 0.007848686228942747
+  - 0.42679148288723845
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/CoffeeCookies_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -96.41777522602905
+  scale: 0.7823249307583843
+  xyz:
+  - 0.46619277373354845
+  - -0.07034607064892799
+  - 0.2922362699371497
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -136.4233232148646
+  scale: 0.46060360055512933
+  xyz:
+  - 0.41010282124175973
+  - 0.00542769876910329
+  - 0.23442450948171445
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -101.96603611639485
+  scale: 0.4604004126430838
+  xyz:
+  - 0.5357248057398226
+  - -0.03126917298470927
+  - 0.2309502394705451
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/3m_high_tack_spray_adhesive.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -143.8863540490413
+  scale: 0.43228228473643127
+  xyz:
+  - 0.5236396497257
+  - 0.046744516768415206
+  - 0.25525368075955046
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 17.396314851844732
+  scale: 0.6483715032115782
+  xyz:
+  - 0.44097088227468484
+  - 0.059119957311048105
+  - 0.2361192383150735
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -176.0909526624328
+  scale: 0.795245824060314
+  xyz:
+  - 0.5329103489744831
+  - -0.08899874803908125
+  - 0.3029388976733931
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/PotatoeDumplings_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 133.34316237736766
+  scale: 0.5687546950788986
+  xyz:
+  - 0.5846536792170294
+  - -0.08959755379264392
+  - 0.23031640895033267
+q:
+- -0.05335673970730351
+- -1.3258243570818673
+- -0.04520793529644644
+- -2.3783241230432997
+- -0.0341232368591349
+- 1.6347422133686806
+- 0.715635402787824

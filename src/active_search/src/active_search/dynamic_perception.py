@@ -2,7 +2,6 @@ import numpy as np
 import open3d as o3d
 
 from vgn.utils import map_cloud_to_grid
-from robot_helpers import perception
 
 
 class SceneTSDFVolume:
@@ -52,7 +51,7 @@ class SceneTSDFVolume:
 
 
 def create_tsdf(size, resolution, imgs, intrinsic, views):
-    tsdf = DyUniTSDFVolume(size, resolution)
+    tsdf = SceneTSDFVolume(size, resolution)
     for img, view in zip(imgs, views):
         tsdf.integrate(img, intrinsic, view.inv())
     return tsdf

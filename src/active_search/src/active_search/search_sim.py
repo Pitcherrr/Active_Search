@@ -41,6 +41,7 @@ class Simulation:
         self.rate = rate
         self.dt = 1.0 / self.rate
         p.connect(p.GUI if gui else p.DIRECT)
+        # p.connect(p.DIRECT)
         # p.connect(p.GUI if gui else p.DIRECT, options= "--opengl2 --gpu")
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
@@ -85,7 +86,7 @@ class Simulation:
         target_uid = np.random.choice(self.object_uids)
         print(target_uid)
         target = get_target_bb(self, target_uid)
-        tsdf = get_tsdf(self, reset_tsdf=True)
+        # tsdf = get_tsdf(self, reset_tsdf=True)
         # target_points = get_poi_torch(tsdf, target)
         target = AABBox(target.min_bound, target.max_bound)
         min_bound_t = (Transform.from_translation(target.min)*origin).translation
@@ -94,27 +95,9 @@ class Simulation:
         target.min = min_bound_t - np.array([0,0,0.1])
         target.max = max_bound_t - np.array([0,0,0.1])
         
-        bbs = []
-        #temporary-----------------------
-        # for i in self.object_uids:
-        #     if i != target_uid:
-        #         bb = get_target_bb(self, i)
-        #         bb = AABBox(bb.min_bound, bb.max_bound)
-  
-        #         min_bound_t = (Transform.from_translation(bb.min)*origin).translation
-        #         max_bound_t = (Transform.from_translation(bb.max)*origin).translation
-
-        #         bb.min = min_bound_t - np.array([0,0,0.1])
-        #         bb.max = max_bound_t - np.array([0,0,0.1])
-
-        #         bbs.append(bb)
-
-        # bbs.append(target)
-        #--------------------------------
-        # return target_points
         target_bb = AABBox(self.scene.target_bb[0], self.scene.target_bb[1])
+        
         return target_bb
-        #self.set_arm_configuration(q)
 
     def set_arm_configuration(self, q):
         for i, q_i in enumerate(q):
@@ -142,18 +125,6 @@ class Simulation:
             elif contacts[0][2] == obj: #first contact point is in contact with obj B
                 print(obj)
                 return obj
-
-            # if len(contacts) > 0:
-            #     # If there is at least one contact, the robot arm is touching an object
-            #     # Get the UID of the object that the robot arm is touching
-            #     object_uid = contacts[0][2] if contacts[0][1] == self.gripper.uid else contacts[0][1]
-            #     print("Robot arm is touching object with UID:", object_uid)
-            #     return object_uid
-
-            # else:
-            #     # If there are no contacts, the robot arm is not touching any objects
-            #     print("Robot arm is not touching any object, obj")
-            #     return None
 
     def step(self):
         p.stepSimulation()
@@ -216,11 +187,11 @@ class Scene:
         self.complete = True
 
     
-    def save_scene_to_yaml(self, scene_data, output_file):
+    def save_scene_to_yaml(self, output_file):
         output_path = self.yaml_dir / output_file
 
         with open(output_path, 'w') as yaml_file:
-            yaml.dump(scene_data, yaml_file)
+            yaml.dump(self.scene_data, yaml_file)
 
 
 
@@ -250,32 +221,8 @@ class YamlScene(Scene):
             ori = Rotation.from_euler("xyz", object["rpy"], degrees=True)
             pos = np.asarray(object["xyz"])
             scale = object.get("scale", 1)
-            # if randomize := object.get("randomize", False):
-            #     angle = rng.uniform(-randomize["rot"], randomize["rot"])
-            #     ori = Rotation.from_euler("z", angle, degrees=True) * ori
-            #     b = np.asarray(randomize["pos"])
-            #     pos += rng.uniform(-b, b)
             uid = self.add_object(urdf, ori, pos, scale)
 
-            # self.target = rng.choice(self.object_uids)
-
-            # p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
-
-            # self.target_bb = p.getAABB(self.target)
-            # Simulate the mustard bottle going into the mug
-            # dont need anymore as urdf was just broken 
-            # if i == 1:
-            #     for _ in range(4000):
-            #         p.stepSimulation()
-
-            #         # Move the mustard bottle downwards
-            #         pos, orn = p.getBasePositionAndOrientation(2)
-            #         p.resetBasePositionAndOrientation(2, [pos[0], pos[1], pos[2] - 0.0005], orn)
-
-            #         # Check if the mustard bottle has entered the mug
-            #         if pos[2] < 0.02:
-            #             break
-            # i+=1
             self.object_uids.append(uid)
 
         self.target = self.object_uids[0]
@@ -283,17 +230,6 @@ class YamlScene(Scene):
         p.changeVisualShape(self.target, -1, rgbaColor=[1, 0, 0, 1])
 
         self.target_bb = p.getAABB(self.target)
-
-        #this is the initial position of the robots camera link
-        # cam = (0.167987435473768, -0.00028228516747251644, 0.7347501344586954)
-
-        # bottle = self.object_uids[0]
-
-        # bb = p.getAABB(bottle)
-
-        # mid_bb = tuple(np.asarray(bb[0])+(np.asarray(bb[1])-np.asarray(bb[0]))/2)
- 
-        # print("Ray result", p.rayTest(cam, mid_bb))
 
 
         for _ in range(60):
@@ -351,6 +287,7 @@ class ActiveSearchScene(Scene):
         self.alt_origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
         self.occluding_objs = find_urdfs(urdfs_dir / "occluding_objs/mug")
+        # self.scene_id = "test_1.yaml"
         self.scene_id = "random"
         #print(self.object_urdfs)
 
@@ -374,7 +311,7 @@ class ActiveSearchScene(Scene):
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
         q += rng.uniform(-0.08, 0.08, 7)
 
-        scene_data = {
+        self.scene_data = {
             "center": self.center.tolist(),
             "q": q.tolist(),  # Generate random robot configuration
             "objects": []
@@ -400,11 +337,11 @@ class ActiveSearchScene(Scene):
             "scale": scale,
         }
         # objects.append(object_data)
-        scene_data["objects"].append(object_data)
+        self.scene_data["objects"].append(object_data)
 
 
-        scene_type = rng.choice(["fully", "infront"])
-        # scene_type = "fully"
+        scene_type = rng.choice(["fully", "infront"])   
+        # scene_type = "infront"
 
         if scene_type == "fully":
             done = False
@@ -445,15 +382,15 @@ class ActiveSearchScene(Scene):
                         "xyz": pos_occ.tolist(),  # You may need to adjust the position as needed
                         "scale": scale,
                     }
-                    scene_data["objects"].append(object_data) 
+                    self.scene_data["objects"].append(object_data) 
 
 
 
         elif scene_type == "infront":
             occluding = rng.choice(self.object_urdfs)
 
-            ori = Rotation.from_euler("xyz", [90, 270, 0], degrees=True)
-            self.add_object(occluding, ori, np.asarray(mid_bb) + [0.1, 0, 0], 0.8)
+            ori = Rotation.from_euler("z", rng.uniform(0, 2 * np.pi)) #random rotation of object 
+            self.add_object(occluding, ori, np.asarray(mid_bb) + [-0.1, 0, 0.002], 0.8)
 
         for urdf in urdfs:
             scale = rng.uniform(0.4, 0.8)
@@ -486,7 +423,7 @@ class ActiveSearchScene(Scene):
                     "scale": scale,
                 }
                 # objects.append(object_data)
-                scene_data["objects"].append(object_data)
+                self.scene_data["objects"].append(object_data)
 
         for _ in range(10):
             p.stepSimulation() #step sim to run phyisics engine 
@@ -494,7 +431,7 @@ class ActiveSearchScene(Scene):
 
         self.target_bb = p.getAABB(self.target)
 
-        # self.save_scene_to_yaml(scene_data, "test_3.yaml")
+        self.save_scene_to_yaml("test_4.yaml")
         return q
     
 
@@ -531,19 +468,16 @@ class ActiveSearchScene(Scene):
             p.stepSimulation()
         return self.scene["q"]
 
-    
-
-
 
 def get_scene(scene_id):
-    if scene_id.endswith(".yaml"):
-        return YamlScene(scene_id)
-    elif scene_id == "random":
-        return ActiveSearchScene()
+    # if scene_id.endswith(".yaml"):
+        # return YamlScene(scene_id)
+    # elif scene_id == "random":
+    return ActiveSearchScene()
         # return YamlScene("test.yaml")
 
-    else:
-        raise ValueError("Unknown scene {}.".format(scene_id))
+    # else:
+        # raise ValueError("Unknown scene {}.".format(scene_id))
     
 def bb_inside(bb1_low, bb1_high, bb2_low, bb2_high):
     if (bb1_low[0] <= bb2_low[0] and
