@@ -40,8 +40,8 @@ class Simulation:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
         self.rate = rate
         self.dt = 1.0 / self.rate
-        p.connect(p.GUI if gui else p.DIRECT)
-        # p.connect(p.DIRECT)
+        # p.connect(p.GUI if gui else p.DIRECT)
+        p.connect(p.DIRECT)
         # p.connect(p.GUI if gui else p.DIRECT, options= "--opengl2 --gpu")
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)

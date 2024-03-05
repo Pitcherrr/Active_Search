@@ -1,0 +1,73 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -46.88038483762624
+  scale: 0.46517700367319265
+  xyz:
+  - 0.5133461075895516
+  - -0.008307805502834997
+  - 0.23700348057309303
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/71995893d717598c9de7b195ccfa970.urdf
+  rpy:
+  - -90.00000000000003
+  - 1.2722218725854067e-14
+  - -60.60916977551376
+  scale: 0.019211626570893443
+  xyz:
+  - 0.5134078650367199
+  - -0.008135900144390341
+  - 0.43668413645703896
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 76.41100512773673
+  scale: 0.5113263992045152
+  xyz:
+  - 0.44543719038610996
+  - 0.05962214292168261
+  - 0.2401784898097583
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pop_secret_butter.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 81.65689625803876
+  scale: 0.4348197879538567
+  xyz:
+  - 0.4867327275280678
+  - -0.07293508735627947
+  - 0.24158008493792982
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 147.6008289607086
+  scale: 0.7666753853571859
+  xyz:
+  - 0.42568145984125677
+  - -0.02756249935347503
+  - 0.24179735137811192
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FennelTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 151.17730176603794
+  scale: 0.48074025342801996
+  xyz:
+  - 0.5703983445542273
+  - -0.05946797469447107
+  - 0.2380742088276065
+q:
+- 0.04279224526786084
+- -1.3870377981780058
+- -0.0784994434980166
+- -2.4390709890191444
+- 0.05352210514942739
+- 1.5858473217656939
+- 0.8513283593652855

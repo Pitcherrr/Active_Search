@@ -1,0 +1,83 @@
+center:
+- 0.5
+- 0.0
+- 0.2
+objects:
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -19.97570651146079
+  scale: 0.5143354759962847
+  xyz:
+  - 0.48718913171969336
+  - 0.008553009899678693
+  - 0.23401957986231606
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/639a1f7d09d23ea37d70172a29ade99a.urdf
+  rpy:
+  - -90.00000000000001
+  - 1.2722218725854067e-14
+  - -68.91402381319044
+  scale: 0.019927076735297068
+  xyz:
+  - 0.48745716654485854
+  - 0.008673118552470466
+  - 0.43399412036177487
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/CoffeeCookies_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 120.9029693027083
+  scale: 0.7854650572833527
+  xyz:
+  - 0.5474623450773891
+  - -0.06717139804722512
+  - 0.2925864223027446
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -110.3059196658195
+  scale: 0.5485895135557034
+  xyz:
+  - 0.5808758463116055
+  - 0.0389671045660028
+  - 0.24004526956309993
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/pudding_box.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -113.96251906738462
+  scale: 0.5498153267830809
+  xyz:
+  - 0.41676375841458957
+  - 0.07523823853808623
+  - 0.23599006647862808
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - 91.08811231292866
+  scale: 0.5820191103668902
+  xyz:
+  - 0.5799699570726549
+  - 0.08866959643896877
+  - 0.2329345889042319
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
+  rpy:
+  - 0.0
+  - 0.0
+  - -155.18858021557529
+  scale: 0.4836804127419608
+  xyz:
+  - 0.44309260392020605
+  - -0.07666282333773275
+  - 0.23228997516302902
+q:
+- 0.054118623746390135
+- -1.3147771653330294
+- 0.04605892472508709
+- -2.296823997483661
+- 0.0024628322393026453
+- 1.5003969850462338
+- 0.7904607551876381

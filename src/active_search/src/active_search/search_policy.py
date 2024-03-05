@@ -47,6 +47,7 @@ class Policy:
         # self.policy_log_dir = Path(rospkg.RosPack().get_path("active_search")) / "logs/policy_log_3.csv"
         self.policy_log_dir  = get_latest_policy_log()
         self.grasp_blacklist = []
+        self.view_blacklist = Transform.from_translation(np.zeros(3))
 
     def init_ik_solver(self):
         self.q0 = [0.0, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79]
@@ -143,8 +144,6 @@ class Policy:
         bbox_min = self.bbox.min + [0, 0, 3*self.tsdf.voxel_size]
         bbox_max = self.bbox.max
         bbox = AABBox(bbox_min, bbox_max)
-
-
         # target_min = np.clip(self.target_bb.min * 0.8, 0, np.inf)
         # target_max = np.clip(self.target_bb.max * 1.2, 0, np.inf)
         target_min = self.target_bb.min
@@ -157,14 +156,13 @@ class Policy:
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
-            # print(bbox.min)
-            if bbox.is_inside(tip) and quality > 0.8 and grasp not in self.grasp_blacklist:
+            if bbox.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asanyarray(self.grasp_blacklist)).any():
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > 0.8 and grasp not in self.grasp_blacklist:
+            if target.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asanyarray(self.grasp_blacklist)).any():
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
@@ -368,8 +366,6 @@ def get_latest_policy_log() -> str:
     # Get a list of matching files in the directory
     matching_files = glob.glob(os.path.join(directory_path, pattern))
 
-    print("Policy log matching files:", matching_files)
-
     # Sort the files by modification time (latest first)
     sorted_files = sorted(matching_files, key=lambda x: int(os.path.splitext(os.path.basename(x))[0].split('_')[-1]))
 
@@ -378,8 +374,7 @@ def get_latest_policy_log() -> str:
         # Extract the number from the latest file
         file_number = int(latest_file.split('_')[-1].split('.')[0])
         # Increment the number for the new file name
-        new_file_name = "policy_log_" + str(file_number + 1) + ".csv"
-        print("Latest policy file:", latest_file)
+        new_file_name = str(directory_path) + "/policy_log_" + str(file_number + 1) + ".csv"
     else:
         print("No matching files found.")
         new_file_name = None

@@ -128,7 +128,7 @@ class NextBestView(MultiViewPolicy):
         view_candidates = []
         for theta, phi in itertools.product(thetas, phis):
             view = self.view_sphere.get_view(theta, phi)
-            if self.solve_cam_ik(q, view):
+            if self.solve_cam_ik(q, view) and view is not self.view_blacklist:
                 view_candidates.append(view)
         print("generating",len(view_candidates),"views")
         return view_candidates

@@ -13,6 +13,7 @@ import trimesh
 import threading
 import time
 import csv
+from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -170,7 +171,7 @@ class GraspController:
                             break
                 
                 if self.grasp_result != "succeeded":
-                    self.policy.grasp_blacklist.append(action)
+                    self.policy.grasp_blacklist.append(action.pose.to_list())
                     fail_count += 1
                     info = self.collect_info(res)
                     self.switch_to_cartesian_velocity_control()
@@ -183,23 +184,41 @@ class GraspController:
                 grasp_mask.append(1)
                 view_mask.append(0)
             elif view:
+                # start_time = time.time()
+                # t = 0
+                # self.policy.x_d = action
+                # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                # print("Executing for: 5 seconds")
+                # while t < (5.0):
+                #     img, pose, q = self.get_state()
+                #     self.policy.integrate(img, pose, q)
+                #     t += 1/self.policy_rate
+                #     r.sleep()
+                # rospy.sleep(0.2)        
+                # timer.shutdown()
+                # exec_time = time.time() - start_time
+                # occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                # grasp_mask.append(0)
+                # view_mask.append(1)
+                # res = "view"
                 start_time = time.time()
-                t = 0
-                self.policy.x_d = action
-                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for: 5 seconds")
-                while t < (5.0):
-                    img, pose, q = self.get_state()
-                    self.policy.integrate(img, pose, q)
-                    t += 1/self.policy_rate
-                    r.sleep()
-                rospy.sleep(0.2)        
-                timer.shutdown()
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_view, args= (action,))
+                with Timer("view_time"):
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = "view"
+                            break
+                
                 exec_time = time.time() - start_time
-                occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
                 grasp_mask.append(0)
                 view_mask.append(1)
-                res = "view"
+                occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                self.policy.view_blacklist = action
             else:
                 res = "aborted"
 
@@ -340,9 +359,6 @@ class GraspController:
         self.switch_to_cartesian_velocity_control()
         r = rospy.Rate(self.policy_rate)
 
-        # state = self.get_state()
-        # enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
-
         it = 0 
         max_it = 30
 
@@ -357,7 +373,6 @@ class GraspController:
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
                 model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=False)
                 [grasp, view, action, value, action_input, terminal] = model_sample
-
 
             init_occ = len(self.policy.coordinate_mat) if len(self.policy.coordinate_mat) > 0 else 1
             
@@ -378,7 +393,7 @@ class GraspController:
                             break
                 
                 if self.grasp_result != "succeeded":
-                    self.policy.grasp_blacklist.append(action)
+                    self.policy.grasp_blacklist.append(action.pose.to_list())
                     fail_count += 1
                     info = self.collect_info(res)
                     self.log_policy_perf(res)
@@ -391,21 +406,39 @@ class GraspController:
                 print("occupancy diff:", occ_diff)
                 exec_time = time.time() - start_time
             elif view:
+                # start_time = time.time()
+                # t = 0
+                # self.policy.x_d = action
+                # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                # print("Executing for: 5 seconds")
+                # while t < (5.0):
+                #     img, pose, q = self.get_state()
+                #     self.policy.integrate(img, pose, q)
+                #     t += 1/self.policy_rate
+                #     r.sleep()
+                # rospy.sleep(0.2)        
+                # timer.shutdown()
+                # exec_time = time.time() - start_time
+                # occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                # res = "view"
+                # self.policy.view_blacklist = action
+
                 start_time = time.time()
-                t = 0
-                self.policy.x_d = action
-                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for: 5 seconds")
-                while t < (5.0):
-                    img, pose, q = self.get_state()
-                    self.policy.integrate(img, pose, q)
-                    t += 1/self.policy_rate
-                    r.sleep()
-                rospy.sleep(0.2)        
-                timer.shutdown()
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_view, args= (action,))
+                with Timer("view_time"):
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = "view"
+                            break
+                
                 exec_time = time.time() - start_time
-                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
-                res = "view"
+                occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                self.policy.view_blacklist = action
             else:
                 res = "aborted"
 
@@ -558,10 +591,12 @@ class GraspController:
     
     def log_policy_perf(self, log):
         print("writing to csv", log)
+        print("In the csv:", self.policy.policy_log_dir)
+        timestamp = datetime.now()
         with open(self.policy.policy_log_dir, mode='a', newline='') as file:
             # Create a CSV writer
             writer = csv.writer(file)
-            writer.writerow([log])    
+            writer.writerow([log, timestamp])    
     
     def action_inference(self, state, q, bbox, exploration:bool):
         epsilon = 0.9
@@ -644,7 +679,7 @@ class GraspController:
             # reward = occ_diff
             return torch.clamp(reward, -10, 10)
         elif view:
-            reward = occ_diff - 5.0
+            reward = occ_diff - action_time
             # reward  = occ_diff
             return torch.clamp(reward, -10, 10)
 
@@ -717,40 +752,49 @@ class GraspController:
         else:
             self.grasp_result = "no_motion_plan_found"
 
+    def execute_view(self, view):
+        self.moveit.gotoL(view)
+        return
+
     def create_collision_scene(self):
         # Segment support surface
         cloud = self.policy.tsdf.get_scene_cloud()
         cloud = cloud.transform(self.policy.T_base_task.as_matrix())
-        _, inliers = cloud.segment_plane(0.01, 3, 1000)
-        support_cloud = cloud.select_by_index(inliers)
-        cloud = cloud.select_by_index(inliers, invert=True)
-        # o3d.io.write_point_cloud(f"{time.time():.0f}.pcd", cloud)
+        try:
+            _, inliers = cloud.segment_plane(0.01, 3, 1000)
+            support_cloud = cloud.select_by_index(inliers)
+            cloud = cloud.select_by_index(inliers, invert=True)
+            # o3d.io.write_point_cloud(f"{time.time():.0f}.pcd", cloud)
 
-        # Add collision object for the support
-        self.add_collision_mesh("support", compute_convex_hull(support_cloud))
+            # Add collision object for the support
+            self.add_collision_mesh("support", compute_convex_hull(support_cloud))
 
-        # Cluster cloud
-        labels = np.array(cloud.cluster_dbscan(eps=0.01, min_points=8))
+            # Cluster cloud
+            labels = np.array(cloud.cluster_dbscan(eps=0.01, min_points=8))
 
-        # Generate convex collision objects for each segment
-        self.hulls = []
+            # Generate convex collision objects for each segment
+            self.hulls = []
 
-        if len(labels) == 0: #with active seach sometimes this is empty
-            self.search_grasp(self.bbox)
+            if len(labels) == 0: #with active seach sometimes this is empty
+                self.search_grasp(self.bbox)
 
-        if len(labels) > 0:
-            for label in range(labels.max() + 1):
-                segment = cloud.select_by_index(np.flatnonzero(labels == label))
-                try:
-                    hull = compute_convex_hull(segment)
-                    name = f"object_{label}"
-                    self.add_collision_mesh(name, hull)
-                    self.hulls.append(hull)
-                except:
-                    # Qhull fails in some edge cases
-                    pass
-        else:
-            self.search_grasp(self.bbox)
+            if len(labels) > 0:
+                for label in range(labels.max() + 1):
+                    segment = cloud.select_by_index(np.flatnonzero(labels == label))
+                    try:
+                        hull = compute_convex_hull(segment)
+                        name = f"object_{label}"
+                        self.add_collision_mesh(name, hull)
+                        self.hulls.append(hull)
+                    except:
+                        # Qhull fails in some edge cases
+                        pass
+            else:
+                self.search_grasp(self.bbox)
+        except:
+            rospy.logwarn("Could not segment plane")
+
+
 
     def add_collision_mesh(self, name, mesh):
         frame, pose = self.base_frame, Transform.identity()

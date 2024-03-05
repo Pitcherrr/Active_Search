@@ -76,10 +76,9 @@ class NextBestView(MultiViewPolicy):
         autoencoder.to(self.device).float()
         self.autoencoder = torch.compile(autoencoder)
 
-        for name, param in autoencoder.named_parameters():
-            if param.requires_grad:
-                print(f"Layer: {name} | Size: {param.size()} | Values: {param.data}")
-
+        # for name, param in autoencoder.named_parameters():
+        #     if param.requires_grad:
+        #         print(f"Layer: {name} | Size: {param.size()} | Values: {param.data}")
 
         self.grasp_nn = GraspEval()
         self.grasp_nn.load_model()
@@ -311,7 +310,7 @@ class NextBestView(MultiViewPolicy):
         view_candidates = []
         for theta, phi in itertools.product(thetas, phis):
             view = self.view_sphere.get_view(theta, phi)
-            if self.solve_cam_ik(q, view):
+            if self.solve_cam_ik(q, view) and np.all(view.to_list() != self.view_blacklist.to_list()):
                 view_candidates.append(view)
         print("generating",len(view_candidates),"views")
         return view_candidates

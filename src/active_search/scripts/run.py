@@ -48,7 +48,7 @@ def main():
     print("Activating policy")
     controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
-    for n in tqdm(range(400), disable=args.wait_for_input):
+    for n in tqdm(range(10000), disable=args.wait_for_input):
         if args.wait_for_input:
             controller.gripper.move(0.08)
             controller.switch_to_joint_trajectory_control()
@@ -60,7 +60,7 @@ def main():
         info = controller.run()
         logger.log_run(info)
         # test the policy every 15 games
-        if (n+1) % 15 == 0:
+        if (n+1) % 20 == 0:
             controller.policy.view_nn.save_model()
             controller.policy.grasp_nn.save_model()
             enumerate_test_scenes(controller)
@@ -68,8 +68,8 @@ def main():
 def enumerate_test_scenes(controller):
     print("############### Testing Policy ######################")
     change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
-    # test_cases = ["test_1.yaml", "test_2.yaml", "test_3.yaml", "test_4.yaml"]
-    test_cases = get_all_test_files()
+    test_cases = ["test_1.yaml", "test_2.yaml", "test_3.yaml", "test_4.yaml"]
+    # test_cases = get_all_test_files()
     print("Running test cases", test_cases)
 
     for case in test_cases:
