@@ -106,7 +106,8 @@ class Policy:
         self.grasps = []
         self.best_grasp = None
         self.x_d = None
-        self.done = False
+        self.grasp_on_target = False
+        # self.done = False
         self.info = {}
         self.qual_hist = np.zeros((self.T,) + (40,) * 3, np.float32)
 
@@ -156,18 +157,20 @@ class Policy:
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
-            if bbox.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asanyarray(self.grasp_blacklist)).any():
+            print("Grasp blacklist mask", np.isin(grasp.pose.to_list(), np.asarray(self.grasp_blacklist)))
+            if bbox.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asarray(self.grasp_blacklist)).any():
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asanyarray(self.grasp_blacklist)).any():
+            if target.is_inside(tip) and quality > 0.8 and not np.isin(grasp.pose.to_list(), np.asarray(self.grasp_blacklist)).any():
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:
                     print("Found grasp on target")
-                    self.done = True
+                    # self.done = True
+                    self.grasp_on_target = True
                     filtered_grasps = [grasp]
                     filtered_qualities = [quality]
                     return filtered_grasps, filtered_qualities

@@ -248,7 +248,7 @@ class RandomScene(Scene):
         self.object_urdfs = find_urdfs(urdfs_dir / "test")
         #print(self.object_urdfs)
 
-    def generate(self, rng, object_count=8, attempts=10):
+    def generate(self, rng, object_count=3, attempts=10):
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
@@ -305,7 +305,7 @@ class ActiveSearchScene(Scene):
         self.complete = False
         self.add_support(self.center) #this the table that things sit on 0.3mx0.3m
 
-        object_count = np.random.randint(1,8)
+        object_count = np.random.randint(1,5)
         urdfs = rng.choice(self.object_urdfs, object_count) #this going to select a random amount of objects from the set
 
         q = [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]

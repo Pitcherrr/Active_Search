@@ -40,6 +40,7 @@ class GraspController:
         self.init_moveit()
         self.init_camera_stream()
         self.init_tensorboard()
+        self.init_rl_agent()
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")
@@ -71,6 +72,13 @@ class GraspController:
         self.moveit.move_group.set_planner_id("RRTConnect")
         self.moveit.move_group.set_planning_time(5.0)
 
+    def init_rl_agent(self):
+        self.replay_mem = []
+        self.grasp_mask = []
+        self.view_mask = []
+        self.replay_size = 100
+        self.batch_size = 5
+
     def switch_to_cartesian_velocity_control(self):
         req = SwitchControllerRequest()
         req.start_controllers = ["cartesian_velocity_controller"]
@@ -99,6 +107,7 @@ class GraspController:
     def sim_complete(self, msg):
         if msg.data:
             self.complete = True
+            self.policy.done = True
 
     def run(self):
         self.policy.init_tsdf()
@@ -126,13 +135,13 @@ class GraspController:
 
         # init_occ = len(self.policy.coordinate_mat)
 
-        replay_mem = []
-        grasp_mask = []
-        view_mask = []
+        # replay_mem = []
+        # grasp_mask = []
+        # view_mask = []
         it = 0 
         max_it = 30
-        replay_size = 5
-        batch_size = 5
+        # replay_size = 100
+        # batch_size = 5
         gamma = 0.9
 
         fail_count = 0
@@ -145,6 +154,9 @@ class GraspController:
         view_loss_arr = []
 
         while not self.complete and it < max_it and fail_count <= max_fails:
+
+            print("Solution status", self.policy.done)
+
             with Timer("inference_time"):
                 state = self.get_state()
                 enc_state = self.policy.get_encoded_state(state[0], state[1], state[2])
@@ -176,13 +188,13 @@ class GraspController:
                     info = self.collect_info(res)
                     self.switch_to_cartesian_velocity_control()
                     continue
-
+                
                 self.switch_to_cartesian_velocity_control()
                 print("grasp gain:", self.grasp_gain)
                 occ_diff = torch.tensor(float(10*(self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
                 exec_time = time.time() - start_time
-                grasp_mask.append(1)
-                view_mask.append(0)
+                self.grasp_mask.append(1)
+                self.view_mask.append(0)
             elif view:
                 # start_time = time.time()
                 # t = 0
@@ -215,8 +227,8 @@ class GraspController:
                             break
                 
                 exec_time = time.time() - start_time
-                grasp_mask.append(0)
-                view_mask.append(1)
+                self.grasp_mask.append(0)
+                self.view_mask.append(1)
                 occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
                 self.policy.view_blacklist = action
             else:
@@ -228,26 +240,64 @@ class GraspController:
 
             next_state = self.get_state()
             next_enc_state = self.policy.get_encoded_state(next_state[0], next_state[1], next_state[2])
-            model_sample = self.action_inference(enc_state, state[2], self.bbox, exploration=True)
-            [_, _, _, next_value, next_action_input, next_terminal] = model_sample
+            # get the value of the best action in the next state
+            next_model_sample = self.action_inference(next_enc_state, next_state[2], self.bbox, exploration=False)
+            [_, _, next_action, next_value, next_action_input, next_terminal] = next_model_sample
 
-            print("Next state is terminal:", next_terminal)
+            # if we find ourselves in a terminal state at S t+1 complete the sim by grasping the object
+            if self.policy.grasp_on_target:
+                print("grasping")
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_grasp, args= (next_action,))
+                grasp_thread.start()
+                while True:
+                    if self.grasp_integrate:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                    r.sleep()
+                    if not grasp_thread.is_alive():
+                        res = self.grasp_result
+                        break
+                
+                if self.grasp_result != "succeeded":
+                    self.policy.grasp_blacklist.append(next_action.pose.to_list())
+                    fail_count += 1
+                    info = self.collect_info(res)
+                    self.switch_to_cartesian_velocity_control()
+                    continue
 
-            replay_mem.append([[int(grasp), int(view)], action_input, value, reward, next_action_input, next_value, next_terminal])
+                if self.complete:
+                    next_terminal = True
+                else:
+                    next_terminal = False
 
-            if len(replay_mem) > replay_size:
-                del replay_mem[0]
+                # self.switch_to_cartesian_velocity_control()
+                # print("grasp gain:", self.grasp_gain)
+                # occ_diff = torch.tensor(float(10*(self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                # exec_time = time.time() - start_time
+                # self.grasp_mask.append(1)
+                # self.view_mask.append(0)
+
+
+            print("Next state value:", next_value, ", terminal:", next_terminal)
+
+            self.replay_mem.append([[int(grasp), int(view)], action_input, value, reward, next_action_input, next_value, next_terminal])
+
+            if len(self.replay_mem) > self.replay_size:
+                del self.replay_mem[0]
+                del self.grasp_mask[0]
+                del self.view_mask[0]
 
             sample_start = time.time()
 
-            batch = sample(replay_mem, min(len(replay_mem), batch_size))
+            batch = sample(self.replay_mem, min(len(self.replay_mem), self.batch_size))
             action_batch, action_input_batch, value_batch, reward_batch, next_action_input_batch, next_value_batch, terminal_batch = zip(*batch)
 
             # re evaluate the q values for each back prop
-            #
-            #
             action_input_tensor = torch.cat(list(action_input_batch), 0).to(self.policy.device)
             action_batch_tensor = torch.tensor(action_batch).to(self.policy.device)
+
+            print("Value batch", value_batch)
 
             # Initialize re_q_values
             re_q_values = torch.zeros_like(torch.tensor(value_batch)).to(self.policy.device)
@@ -274,16 +324,18 @@ class GraspController:
 
             values = re_q_values * action_batch_tensor.T
 
-            grasp_q_values = torch.tensor(values[0]).to(self.policy.device).float() 
-            view_q_values = torch.tensor(values[1]).to(self.policy.device).float()
+            # grasp_q_values = torch.tensor(values[0]).to(self.policy.device).float()
+            grasp_q_values = values[0].clone().detach().requires_grad_(True)
+            # view_q_values = torch.tensor(values[1]).to(self.policy.device).float()
+            view_q_values = values[1].clone().detach().requires_grad_(True)
 
+            print("Reward", reward_batch)
+            print("Terminal", terminal_batch)
+            print("Next value", next_value_batch)
 
             #compute the y values of the current prediction
             y_batch = torch.tensor([reward if terminal else reward + gamma * prediction for reward, terminal, prediction in
                   zip(reward_batch, terminal_batch, next_value_batch)], requires_grad=True).to(self.policy.device)
-            print("Reward", reward_batch)
-            print("Terminal", terminal_batch)
-            print("Next value", next_value_batch)
 
             print("Y batch", y_batch)
             
@@ -328,6 +380,8 @@ class GraspController:
             it += 1
 
             info = self.collect_info(res)
+
+            print("Solution status end", self.policy.done)
 
         self.writer.add_scalar("Grasp Loss/train", sum(grasp_loss_arr)/max(1,len(grasp_loss_arr)), self.frame)
         self.writer.add_scalar("View Loss/train", sum(view_loss_arr)/max(1 ,len(view_loss_arr)), self.frame)
@@ -474,7 +528,7 @@ class GraspController:
 
         return info
     
-    def run_baseline(self):
+    def run_baseline(self, scene):
         self.policy.init_tsdf()
         self.policy.target_bb = self.reset()
         self.complete = False
@@ -502,6 +556,8 @@ class GraspController:
         fail_count = 0
         max_fails = 4
 
+        self.log_policy_perf(scene)
+
         scene_start = time.time()
 
         while not self.complete and it < max_it and fail_count <= max_fails:
@@ -524,11 +580,18 @@ class GraspController:
             gains = [self.policy.ig_fn(v, self.policy.downsample) for v in views]
             print("View IG calc took",time.time() - view_ig_start)
 
-            best_grasp = np.argmax(grasp_igs)
+            if len(grasp_igs) > 0 and len(gains) > 0: 
+                best_grasp = np.argmax(grasp_igs)
+                best_view = np.argmax(gains)
+                action = np.random.choice(["grasp", "view"])
 
-            best_view = np.argmax(gains)
+            elif len(gains) == 0:
+                best_grasp = np.argmax(grasp_igs)
+                action = "grasp"
 
-            action = np.random.choice(["grasp", "view"])
+            elif len(grasp_igs) == 0:
+                best_view = np.argmax(gains)
+                action = "view" 
 
             if action == "grasp":
                 print("grasping")
@@ -547,36 +610,169 @@ class GraspController:
                             break
                 
                 if self.grasp_result != "succeeded":
+                    self.policy.grasp_blacklist.append(self.policy.grasps[best_grasp].pose.to_list())
                     fail_count += 1
                     info = self.collect_info(res)
-                    # self.log_policy_perf(res)
+                    self.log_policy_perf(res)
                     self.switch_to_cartesian_velocity_control()
                     continue
 
                 self.switch_to_cartesian_velocity_control()
+                # print("grasp gain:", self.grasp_gain)
+                # occ_diff = torch.tensor(float(10-10*(1 - self.grasp_gain/init_occ)), requires_grad= True).to("cuda") #+ve diff is good
+                # print("occupancy diff:", occ_diff)
+                # exec_time = time.time() - start_time
             elif action == "view":
-                start_time = time.time()
-                t = 0
-                self.policy.x_d = views[best_view]
-                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for: 5 seconds")
-                while t < (5.0):
-                    img, pose, q = self.get_state()
-                    self.policy.integrate(img, pose, q)
-                    t += 1/self.policy_rate
-                    r.sleep()
-                rospy.sleep(0.2)        
-                timer.shutdown()
-                res = "view"
+
+                # start_time = time.time()
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_view, args= (views[best_view],))
+                with Timer("view_time"):
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = "view"
+                            break
+                
+                # exec_time = time.time() - start_time
+                # occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                self.policy.view_blacklist = views[best_view]
             else:
                 res = "aborted"
 
+            # reward = self.compute_reward(grasp, view, terminal, occ_diff, exec_time)
+            # print("Reward", reward)
+
+            # self.writer.add_scalar("Rewards", reward, self.frame)
+
+            print("Frame:", self.frame)
+            self.frame += 1
+
+            it += 1
+
             info = self.collect_info(res)
+
+            self.log_policy_perf(res)
+
+
+
+        print("fail:", fail_count)
+        print("it", it)
+
+        if not (fail_count >= max_fails or it >= max_it):
+            print("writing perf")
+            #only write a time if the game was successful
+            scene_end = time.time() - scene_start
+            self.writer.add_scalar(scene + " time to complete", scene_end, self.frame)
+            self.log_policy_perf("grasped target")
+        
+        self.writer.flush()
+
+        self.policy.grasp_blacklist = []
+
+        return info
+    
+    def run_vgn(self, scene):
+        # logger = PerfLogger("logs")
+        self.policy.init_tsdf()
+        self.policy.target_bb = self.reset()
+        self.complete = False
+        voxel_size = 0.0075
+        x_off = 0.35
+        y_off = -0.15
+        z_off = 0.2
+
+        bb_min = [x_off,y_off,z_off]
+        bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
+        self.bbox = AABBox(bb_min, bb_max)
+
+        self.view_sphere = ViewHalfSphere(self.bbox, self.min_z_dist)
+        self.policy.activate(self.bbox, self.view_sphere)
+
+        self.switch_to_cartesian_velocity_control()
+        r = rospy.Rate(self.policy_rate)
+
+        it = 0 
+        max_it = 30
+
+        fail_count = 0
+        max_fails = 4
+
+        scene_start = time.time()
+
+
+        while not self.complete and it < max_it and fail_count <= max_fails:
+            
+            self.policy.init_data()
+
+            state = self.get_state()
+
+            self.policy.integrate(state[0], state[1], state[2])
+            self.policy.get_grasps(state[2])
+
+            print("Graps", self.policy.grasps)
+
+            print("Qualities", self.policy.qualities)
+
+            self.grasp_result = None
+
+            # while self.grasp_result != "succeeded":
+
+
+            if len(self.policy.qualities) > 0:
+                best_grasp = np.argmax(self.policy.qualities)
+            else:
+                fail_count += 1
+                continue
+
+
+            print("grasping")
+            start_time = time.time()
+            self.switch_to_joint_trajectory_control()
+            grasp_thread = threading.Thread(target=self.execute_grasp, args= (self.policy.grasps[best_grasp],))
+            with Timer("grasp_time"):
+                grasp_thread.start()
+                while True:
+                    if self.grasp_integrate:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                    r.sleep()
+                    if not grasp_thread.is_alive():
+                        res = self.grasp_result
+                        break
+            
+            if self.grasp_result != "succeeded":
+                self.policy.grasps.pop(best_grasp)
+                fail_count += 1
+            #     info = self.collect_info(res)
+            #     # self.log_policy_perf(res)
+            #     # self.switch_to_cartesian_velocity_control()
+            #     continue
+            self.moveit.goto([0.007393896973035941, -0.2653374353039245, -0.004441121394363202, -1.3750610221562085, -0.01723028415317289, 1.1100052558692597, 0.8086601629670471], velocity_scaling=0.4)
+            # self.switch_to_cartesian_velocity_control()
+
+            info = self.collect_info(res)
+
+            # logger.log_run(info)
+
+            # send the arm back to its home position
+            # self.switch_to_joint_trajectory_control()
+            
+            # 0.005438134067671112, -1.1927319269669692, -0.006413122232248625, -2.2730176637351365, 0.006661515123101674, 1.607565822108453, 0.8151304852513671
+            # 0.007393896973035941, -0.2653374353039245, -0.004441121394363202, -1.3750610221562085, -0.01723028415317289, 1.1100052558692597, 0.8086601629670471
+            self.gripper.move(0.08)
 
         print("Time to complete", time.time() - scene_start)
 
-        return info
+        scene_end = time.time() - scene_start
 
+        if fail_count <= max_fails:
+            self.writer.add_scalar(scene + " time to complete", scene_end, self.frame)        
+
+        return info
 
 
     def reset(self):
@@ -590,8 +786,6 @@ class GraspController:
         return bb
     
     def log_policy_perf(self, log):
-        print("writing to csv", log)
-        print("In the csv:", self.policy.policy_log_dir)
         timestamp = datetime.now()
         with open(self.policy.policy_log_dir, mode='a', newline='') as file:
             # Create a CSV writer
@@ -605,20 +799,18 @@ class GraspController:
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
         # model_sample = self.policy.update(state, q)
         # grasp_q, grasp_t, view_q, view_t = self.policy.update(state, q)
-        start = time.time()
         grasp_input, view_input = self.policy.get_actions(state,q)
         grasp_vals, view_vals = self.policy.update(grasp_input, view_input)
-        print("inference took:", time.time() - start)
         # print("network output", out)
         # model_sample = self.policy.sample_action(grasp_q, grasp_t, view_q, view_t)
         if exploration:
-            # greedy = np.random.uniform()
-            # if greedy > epsilon:
-            #     model_sample = self.policy.get_best_action(grasp_input, view_input, grasp_vals, view_vals) 
-            # else:
-            model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
+            greedy = np.random.uniform()
+            if greedy > epsilon:
+                model_sample = self.policy.get_best_action(grasp_input, view_input, grasp_vals, view_vals) 
+            else:
+                # model_sample = self.policy.sample_action(grasp_input, view_input, grasp_vals, view_vals)
                 # print(model_sample)
-                # model_sample = self.policy.sample_action_2(grasp_input, view_input, grasp_vals, view_vals)
+                model_sample = self.policy.sample_action_2(grasp_input, view_input, grasp_vals, view_vals)
                 # print(model_sample)
 
         else:
@@ -740,7 +932,6 @@ class GraspController:
                 success, plan = self.moveit.plan([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79], 0.2, 0.2)
                 # self.moveit.goto([0.79, -0.79, 0.0, -2.356, 0.0, 1.57, 0.79])
                 if success:
-                    print("planning success")
                     self.moveit.scene.clear()
                     self.moveit.execute(plan) 
                     self.gripper.move(0.08)

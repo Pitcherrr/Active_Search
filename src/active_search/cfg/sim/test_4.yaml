@@ -3,91 +3,51 @@ center:
 - 0.0
 - 0.2
 objects:
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
   rpy:
   - 0.0
   - 0.0
-  - 1.3166975809410397
-  scale: 0.4161868473286624
+  - 48.11421406591269
+  scale: 0.46184163449220295
   xyz:
-  - 0.523412332321821
-  - 0.008774393044568563
-  - 0.23158705624668982
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  - 0.47180427017107457
+  - 0.02850333949446543
+  - 0.22716655083759282
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/occluding_objs/mug/ff1a44e1c1785d618bca309f2c51966a.urdf
+  rpy:
+  - -90.00000000000003
+  - 1.2722218725854067e-14
+  - -54.935063803602
+  scale: 0.013941104431361349
+  xyz:
+  - 0.47099127575680216
+  - 0.028538253693409867
+  - 0.4276584125901445
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/BakingVanilla_800_tex.urdf
   rpy:
   - 0.0
   - 0.0
-  - -133.57958388916396
-  scale: 0.6558845996803926
+  - 48.1746849520885
+  scale: 0.7954344187494806
   xyz:
-  - 0.5317047442631997
-  - -0.08672755748501407
-  - 0.24689954789529767
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/KoalaCandy_800_tex.urdf
+  - 0.46773061364371055
+  - -0.07892188271824821
+  - 0.24317766992914785
+- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/chips_can.urdf
   rpy:
   - 0.0
   - 0.0
-  - -83.16380626590843
-  scale: 0.4568571227875958
+  - -122.33882739567333
+  scale: 0.5116218454455497
   xyz:
-  - 0.4841927626815762
-  - 0.08395398049511285
-  - 0.2341851751159801
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - 63.50243837060756
-  scale: 0.6724235948913585
-  xyz:
-  - 0.5680780861328754
-  - -0.024802914747022786
-  - 0.242939148909488
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - 126.84638037437796
-  scale: 0.6196626355695872
-  xyz:
-  - 0.5284574150590624
-  - 0.04750306908466745
-  - 0.23604943592565833
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/FruitTea_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - 53.75728069832472
-  scale: 0.4075962837980823
-  xyz:
-  - 0.4578422964910762
-  - -0.02092134074952051
-  - 0.22799719436297863
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/wooden_block.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - 151.49672643439442
-  scale: 0.5223012312866424
-  xyz:
-  - 0.49203592617502206
-  - -0.05101906705148074
-  - 0.25920180940820026
-- object_id: /home/pitcher/dev_ws/thesis_ws/active_search/src/active_search/assets/test/SoftCakeOrange_800_tex.urdf
-  rpy:
-  - 0.0
-  - 0.0
-  - -7.01341980183111
-  scale: 0.6187130390465121
-  xyz:
-  - 0.4468356291817831
-  - 0.08165128109634234
-  - 0.23600185449230088
+  - 0.5641970096626714
+  - -0.051769421214507255
+  - 0.26800904456527386
 q:
-- 0.029773790211502588
-- -1.3179242429216673
-- -0.05605789150374413
-- -2.3727859410944196
-- 0.06599066623294632
-- 1.6296622376994614
-- 0.8647018984281496
+- 0.04092327036652041
+- -1.4474146331621733
+- -0.013927081508084471
+- -2.3398268314918416
+- 0.03617996940754856
+- 1.5584091773399522
+- 0.728354055838172

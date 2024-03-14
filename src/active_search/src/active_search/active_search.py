@@ -149,9 +149,6 @@ class NextBestView(MultiViewPolicy):
 
     def update(self, grasp_input, view_input):
 
-        print("grasp shape", grasp_input.shape)
-        print("viwe shape", view_input.shape)
-
         grasp_vals = self.grasp_nn(grasp_input) if grasp_input.shape[0] > 0 else torch.empty((0)).to(self.device)
         view_vals = self.view_nn(view_input) if view_input.shape[0] > 0 else torch.empty((0)).to(self.device)
 
@@ -160,12 +157,12 @@ class NextBestView(MultiViewPolicy):
     
     def sample_action(self, grasp_input, view_input, grasp_vals, view_vals):
 
-        if self.done:
+        if self.grasp_on_target:
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = 10.0
-            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
+            value = grasp_vals.tolist()[0]
+            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.grasp_on_target]
         
         grasp_vals = torch.softmax(torch.flatten(grasp_vals), dim=0)
         view_vals = torch.softmax(torch.flatten(view_vals), dim=0)
@@ -199,59 +196,74 @@ class NextBestView(MultiViewPolicy):
             action_input = view_input[selected_action_index - len(self.grasps)]
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]
         
-        return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
+        return [grasp, view, selected_action, value, action_input.view(1, -1), self.grasp_on_target]
     
 
     def sample_action_2(self, grasp_input , view_input, grasp_vals, view_vals):
 
-        if self.done:
+        if self.grasp_on_target:
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = 10.0
-            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
+            value = grasp_vals.tolist()[0]
+            return [grasp, view, selected_action, value[0], grasp_input[0].view(1, -1), self.grasp_on_target]
         
-        #this is the uniform sample as opposed to a softmax over the other actions
-        combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
+        # combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
 
-        # action_dist = torch.distributions.Uniform(combined_vals.flatten())
+        if grasp_vals.shape[0] > 0:
+            random_action = np.random.choice(["grasp", "view"])
+        else:
+            random_action = "view"
 
-        print("Combined values shape: ", combined_vals.shape[0])
+        grasp = random_action == "grasp"
+        view = random_action == "view"
 
-        selected_action_index = np.random.randint(low = 0, high = combined_vals.shape[0])
-        
-        grasp, view = False, False
-        # Based on the selected index, determine whether it's a grasp or a view
-        if selected_action_index < len(self.grasps):
-            grasp = True
+        if grasp:
+            selected_action_index = np.random.randint(low = 0, high = grasp_vals.shape[0])
             selected_action = self.grasps[selected_action_index]
             # indexing to the correct input to the network
             action_input = grasp_input[selected_action_index]
             value = grasp_vals.tolist()[selected_action_index]
-        else:
-            view = True
-            selected_action = self.views[selected_action_index - len(self.grasps)]
-            action_input = view_input[selected_action_index - len(self.grasps)]
-            value = view_vals.tolist()[selected_action_index - len(self.grasps)]
+
+        elif view:
+            selected_action_index = np.random.randint(low = 0, high = view_vals.shape[0])
+            selected_action = self.views[selected_action_index]
+            # indexing to the correct input to the network
+            action_input = view_input[selected_action_index]
+            value = view_vals.tolist()[selected_action_index] 
         
-        return [grasp, view, selected_action, value[0], action_input.view(1, -1), self.done]
+        # selected_action_index = np.random.randint(low = 0, high = combined_vals.shape[0])
+        
+        # grasp, view = False, False
+        # # Based on the selected index, determine whether it's a grasp or a view
+        # if selected_action_index < len(self.grasps):
+        #     grasp = True
+        #     selected_action = self.grasps[selected_action_index]
+        #     # indexing to the correct input to the network
+        #     action_input = grasp_input[selected_action_index]
+        #     value = grasp_vals.tolist()[selected_action_index]
+        # else:
+        #     view = True
+        #     selected_action = self.views[selected_action_index - len(self.grasps)]
+        #     action_input = view_input[selected_action_index - len(self.grasps)]
+        #     value = view_vals.tolist()[selected_action_index - len(self.grasps)]
+        
+        return [grasp, view, selected_action, value[0], action_input.view(1, -1), self.grasp_on_target]
 
 
 
     def get_best_action(self, grasp_input, view_input, grasp_vals, view_vals):
-        if self.done:
+        if self.grasp_on_target:
             grasp = True
             view = False
             selected_action = self.grasps[0]
-            value = 10.0
-            return [grasp, view, selected_action, value, grasp_input[0].view(1, -1), self.done]
+            value = grasp_vals.tolist()[0]
+            return [grasp, view, selected_action, value[0], grasp_input[0].view(1, -1), self.grasp_on_target]
         
         grasp_vals = torch.flatten(grasp_vals)
         view_vals = torch.flatten(view_vals)
         
         combined_vals = torch.cat((grasp_vals, view_vals), dim=0)
-
-        print("Combined vals: ", combined_vals)
 
         selected_action_index = torch.argmax(combined_vals)
 
@@ -269,7 +281,7 @@ class NextBestView(MultiViewPolicy):
             action_input = view_input[selected_action_index - len(self.grasps)]
             value = view_vals.tolist()[selected_action_index - len(self.grasps)]
         
-        return [grasp, view, selected_action, value, action_input.view(1, -1), self.done]
+        return [grasp, view, selected_action, value, action_input.view(1, -1), self.grasp_on_target]
 
 
     def join_clouds(self, map_cloud, occu):
@@ -310,6 +322,8 @@ class NextBestView(MultiViewPolicy):
         view_candidates = []
         for theta, phi in itertools.product(thetas, phis):
             view = self.view_sphere.get_view(theta, phi)
+            # if np.all(view.to_list() == self.view_blacklist.to_list()):
+            #     print("Found a blacklisted view", view.to_list(), self.view_blacklist.to_list(), np.all(view.to_list() == self.view_blacklist.to_list()))                
             if self.solve_cam_ik(q, view) and np.all(view.to_list() != self.view_blacklist.to_list()):
                 view_candidates.append(view)
         print("generating",len(view_candidates),"views")

@@ -142,11 +142,14 @@ class BtSimNode:
         return ResetResponse(to_bbox_msg(bb))
     
     def sim_complete(self):
+        msg = Bool()
+
         if self.sim.scene.complete:
-            msg = Bool()
             msg.data = True
-            self.sim_complete_pub.publish(msg)
-            return 
+        else:
+            msg.data = False
+
+        self.sim_complete_pub.publish(msg)
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:

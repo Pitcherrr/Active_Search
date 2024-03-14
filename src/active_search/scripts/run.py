@@ -57,19 +57,19 @@ def main():
             if i != "y":
                 exit()
             rospy.loginfo("Running policy ...")
-        info = controller.run()
-        logger.log_run(info)
+        # info = controller.run()
+        # logger.log_run(info)
         # test the policy every 15 games
         if (n+1) % 20 == 0:
-            controller.policy.view_nn.save_model()
-            controller.policy.grasp_nn.save_model()
+            # controller.policy.view_nn.save_model()
+            # controller.policy.grasp_nn.save_model()
             enumerate_test_scenes(controller)
 
 def enumerate_test_scenes(controller):
     print("############### Testing Policy ######################")
     change_sim = rospy.ServiceProxy("change_sim", ServiceStr)
-    test_cases = ["test_1.yaml", "test_2.yaml", "test_3.yaml", "test_4.yaml"]
-    # test_cases = get_all_test_files()
+    # test_cases = ["test_1.yaml", "test_2.yaml", "test_3.yaml", "test_4.yaml"]
+    test_cases = get_all_test_files()
     print("Running test cases", test_cases)
 
     for case in test_cases:
@@ -93,7 +93,7 @@ def enumerate_test_scenes(controller):
         controller.moveit.goto("ready", velocity_scaling=0.4)
      
         rospy.loginfo("Running policy ...")
-        info = controller.run_policy(case)
+        info = controller.run_vgn(case)
         # info = controller.run_baseline()
 
     msg = ServiceStrRequest()
