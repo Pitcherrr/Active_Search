@@ -4,9 +4,11 @@
 
 Welcome to the repository for my honours thesis.
 
+Published in IROS 2024.
+
 Active Search is an extension of the work done by M.Breyer for the ETH Zurich Autonomous Systems Lab.
 
-Active Search allows a Franka Panda robot arm to navigate an unseen environment and find a hidden target object knowing only the target object's bounding box.
+Active Search teaches a Franka Panda robot arm to search an unseen, unstructured environment for a hidden target object knowing only its size and observing information from a wrist mounted depth camera.
 
 ## Use:
 * Requires a CUDA capable GPU
@@ -25,14 +27,10 @@ source devel/setup.bash
 ```
 
 ```
- roslaunch active_search env.launch sim:=true
+roslaunch active_search env.launch sim:=true
 ```
 
-Run the robot in another terminal:
+In another terminal run the training script:
 ```
 python3 src/active_search/scripts/run.py nbv
 ```
-
-## TODO:
-
-* Add a requirements.txt
