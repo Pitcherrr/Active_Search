@@ -13,7 +13,6 @@ from robot_helpers.ros.conversions import *
 from vgn.detection import *
 from vgn.perception import UniformTSDFVolume
 from robot_helpers.spatial import Transform
-# from active_search.dynamic_perception import SceneTSDFVolume
 
 from active_grasp.timer import Timer
 from active_grasp.rviz import Visualizer
@@ -36,8 +35,14 @@ class Policy:
     def load_parameters(self):
         self.arm_id = rospy.get_param("~arm_id")
         self.base_frame = rospy.get_param("~base_frame_id")
+        # print("==========")
+        # print("self.base_frame:", self.base_frame)
+        # print("==========")
         self.T_grasp_ee = Transform.from_list(rospy.get_param("~ee_grasp_offset")).inv()
         self.cam_frame = rospy.get_param("~camera/frame_id")
+        # print("==========")
+        # print("self.cam_frame:", self.cam_frame)
+        # print("==========")
         self.task_frame = "task"
         info_topic = rospy.get_param("~camera/info_topic")
         msg = rospy.wait_for_message(info_topic, CameraInfo, rospy.Duration(2.0))
@@ -98,6 +103,10 @@ class Policy:
         self.done = False
         self.info = {}
 
+        # self.grasp_blacklist = [np.zeros(7)]
+        self.grasp_blacklist = []
+        self.view_blacklist = Transform.from_translation(np.zeros(3))
+
     def init_data(self):
         self.views = []
         self.grasps = []
@@ -151,19 +160,32 @@ class Policy:
         target = AABBox(target_min, target_max)
 
         self.vis.bbox(self.base_frame, target)
-        # print("grasps", grasps, qualities)
+        # print("grasps", grasps, qualities)    
+        print("Grasp blacklist", self.grasp_blacklist)
         for grasp, quality in zip(grasps, qualities):
+            
+            if grasp.pose.translation[2] <= 4*self.tsdf.voxel_size:
+                # dont take grasps on the floor
+                continue
+
             pose = self.T_base_task * grasp.pose
             tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
             #need to add some padding to botting of bbox as grasps appear there sometimes
-            # print(bbox.min)
-            if bbox.is_inside(tip) and quality > qual_thresh:
+
+            in_blacklist = False
+            for blacklist_grasp in self.grasp_blacklist:
+                in_blacklist = np.isclose(blacklist_grasp, grasp.pose.translation).any()
+                if in_blacklist == True:
+                    break
+
+            # if bbox.is_inside(tip) and quality > qual_thresh and not np.isin(np.asarray(self.grasp_blacklist), grasp.pose.to_list()).any():
+            if bbox.is_inside(tip) and quality > qual_thresh and not in_blacklist:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)                
                 if q_grasp is not None:
                     filtered_grasps.append(grasp)
                     filtered_qualities.append(quality)
-            if target.is_inside(tip) and quality > qual_thresh:
+            if target.is_inside(tip) and quality > qual_thresh and not in_blacklist:
                 grasp.pose = pose
                 q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                 if q_grasp is not None:

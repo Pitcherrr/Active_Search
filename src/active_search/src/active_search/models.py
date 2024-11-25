@@ -57,7 +57,7 @@ class Autoencoder(nn.Module):
     def get_path(self):
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/autoencoder_weights.pth"
+        self.model_path =  str(pkg_root)+"/models/autoencoder_weights_3.pth"
 
 
 class GraspEval(nn.Module):
@@ -65,20 +65,26 @@ class GraspEval(nn.Module):
         super(GraspEval, self).__init__()
         self.fc1 = nn.Linear(526, 256) 
         self.fc2 = nn.Linear(256, 128)  
-        self.fc3 = nn.Linear(128, 1)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, 32)
+        self.fc5 = nn.Linear(32, 1)
+
+        # self.fc1 = nn.Linear(526, 256) 
+        # self.fc2 = nn.Linear(256, 128)  
+        # self.fc3 = nn.Linear(128, 1)
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.05)
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/graspnn_weights_3.pth"  
+        self.model_path =  str(pkg_root)+"/models/graspnn_weights_10.pth"  
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = torch.relu(x)
-        x = self.fc2(x) 
-        x = torch.relu(x)    
-        x = self.fc3(x)
-        # output = torch.softmax(x)    
+        x = torch.relu(self.fc1(x))    
+        x = torch.relu(self.fc2(x))  
+        x = torch.relu(self.fc3(x))  
+        x = torch.relu(self.fc4(x))
+        x = self.fc5(x)
+        # x = self.fc3(x)                
         return x
     
     def save_model(self):
@@ -92,18 +98,27 @@ class ViewEval(nn.Module):
         super(ViewEval, self).__init__()
         self.fc1 = nn.Linear(526, 256) 
         self.fc2 = nn.Linear(256, 128)  
-        self.fc3 = nn.Linear(128, 1)   
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, 32)
+        self.fc5 = nn.Linear(32, 1)
+
+        # self.fc1 = nn.Linear(526, 256) 
+        # self.fc2 = nn.Linear(256, 128)  
+        # self.fc3 = nn.Linear(128, 1)
+
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.05)
-
         rospack = rospkg.RosPack()
         pkg_root = Path(rospack.get_path("active_search"))
-        self.model_path =  str(pkg_root)+"/models/viewnn_weights_3.pth"
+        self.model_path =  str(pkg_root)+"/models/viewnn_weights_10.pth"
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))    
-        x = torch.relu(self.fc2(x))    
-        x = self.fc3(x)        
+        x = torch.relu(self.fc2(x))  
+        x = torch.relu(self.fc3(x))  
+        x = torch.relu(self.fc4(x))
+        x = self.fc5(x)        
+        # x = self.fc3(x)
         return x
     
     def save_model(self):

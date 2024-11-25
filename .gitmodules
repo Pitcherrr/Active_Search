@@ -12,3 +12,7 @@
 	path = src/vgn
 	url = https://github.com/uq-rppl/vgn.git
 	branch = devel	
+[submodule "src/trac_ik"]
+	path = src/trac_ik
+	url = https://github.com/HIRO-group/trac_ik.git
+	branch = master

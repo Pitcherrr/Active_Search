@@ -63,9 +63,12 @@ class GraspController:
         )
 
     def init_robot_connection(self):
+        print('Pre arm client')
         self.arm = PandaArmClient()
+        print('Pre gripper client')
         self.gripper = PandaGripperClient()
         topic = rospy.get_param("cartesian_velocity_controller/topic")
+        print(f'Topic: {topic}')
         self.cartesian_vel_pub = rospy.Publisher(topic, Twist, queue_size=10)
         rospy.Subscriber('sim_complete', Bool, self.sim_complete, queue_size=1)
 
@@ -348,7 +351,8 @@ class GraspController:
 
         scene_start = time.time()
 
-        while not self.complete and it < max_it and fail_count <= max_fails and not self.policy.done:
+        # while not self.complete and it < max_it and fail_count <= max_fails and not self.policy.done:
+        while not self.complete and it < max_it and fail_count <= max_fails:
             with Timer("Total_Inference_Time"):
                 state = self.get_state()
                 with Timer("State_Encoding"):
@@ -381,6 +385,7 @@ class GraspController:
                             break
                 
                 if self.grasp_result != "succeeded":
+                    self.policy.grasp_blacklist.append(action.pose.translation)
                     fail_count += 1
                     info = self.collect_info(res)
                     self.log_policy_perf(res)
@@ -393,25 +398,43 @@ class GraspController:
                 print("occupancy diff:", occ_diff)
                 exec_time = time.time() - start_time
             elif view:
-                self.last_action = "view"
+                if self.policy.done == True:
+                    self.policy.done = False
+                # start_time = time.time()
+                # t = 0
+                # self.policy.x_d = action
+                # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                # print("view")
+                # while t < (5.0):
+                #     img, pose, q = self.get_state()
+                #     self.policy.integrate(img, pose, q)
+                #     t += 1/self.policy_rate
+                #     r.sleep()
+                # self.policy.x_d = None
+                # rospy.sleep(1.0) #wait for franka to stop moving      
+                # timer.shutdown()
+                # rospy.sleep(0.5)
+                # exec_time = time.time() - start_time
+                # occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                # res = "view"
+                # self.policy.done = False
                 start_time = time.time()
-                t = 0
-                self.policy.x_d = action
-                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("view")
-                while t < (5.0):
-                    img, pose, q = self.get_state()
-                    self.policy.integrate(img, pose, q)
-                    t += 1/self.policy_rate
-                    r.sleep()
-                self.policy.x_d = None
-                rospy.sleep(1.0) #wait for franka to stop moving      
-                timer.shutdown()
-                rospy.sleep(0.5)
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_view, args= (action,))
+                with Timer("view_time"):
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = "view"
+                            break
+                
+                self.last_action = "view"
                 exec_time = time.time() - start_time
-                occ_diff = torch.tensor(float(10-10*(len(self.policy.coordinate_mat)/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
-                res = "view"
-                self.policy.done = False
+                occ_diff = torch.tensor(float(10-10*(max(1, len(self.policy.coordinate_mat))/init_occ)), requires_grad= True).to("cuda")  #+ve diff is good
+                self.policy.view_blacklist = action
             else:
                 res = "aborted"
 
@@ -488,7 +511,7 @@ class GraspController:
                 self.policy.integrate(state[0], state[1], state[2])
                 self.policy.get_grasps(state[2])
 
-                print("Graps", self.policy.grasps)
+                print("Grasps", self.policy.grasps)
 
                 grasp_igs = [self.grasp_ig(grasp) for grasp in self.policy.grasps]
 
@@ -529,25 +552,130 @@ class GraspController:
 
                 self.switch_to_cartesian_velocity_control()
             elif action == "view":
+                # start_time = time.time()
+                # t = 0
+                # self.policy.x_d = views[best_view]
+                # timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
+                # print("Executing for: 3 seconds")
+                # while t < (3.0):
+                #     img, pose, q = self.get_state()
+                #     self.policy.integrate(img, pose, q)
+                #     t += 1/self.policy_rate
+                #     r.sleep()
+                # self.policy.x_d = None
+                # rospy.sleep(1.0)
+                # timer.shutdown()
+                # rospy.sleep(0.5)
                 start_time = time.time()
-                t = 0
-                self.policy.x_d = views[best_view]
-                timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-                print("Executing for: 3 seconds")
-                while t < (3.0):
-                    img, pose, q = self.get_state()
-                    self.policy.integrate(img, pose, q)
-                    t += 1/self.policy_rate
-                    r.sleep()
-                rospy.sleep(0.2)        
-                timer.shutdown()
-                res = "view"
+                self.switch_to_joint_trajectory_control()
+                grasp_thread = threading.Thread(target=self.execute_view, args= (views[best_view],))
+                with Timer("view_time"):
+                    grasp_thread.start()
+                    while True:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                        r.sleep()
+                        if not grasp_thread.is_alive():
+                            res = "view"
+                            break
             else:
                 res = "aborted"
 
             info = self.collect_info(res)
 
             logger.log_run(info)
+
+        print("Time to complete", time.time() - scene_start)
+
+        return info
+
+
+    def run_vgn(self):
+        logger = PerfLogger("logs")
+        self.policy.init_tsdf()
+        self.policy.target_bb = self.reset()
+        self.complete = False
+        voxel_size = 0.0075
+        x_off = 0.35
+        y_off = -0.15
+        z_off = 0.2
+
+        bb_min = [x_off,y_off,z_off]
+        bb_max = [40*voxel_size+x_off,40*voxel_size+y_off,40*voxel_size+z_off]
+        self.bbox = AABBox(bb_min, bb_max)
+
+        self.view_sphere = ViewHalfSphere(self.bbox, self.min_z_dist)
+        self.policy.activate(self.bbox, self.view_sphere)
+
+        # self.switch_to_cartesian_velocity_control()
+        r = rospy.Rate(self.policy_rate)
+
+        it = 0 
+        max_it = 30
+
+        fail_count = 0
+        max_fails = 4
+
+        scene_start = time.time()
+
+
+        while not self.complete and it < max_it and fail_count <= max_fails:
+            
+            self.policy.init_data()
+
+            state = self.get_state()
+
+            self.policy.integrate(state[0], state[1], state[2])
+            self.policy.get_grasps(state[2])
+
+            print("Grasps", self.policy.grasps)
+
+            print("Qualities", self.policy.qualities)
+
+            self.grasp_result = None
+
+            # while self.grasp_result != "succeeded":
+
+            if len(self.policy.qualities) > 0:
+                best_grasp = np.argmax(self.policy.qualities)
+            else:
+                continue
+
+            print("grasping")
+            start_time = time.time()
+            self.switch_to_joint_trajectory_control()
+            grasp_thread = threading.Thread(target=self.execute_grasp, args= (self.policy.grasps[best_grasp],))
+            with Timer("grasp_time"):
+                grasp_thread.start()
+                while True:
+                    if self.grasp_integrate:
+                        img, pose, q = self.get_state()
+                        self.policy.integrate(img, pose, q)
+                    r.sleep()
+                    if not grasp_thread.is_alive():
+                        res = self.grasp_result
+                        break
+            
+            if self.grasp_result != "succeeded":
+                self.policy.grasps.pop(best_grasp)
+            #     fail_count += 1
+            #     info = self.collect_info(res)
+            #     # self.log_policy_perf(res)
+            #     # self.switch_to_cartesian_velocity_control()
+            #     continue
+            self.moveit.goto([0.007393896973035941, -0.2653374353039245, -0.004441121394363202, -1.3750610221562085, -0.01723028415317289, 1.1100052558692597, 0.8086601629670471], velocity_scaling=0.4)
+            # self.switch_to_cartesian_velocity_control()
+
+            info = self.collect_info(res)
+
+            logger.log_run(info)
+
+            # send the arm back to its home position
+            # self.switch_to_joint_trajectory_control()
+            
+            # 0.005438134067671112, -1.1927319269669692, -0.006413122232248625, -2.2730176637351365, 0.006661515123101674, 1.607565822108453, 0.8151304852513671
+            # 0.007393896973035941, -0.2653374353039245, -0.004441121394363202, -1.3750610221562085, -0.01723028415317289, 1.1100052558692597, 0.8086601629670471
+            self.gripper.move(0.08)
 
         print("Time to complete", time.time() - scene_start)
 
@@ -749,6 +877,11 @@ class GraspController:
         bounding_box = AABBox(bounding_box_min, bounding_box_max)
 
         return bounding_box 
+    
+    def execute_view(self, view):
+        print(f"Going to view {view}")
+        self.moveit.gotoL(view)
+        return
 
     def create_collision_scene(self):
         # Segment support surface

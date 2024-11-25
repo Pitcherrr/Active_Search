@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+# import os
 import argparse
 from datetime import datetime
 import pandas as pd
@@ -9,6 +11,10 @@ from tqdm import tqdm
 from std_srvs.srv import SetBool, Empty, Trigger, TriggerRequest, TriggerResponse
 from std_msgs.msg import String
 
+sys.path.append('/home/tom/dev_ws/active_search/src/active_grasp/src/')
+sys.path.append('/usr/local/lib/python2.7/dist-packages')
+# print(sys.path)
+
 from active_grasp.bbox import AABBox
 from active_search.rl_controller import *
 from active_search.open3d_viz import *
@@ -16,6 +22,7 @@ from active_search.search_policy import make, registry
 from active_grasp.srv import Seed
 from active_search.srv import ServiceStr, ServiceStrRequest
 from robot_helpers.ros import tf
+
 
 
 def main():
@@ -58,7 +65,6 @@ def main():
         # if (n+1) % 15 == 0:
         user = input("Press a key to start")
         run_hw(controller, logger)
-            # enumerate_test_scenes(controller, logger)
 
 def enumerate_test_scenes(controller, logger):
     rospy.loginfo("############### Testing Policy ######################")
@@ -100,15 +106,17 @@ def run_hw(controller, logger):
     controller.policy.activate(AABBox([0,0,0], [0.3,0.3,0.3]), None)
 
     controller.gripper.move(0.08)
-    controller.switch_to_joint_trajectory_control()
-    controller.moveit.goto("ready", velocity_scaling=0.4)
+    # controller.switch_to_joint_trajectory_control()
+    # controller.moveit.goto("ready", velocity_scaling=0.4)
+
+    _ = input("Stop here")
     
     rospy.loginfo("Running policy ...")
-    info = controller.run_policy("test1.yaml")
+    # info = controller.run_policy("test1.yaml")
+    info = controller.run_vgn()
+    # info = controller.run_baseline()
 
-    # info = controller.run_policy()
-    logger.log_run(info)
-    # info = controller.run() 
+    logger.log_run(info) 
 
 
 def create_parser():
